@@ -1,161 +1,165 @@
 package listener
 
 import (
-    "fmt"
-    "io"
-    "log"
-    "os/exec"
+	"fmt"
+	"io"
+	"log"
+	"os/exec"
     //"time"
-    "bufio"
-    "bytes"
-    "encoding/gob"
-    //"errors"
-    "flag"
-    "net"
-    "os"
-    "regexp"
-    "strconv"
-    "strings"
+	"bufio"
+	"bytes"
+	"encoding/gob"
+	//"errors"
+	"flag"
+	"net"
+	"os"
+	"regexp"
+	"strconv"
+	"strings"
 )
 
 type ListenerSettings struct {
-    networkInterface string
-    port             int
+	networkInterface string
+	port             int
 
-    replayAddress string
+	replayAddress string
 }
 
 var settings ListenerSettings = ListenerSettings{}
 
 type HttpRequest struct {
-    Tag     string
-    Method  string
-    Url     string
-    Headers map[string]string
+	Tag     string
+	Method  string
+	Url     string
+	Headers map[string]string
 }
 
 func readOutput(pipe io.ReadCloser, c chan *HttpRequest, err chan int) {
-    re := regexp.MustCompile("(GET) (/.*) HTTP/1.1")
-    headers_re := regexp.MustCompile("([^ ]*): (.*)")
+	re := regexp.MustCompile("(GET) (/.*) HTTP/1.1")
+	headers_re := regexp.MustCompile("([^ ]*): (.*)")
 
-    reader := bufio.NewScanner(pipe)
+	reader := bufio.NewScanner(pipe)
 
-    var request *HttpRequest
+	var request *HttpRequest
 
-    var requestStarted = false
+	var requestStarted = false
 
-    for reader.Scan() {
-        line := reader.Text()
+	for reader.Scan() {
+		line := reader.Text()
 
-        if strings.Index(line, "HTTP/1.1") != -1 {
-            match := re.FindAllString(line, -1)
+		if strings.Index(line, "HTTP/1.1") != -1 {
+			match := re.FindAllString(line, -1)
 
-            if len(match) > 0 {
-                info := strings.Split(match[0], " ")
+			if len(match) > 0 {
+				info := strings.Split(match[0], " ")
 
-                request = &HttpRequest{
-                    Method:  info[0],
-                    Url:     info[1],
-                    Headers: make(map[string]string),
-                }
+				request = &HttpRequest{
+					Method:  info[0],
+					Url:     info[1],
+					Headers: make(map[string]string),
+				}
 
-                requestStarted = true
-            }
-        }
+				requestStarted = true
+			}
+		}
 
-        if requestStarted {
-            if line == "" {
-                c <- request
-                requestStarted = false
-            } else {
-                match := headers_re.FindAllString(line, -1)
+		if requestStarted {
+			if line == "" {
+				c <- request
+				requestStarted = false
+			} else {
+				match := headers_re.FindAllString(line, -1)
 
-                if len(match) > 0 {
-                    header := strings.Split(match[0], ": ")
+				if len(match) > 0 {
+					header := strings.Split(match[0], ": ")
 
-                    request.Headers[header[0]] = header[1]
-                }
-            }
-        }
-    }
+					request.Headers[header[0]] = header[1]
+				}
+			}
+		}
+	}
 }
 
 func sendOutput(c chan *HttpRequest, quite chan int) {
-    serverAddr, err := net.ResolveUDPAddr("udp4", settings.replayAddress)
-    conn, err := net.DialUDP("udp", nil, serverAddr)
+	serverAddr, err := net.ResolveUDPAddr("udp4", settings.replayAddress)
+	conn, err := net.DialUDP("udp", nil, serverAddr)
 
-    defer conn.Close()
+	defer conn.Close()
 
-    if err != nil {
-        log.Fatal("Connection error", err)
-    }
+	if err != nil {
+		log.Fatal("Connection error", err)
+	}
 
-    for {
-        select {
-        case request := <-c:
-            fmt.Println("Request:", request.Url)
+	for {
+		select {
+		case request := <-c:
+			fmt.Println("Request:", request.Url)
 
-            msg := bytes.Buffer{}
+			msg := bytes.Buffer{}
 
-            enc := gob.NewEncoder(&msg)
-            err := enc.Encode(request)
+			enc := gob.NewEncoder(&msg)
+			err := enc.Encode(request)
 
-            conn.Write(msg.Bytes())
+			conn.Write(msg.Bytes())
 
-            if err != nil {
-                log.Println("encode error:", err)
-            }
+			if err != nil {
+				log.Println("encode error:", err)
+			}
 
-        case <-quite:
-            conn.Close()
-            return
-        }
-    }
+		case <-quite:
+			conn.Close()
+			return
+		}
+	}
 }
 
 func Run() {
-    fmt.Println("Settings:", settings)
-
-    if !strings.Contains(settings.replayAddress, ":") {
-        settings.replayAddress = settings.replayAddress + ":28020"
+    if os.Getuid() != 0 {
+        fmt.Println("Please start the listener as root or sudo!")
+        fmt.Println("This is required since listener sniff traffic on given port.")
+        os.Exit(1)
     }
 
-    cmd := exec.Command("tcpdump", "-vv", "-A", "-i", settings.networkInterface, "port "+strconv.Itoa(settings.port))
-    //cmd := exec.Command("ls", "-al")
+	if !strings.Contains(settings.replayAddress, ":") {
+		settings.replayAddress = settings.replayAddress + ":28020"
+	}
 
-    stdout, _ := cmd.StdoutPipe()
-    cmd.Stderr = os.Stderr
+	cmd := exec.Command("tcpdump", "-vv", "-A", "-i", settings.networkInterface, "port "+strconv.Itoa(settings.port))
+	//cmd := exec.Command("ls", "-al")
 
-    if err := cmd.Start(); err != nil {
-        log.Fatal(err)
-    }
+	stdout, _ := cmd.StdoutPipe()
+	cmd.Stderr = os.Stderr
 
-    c := make(chan *HttpRequest)
-    err := make(chan int)
+	if err := cmd.Start(); err != nil {
+		log.Fatal(err)
+	}
 
-    go readOutput(stdout, c, err)
-    go sendOutput(c, err)
+	c := make(chan *HttpRequest)
+	err := make(chan int)
 
-    if err := cmd.Wait(); err != nil {
-        flag.Usage()
-    }
+	go readOutput(stdout, c, err)
+	go sendOutput(c, err)
+
+	if err := cmd.Wait(); err != nil {
+		flag.Usage()
+	}
 }
 
 func init() {
-    if len(os.Args) < 2 || os.Args[1] != "listen" {
-        return
-    }
+	if len(os.Args) < 2 || os.Args[1] != "listen" {
+		return
+	}
 
-    const (
-        defaultPort             = 80
-        defaultNetworkInterface = "any"
+	const (
+		defaultPort             = 80
+		defaultNetworkInterface = "any"
 
-        defaultReplayAddress = "localhost:28020"
-    )
+		defaultReplayAddress = "localhost:28020"
+	)
 
-    flag.IntVar(&settings.port, "p", defaultPort, "Specify the http server port whose traffic you want to capture")
+	flag.IntVar(&settings.port, "p", defaultPort, "Specify the http server port whose traffic you want to capture")
 
-    flag.StringVar(&settings.networkInterface, "i", defaultNetworkInterface, "By default it try to listen on all network interfaces.To get list of interfaces run `ifconfig`")
+	flag.StringVar(&settings.networkInterface, "i", defaultNetworkInterface, "By default it try to listen on all network interfaces.To get list of interfaces run `ifconfig`")
 
-    flag.StringVar(&settings.replayAddress, "r", defaultReplayAddress, "Address of replay server.")
+	flag.StringVar(&settings.replayAddress, "r", defaultReplayAddress, "Address of replay server.")
 }

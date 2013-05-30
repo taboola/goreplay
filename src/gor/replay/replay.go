@@ -1,172 +1,93 @@
 package replay
 
 import (
-    "bytes"
-    "encoding/gob"
-    "flag"
-    "fmt"
-    "log"
-    "net"
-    "net/http"
-    "os"
-    "strconv"
+	"bytes"
+	"encoding/gob"
+	"flag"
+	"fmt"
+	"log"
+	"net"
+	"os"
 )
-
-const (
-    bufSize = 1024 * 10
-)
-
-type ReplaySettings struct {
-    port int
-    host string
-
-    limit int
-
-    address string
-}
 
 var settings ReplaySettings = ReplaySettings{}
 
-type HttpRequest struct {
-    Tag     string
-    Method  string
-    Url     string
-    Headers map[string]string
-}
-
-type Response struct {
-    req  *HttpRequest
-    resp *http.Response
-    err  error
-}
-
-func sendRequest(request *HttpRequest, responses chan *Response) {
-    var req *http.Request
-
-    client := &http.Client{}
-
-    req, err := http.NewRequest("GET", settings.address+request.Url, nil)
-
-    if err != nil {
-        responses <- &Response{err: err}
-        return
-    }
-
-    for key, value := range request.Headers {
-        req.Header.Add(key, value)
-    }
-
-    resp, err := client.Do(req)
-
-    responses <- &Response{request, resp, err}
-}
-
-func handleRequests(requests chan *HttpRequest) {
-    stat := &RequestStat{}
-    stat.reset()
-
-    responses := make(chan *Response)
-
-    for {
-        select {
-        case req := <-requests:
-            go sendRequest(req, responses)
-
-        case resp := <-responses:
-            stat.inc(resp)
-
-            if resp.err != nil {
-                log.Println("Request err:", resp.err)
-            } else {
-                log.Println("Request ok:", resp.req.Url)
-            }
-        }
-    }
-}
+const bufSize = 1024 * 10
 
 func decodeRequest(enc []byte) (request *HttpRequest, err error) {
-    var buf bytes.Buffer
-    buf.Write(enc)
+	var buf bytes.Buffer
+	buf.Write(enc)
 
-    request = &HttpRequest{}
+	request = &HttpRequest{}
 
-    encoder := gob.NewDecoder(&buf)
-    err = encoder.Decode(request)
+	encoder := gob.NewDecoder(&buf)
+	err = encoder.Decode(request)
 
-    return
+	return
 }
 
 func Run() {
-    var buf [bufSize]byte
+	var buf [bufSize]byte
 
-    serverAddress := settings.host + ":" + strconv.Itoa(settings.port)
+	addr, err := net.ResolveUDPAddr("udp", settings.Address())
+	if err != nil {
+		log.Fatal("Can't start:", err)
+	}
 
-    addr, err := net.ResolveUDPAddr("udp", serverAddress)
-    if err != nil {
-        log.Fatal("Can't start:", err)
-    }
+	conn, err := net.ListenUDP("udp", addr)
+	fmt.Println("Starting replay server at:", settings.Address())
 
-    conn, err := net.ListenUDP("udp", addr)
-    if err != nil {
-        log.Fatal("Can't start:", err)
-    }
+	if err != nil {
+		log.Fatal("Can't start:", err)
+	}
 
-    defer conn.Close()
+	defer conn.Close()
 
-    if settings.address == "" {
+	for _, host := range settings.ForwardedHosts() {
+		fmt.Println("Forwarding requests to:", host.Url, "limit:", host.Limit)
+	}
 
-    }
+	requestFactory := NewRequestFactory()
 
-    fmt.Println("Starting replay server at:", serverAddress)
-    fmt.Println("Forwarding incoming requests to:", settings.address)
-    fmt.Println("Limiting concurrent request count to:", settings.limit)
+	for {
+		rlen, _, err := conn.ReadFromUDP(buf[0:])
 
-    requests := make(chan *HttpRequest)
+		if err != nil {
+			continue
+		}
 
-    go handleRequests(requests)
+		if rlen > 0 {
+			if rlen > bufSize {
+				log.Fatal("Too large udp packet", bufSize)
+			}
 
-    for {
-        rlen, _, err := conn.ReadFromUDP(buf[0:])
+			request, err := decodeRequest(buf[0:rlen])
 
-        if err != nil {
-            continue
-        }
-
-        if rlen > 0 {
-            if rlen > bufSize {
-                log.Fatal("Too large udp packet", bufSize)
-            }
-
-            request, err := decodeRequest(buf[0:rlen])
-
-            if err != nil {
-                log.Println("Decode error:", err)
-            } else {
-                requests <- request
-            }
-        }
-    }
+			if err != nil {
+				log.Println("Decode error:", err)
+			} else {
+				requestFactory.Add(request)
+			}
+		}
+	}
 
 }
 
 func init() {
-    if len(os.Args) < 2 || os.Args[1] != "replay" {
-        return
-    }
+	if len(os.Args) < 2 || os.Args[1] != "replay" {
+		return
+	}
 
-    const (
-        defaultPort = 28020
-        defaultHost = "0.0.0.0"
+	const (
+		defaultPort = 28020
+		defaultHost = "0.0.0.0"
 
-        defaultLimit   = 10
-        defaultAddress = "http://localhost:8080"
-    )
+		defaultAddress = "http://localhost:8080"
+	)
 
-    flag.IntVar(&settings.port, "p", defaultPort, "specify port number")
+	flag.IntVar(&settings.port, "p", defaultPort, "specify port number")
 
-    flag.StringVar(&settings.host, "ip", defaultHost, "ip addresses to listen on")
+	flag.StringVar(&settings.host, "ip", defaultHost, "ip addresses to listen on")
 
-    flag.IntVar(&settings.limit, "l", defaultLimit, "limit number for requests per second. It will start dropping packets.")
-
-    flag.StringVar(&settings.address, "f", defaultAddress, "http address to forward traffic ")
+	flag.StringVar(&settings.address, "f", defaultAddress, "http address to forward traffic.\n\tYou can limit requests per second by adding `|num` after address.\n\tIf you have multiple addresses with different limits. For example: http://staging.example.com|100,http://dev.example.com|10")
 }

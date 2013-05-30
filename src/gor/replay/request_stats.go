@@ -8,32 +8,52 @@ import (
 type RequestStat struct {
     timestamp int64
 
-    codes map[int]int
+    Codes map[int]int
 
-    count  int
-    errors int
+    Count  int
+    Errors int
+
+    host *ForwardHost
 }
 
-func (s *RequestStat) inc(resp *Response) {
+func (s *RequestStat) Touch() {
     if s.timestamp != time.Now().Unix() {
         s.reset()
     }
+}
+
+func (s *RequestStat) IncReq() {
+    s.Touch()
+
+    s.Count++
+}
+
+func (s *RequestStat) IncResp(resp *HttpResponse) {
+    s.Touch()
 
     if resp.err != nil {
-        s.errors++
+        s.Errors++
         return
     }
 
-    s.count++
-    s.codes[resp.resp.StatusCode]++
+    s.Codes[resp.resp.StatusCode]++
 }
 
 func (s *RequestStat) reset() {
-    log.Println("reseting stats", s)
+    if s.timestamp != 0 {
+        log.Println("Host:", s.host.Url, "Requests:", s.Count, "Errors:", s.Errors, "Status codes:", s.Codes)
+    }
 
     s.timestamp = time.Now().Unix()
 
-    s.codes = make(map[int]int)
-    s.count = 0
-    s.errors = 0
+    s.Codes = make(map[int]int)
+    s.Count = 0
+    s.Errors = 0
+}
+
+func NewRequestStats(host *ForwardHost) (stat *RequestStat) {
+    stat = &RequestStat{host: host}
+    stat.reset()
+
+    return
 }
