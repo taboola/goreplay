@@ -168,5 +168,5 @@ func init() {
 
     flag.IntVar(&settings.limit, "l", defaultLimit, "limit number for requests per second. It will start dropping packets.")
 
-    flag.StringVar(&settings.address, "h", defaultAddress, "http address to forward traffic ")
+    flag.StringVar(&settings.address, "f", defaultAddress, "http address to forward traffic ")
 }
