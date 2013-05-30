@@ -142,7 +142,7 @@ func Run() {
 }
 
 func init() {
-    if len(os.Args) > 1 && os.Args[1] != "listen" {
+    if len(os.Args) < 2 || os.Args[1] != "listen" {
         return
     }
 

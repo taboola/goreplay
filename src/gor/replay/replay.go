@@ -150,7 +150,7 @@ func Run() {
 }
 
 func init() {
-    if len(os.Args) > 1 && os.Args[1] != "replay" {
+    if len(os.Args) < 2 || os.Args[1] != "replay" {
         return
     }
 
