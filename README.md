@@ -63,3 +63,5 @@ Usage of ./bin/gor-linux:
 ### Why `gor listener` requires sudo or root access?
 Listener works by sniffing traffic from given port. Its accessible only using sudo or root access.
 
+### Do you support all http request types?
+Right now it support only "GET" requests.
