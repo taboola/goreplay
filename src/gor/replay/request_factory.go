@@ -56,17 +56,20 @@ func (f *RequestFactory) handleRequests() {
 	for {
 		select {
 		case req := <- f.requests:
-			for _, host := range hosts {				
-				if host.Limit == 0 || host.Stat.Count <= host.Limit {
+			for _, host := range hosts {
+				host.Stat.Touch()
+
+				if host.Limit == 0 || host.Stat.Count < host.Limit {
 					host.Stat.IncReq()
 
+					fmt.Println("Sending request")
 					go f.sendRequest(host, req)
 				} else {
 					fmt.Println("Throttling for host:", host.Url, host.Stat.Count, host.Limit)
 				}
 			}
-		case resp := <- f.responses:					
-			resp.host.Stat.IncResp(resp)			
+		case resp := <- f.responses:
+			resp.host.Stat.IncResp(resp)
 		}
 	}
 }
