@@ -47,7 +47,9 @@ func (f *RequestFactory) sendRequest(host *ForwardHost, request *HttpRequest) {
 
 	resp, err := client.Do(req)
 
-	defer resp.Body.Close()
+	if err == nil {
+		defer resp.Body.Close()
+	}	
 
 	f.responses <- &HttpResponse{host, request, resp, err}
 }
