@@ -65,3 +65,11 @@ Listener works by sniffing traffic from given port. Its accessible only using su
 
 ### Do you support all http request types?
 Right now it support only "GET" requests.
+
+## TODO
+
+Use buffering for request throttling instead of simple rate limiting. 
+
+Better stats
+
+Optimize for load testing cases
