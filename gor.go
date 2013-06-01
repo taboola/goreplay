@@ -8,9 +8,9 @@ import (
     "os"
 )
 
-var mode string
-
 func main() {
+    mode := "unknown"
+
     if len(os.Args) > 1 {
         mode = os.Args[1]
     }
