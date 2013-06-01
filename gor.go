@@ -3,8 +3,8 @@ package main
 import (
     "flag"
     "fmt"
-    "gor/listener"
-    "gor/replay"
+    "github.com/buger/gor/listener"
+    "github.com/buger/gor/replay"
     "os"
 )
 
