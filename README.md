@@ -36,7 +36,7 @@ gor replay -f "http://staging.server|10"
 
 You can forward traffic to multiple endpoints. Just separate addresses by coma.
 ```
-gor replay -f "http://staging.server|10"
+gor replay -f "http://staging.server|10,http://dev.server|5"
 ```
 
 ## Additional help
