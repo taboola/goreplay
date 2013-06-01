@@ -15,7 +15,7 @@ Replay server forwards traffic to given address.
 ## Basic example
 
 ```bash
-# Run on server you want to catch traffic. You can run it on all `web` machines.
+# Run on servers where you want to catch traffic. You can run it on each `web` machine.
 sudo gor listen -p 80 -r replay.server.local:28020 
 
 # Replay server (replay.server.local). 
