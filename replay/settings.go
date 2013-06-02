@@ -26,7 +26,7 @@ type ReplaySettings struct {
 func (r *ReplaySettings) ForwardedHosts() (hosts []*ForwardHost) {
 	hosts = make([]*ForwardHost, 0, 10)
 
-	for _, address := range strings.Split(r.address, ",") {
+	for _, address := range strings.Split(r.forwardAddress, ",") {
 		host_info := strings.Split(address, "|")
 
 		if strings.Index(host_info[0], "http") == -1 {

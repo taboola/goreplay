@@ -89,7 +89,7 @@ func Run() {
 				log.Fatal("Too large udp packet", bufSize)
 			}
 
-			request, err := decodeRequest(buf[0:rlen])
+			request, err := DecodeRequest(buf[0:rlen])
 
 			if err != nil {
 				log.Println("Decode error:", err)
