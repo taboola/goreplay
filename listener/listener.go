@@ -1,18 +1,20 @@
+// Listener capture TCP traffic right from given port using `tcpdump` utility.
+// Note: it requires sudo or root access.
+//
+// Rigt now it suport only HTTP, and only GET requests.
 package listener
 
 import (
-	"fmt"
-	"io"
-	"log"
-	"os/exec"
-    //"time"
 	"bufio"
 	"bytes"
 	"encoding/gob"
-	//"errors"
 	"flag"
+	"fmt"
+	"io"
+	"log"
 	"net"
 	"os"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -28,14 +30,16 @@ type ListenerSettings struct {
 var settings ListenerSettings = ListenerSettings{}
 
 type HttpRequest struct {
-	Tag     string
-	Method  string
-	Url     string
-	Headers map[string]string
+	Tag     string            // Not used yet
+	Method  string            // Right now only 'GET'
+	Url     string            // Request URL
+	Headers map[string]string // Request Headers
 }
 
-func readOutput(pipe io.ReadCloser, c chan *HttpRequest, err chan int) {
-	re := regexp.MustCompile("(GET) (/.*) HTTP/1.1")
+// Parse `tcpdump` output to find HTTP GET requests
+// When HttpRequest found it get send to `requests` channel
+func ParseRequest(pipe io.ReadCloser, requests chan *HttpRequest) {
+	request_re := regexp.MustCompile("(GET) (/.*) HTTP/1.1")
 	headers_re := regexp.MustCompile("([^ ]*): (.*)")
 
 	reader := bufio.NewScanner(pipe)
@@ -47,8 +51,11 @@ func readOutput(pipe io.ReadCloser, c chan *HttpRequest, err chan int) {
 	for reader.Scan() {
 		line := reader.Text()
 
+		// HTTP/1.1 match finds both requests and response
+		// Index is used instead of Regexp just for speed
 		if strings.Index(line, "HTTP/1.1") != -1 {
-			match := re.FindAllString(line, -1)
+			// Allow only requests
+			match := request_re.FindAllString(line, -1)
 
 			if len(match) > 0 {
 				info := strings.Split(match[0], " ")
@@ -64,10 +71,17 @@ func readOutput(pipe io.ReadCloser, c chan *HttpRequest, err chan int) {
 		}
 
 		if requestStarted {
+			// We assume that empty line is end of request info
+			// This is true only for GET requests
 			if line == "" {
-				c <- request
+				requests <- request
 				requestStarted = false
 			} else {
+				// All headers comes in this format:
+				//
+				//     User-Agent: Mozilla
+				//     Content-Type: text/html
+				//
 				match := headers_re.FindAllString(line, -1)
 
 				if len(match) > 0 {
@@ -80,7 +94,9 @@ func readOutput(pipe io.ReadCloser, c chan *HttpRequest, err chan int) {
 	}
 }
 
-func sendOutput(c chan *HttpRequest, quite chan int) {
+// Sends request to replay server via UDP
+// Before sending it encode request object using standard gob encoder
+func SendRequest(requests chan *HttpRequest) {
 	serverAddr, err := net.ResolveUDPAddr("udp4", settings.replayAddress)
 	conn, err := net.DialUDP("udp", nil, serverAddr)
 
@@ -92,7 +108,7 @@ func sendOutput(c chan *HttpRequest, quite chan int) {
 
 	for {
 		select {
-		case request := <-c:
+		case request := <-requests:
 			fmt.Println("Request:", request.Url)
 
 			msg := bytes.Buffer{}
@@ -105,27 +121,24 @@ func sendOutput(c chan *HttpRequest, quite chan int) {
 			if err != nil {
 				log.Println("encode error:", err)
 			}
-
-		case <-quite:
-			conn.Close()
-			return
 		}
 	}
 }
 
+// Because its sub-program, Run acts as `main`
 func Run() {
-    if os.Getuid() != 0 {
-        fmt.Println("Please start the listener as root or sudo!")
-        fmt.Println("This is required since listener sniff traffic on given port.")
-        os.Exit(1)
-    }
+	if os.Getuid() != 0 {
+		fmt.Println("Please start the listener as root or sudo!")
+		fmt.Println("This is required since listener sniff traffic on given port.")
+		os.Exit(1)
+	}
 
 	if !strings.Contains(settings.replayAddress, ":") {
 		settings.replayAddress = settings.replayAddress + ":28020"
 	}
 
+	// TODO: use RAW_SOCKETS instead of tcpdump
 	cmd := exec.Command("tcpdump", "-vv", "-A", "-i", settings.networkInterface, "port "+strconv.Itoa(settings.port))
-	//cmd := exec.Command("ls", "-al")
 
 	stdout, _ := cmd.StdoutPipe()
 	cmd.Stderr = os.Stderr
@@ -134,11 +147,10 @@ func Run() {
 		log.Fatal(err)
 	}
 
-	c := make(chan *HttpRequest)
-	err := make(chan int)
+	requests := make(chan *HttpRequest)
 
-	go readOutput(stdout, c, err)
-	go sendOutput(c, err)
+	go ParseRequest(stdout, requests)
+	go SendRequest(requests)
 
 	if err := cmd.Wait(); err != nil {
 		flag.Usage()
