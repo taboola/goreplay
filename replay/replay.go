@@ -27,16 +27,16 @@ package replay
 import (
 	"bytes"
 	"encoding/gob"
-	"flag"
-	"fmt"
 	"log"
 	"net"
-	"os"
 )
 
 const bufSize = 1024 * 10
 
-var settings ReplaySettings = ReplaySettings{}
+// Enable debug logging only if "--verbose" flag passed
+func Debug(v ...interface{}) {
+	if Settings.verbose { log.Println(v...) }
+}
 
 // Decode HttpRequest object using standard gob decoder
 func DecodeRequest(enc []byte) (request *HttpRequest, err error) {
@@ -57,13 +57,13 @@ func DecodeRequest(enc []byte) (request *HttpRequest, err error) {
 func Run() {
 	var buf [bufSize]byte
 
-	addr, err := net.ResolveUDPAddr("udp", settings.Address())
+	addr, err := net.ResolveUDPAddr("udp", Settings.Address())
 	if err != nil {
 		log.Fatal("Can't start:", err)
 	}
 
 	conn, err := net.ListenUDP("udp", addr)
-	fmt.Println("Starting replay server at:", settings.Address())
+	log.Println("Starting replay server at:", Settings.Address())
 
 	if err != nil {
 		log.Fatal("Can't start:", err)
@@ -71,8 +71,8 @@ func Run() {
 
 	defer conn.Close()
 
-	for _, host := range settings.ForwardedHosts() {
-		fmt.Println("Forwarding requests to:", host.Url, "limit:", host.Limit)
+	for _, host := range Settings.ForwardedHosts() {
+		log.Println("Forwarding requests to:", host.Url, "limit:", host.Limit)
 	}
 
 	requestFactory := NewRequestFactory()
@@ -99,23 +99,4 @@ func Run() {
 		}
 	}
 
-}
-
-func init() {
-	if len(os.Args) < 2 || os.Args[1] != "replay" {
-		return
-	}
-
-	const (
-		defaultPort = 28020
-		defaultHost = "0.0.0.0"
-
-		defaultAddress = "http://localhost:8080"
-	)
-
-	flag.IntVar(&settings.port, "p", defaultPort, "specify port number")
-
-	flag.StringVar(&settings.host, "ip", defaultHost, "ip addresses to listen on")
-
-	flag.StringVar(&settings.forwardAddress, "f", defaultAddress, "http address to forward traffic.\n\tYou can limit requests per second by adding `|num` after address.\n\tIf you have multiple addresses with different limits. For example: http://staging.example.com|100,http://dev.example.com|10")
 }

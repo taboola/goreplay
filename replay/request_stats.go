@@ -1,7 +1,6 @@
 package replay
 
 import (
-	"log"
 	"time"
 )
 
@@ -44,8 +43,8 @@ func (s *RequestStat) IncResp(resp *HttpResponse) {
 // Updated stats timestamp to current time and reset to zero all stats values
 // TODO: Further on reset it should write stats to file
 func (s *RequestStat) reset() {
-	if s.timestamp != 0 {
-		log.Println("Host:", s.host.Url, "Requests:", s.Count, "Errors:", s.Errors, "Status codes:", s.Codes)
+	if s.timestamp != 0 {        
+	   Debug("Host:", s.host.Url, "Requests:", s.Count, "Errors:", s.Errors, "Status codes:", s.Codes)
 	}
 
 	s.timestamp = time.Now().Unix()

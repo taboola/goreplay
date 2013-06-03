@@ -16,18 +16,8 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
-	"strconv"
 	"strings"
 )
-
-type ListenerSettings struct {
-	networkInterface string
-	port             int
-
-	replayAddress string
-}
-
-var settings ListenerSettings = ListenerSettings{}
 
 type HttpRequest struct {
 	Tag     string            // Not used yet
@@ -36,9 +26,14 @@ type HttpRequest struct {
 	Headers map[string]string // Request Headers
 }
 
+// Enable debug logging only if "--verbose" flag passed
+func Debug(v ...interface{}) {
+	if Settings.verbose { log.Println(v...) }
+}
+
 // Parse `tcpdump` output to find HTTP GET requests
 // When HttpRequest found it get send to `requests` channel
-func ParseRequest(pipe io.ReadCloser, requests chan *HttpRequest) {
+func parseRequest(pipe io.ReadCloser, requests chan *HttpRequest) {
 	request_re := regexp.MustCompile("(GET) (/.*) HTTP/1.1")
 	headers_re := regexp.MustCompile("([^ ]*): (.*)")
 
@@ -96,8 +91,8 @@ func ParseRequest(pipe io.ReadCloser, requests chan *HttpRequest) {
 
 // Sends request to replay server via UDP
 // Before sending it encode request object using standard gob encoder
-func SendRequest(requests chan *HttpRequest) {
-	serverAddr, err := net.ResolveUDPAddr("udp4", settings.replayAddress)
+func forwardRequest(requests chan *HttpRequest) {
+	serverAddr, err := net.ResolveUDPAddr("udp4", Settings.ReplayServer())
 	conn, err := net.DialUDP("udp", nil, serverAddr)
 
 	defer conn.Close()
@@ -109,7 +104,7 @@ func SendRequest(requests chan *HttpRequest) {
 	for {
 		select {
 		case request := <-requests:
-			fmt.Println("Request:", request.Url)
+			Debug("Forwarding:", request.Url, "to", Settings.ReplayServer())
 
 			msg := bytes.Buffer{}
 
@@ -125,6 +120,14 @@ func SendRequest(requests chan *HttpRequest) {
 	}
 }
 
+
+func greeting() {	
+	fmt.Println("Listening for HTTP traffic on", Settings.port, "port")
+	fmt.Println("Running: tcpdump "+strings.Join(Settings.TCPDumpConfig()," "))
+	fmt.Println("Forwarding requests to replay server:", Settings.ReplayServer())
+}
+
+
 // Because its sub-program, Run acts as `main`
 func Run() {
 	if os.Getuid() != 0 {
@@ -132,13 +135,11 @@ func Run() {
 		fmt.Println("This is required since listener sniff traffic on given port.")
 		os.Exit(1)
 	}
-
-	if !strings.Contains(settings.replayAddress, ":") {
-		settings.replayAddress = settings.replayAddress + ":28020"
-	}
-
+	
 	// TODO: use RAW_SOCKETS instead of tcpdump
-	cmd := exec.Command("tcpdump", "-vv", "-A", "-i", settings.networkInterface, "port "+strconv.Itoa(settings.port))
+	cmd := exec.Command("tcpdump", Settings.TCPDumpConfig()...)
+
+	greeting()
 
 	stdout, _ := cmd.StdoutPipe()
 	cmd.Stderr = os.Stderr
@@ -149,29 +150,10 @@ func Run() {
 
 	requests := make(chan *HttpRequest)
 
-	go ParseRequest(stdout, requests)
-	go SendRequest(requests)
+	go parseRequest(stdout, requests)
+	go forwardRequest(requests)
 
 	if err := cmd.Wait(); err != nil {
 		flag.Usage()
 	}
-}
-
-func init() {
-	if len(os.Args) < 2 || os.Args[1] != "listen" {
-		return
-	}
-
-	const (
-		defaultPort             = 80
-		defaultNetworkInterface = "any"
-
-		defaultReplayAddress = "localhost:28020"
-	)
-
-	flag.IntVar(&settings.port, "p", defaultPort, "Specify the http server port whose traffic you want to capture")
-
-	flag.StringVar(&settings.networkInterface, "i", defaultNetworkInterface, "By default it try to listen on all network interfaces.To get list of interfaces run `ifconfig`")
-
-	flag.StringVar(&settings.replayAddress, "r", defaultReplayAddress, "Address of replay server.")
 }

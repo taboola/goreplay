@@ -1,7 +1,6 @@
 package replay
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -69,7 +68,7 @@ func (f *RequestFactory) sendRequest(host *ForwardHost, request *HttpRequest) {
 
 // Handle incoming requests, and they responses
 func (f *RequestFactory) handleRequests() {
-	hosts := settings.ForwardedHosts()
+	hosts := Settings.ForwardedHosts()
 
 	for {
 		select {
@@ -82,10 +81,9 @@ func (f *RequestFactory) handleRequests() {
 					// Increment Stat.Count
 					host.Stat.IncReq()
 
-					fmt.Println("Sending request")
+                    Debug("GET ",host.Url + req.Url)
+
 					go f.sendRequest(host, req)
-				} else {
-					fmt.Println("Throttling for host:", host.Url, host.Stat.Count, host.Limit)
 				}
 			}
 		case resp := <-f.responses:
