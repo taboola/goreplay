@@ -62,6 +62,10 @@ Usage of ./bin/gor-linux:
   -p=28020: specify port number
 ```
 
+## Pre-build binaries
+
+[Download binaries (linux 32/64, darwin)](https://drive.google.com/folderview?id=0B46uay48NwcfWFowc1E4a1BISVU&usp=sharing)
+
 ## FAQ
 
 ### Why `gor listener` requires sudo or root access?
