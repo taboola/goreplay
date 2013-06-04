@@ -12,6 +12,10 @@ Gor consists of 2 parts: listener and replay servers.
 Listener catch http traffic from given port in real-time and send it to replay server via UDP. 
 Replay server forwards traffic to given address.
 
+
+![Diagram](http://i.imgur.com/zZCFPCY.png)
+
+
 ## Basic example
 
 ```bash
