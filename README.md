@@ -77,7 +77,7 @@ Listener works by sniffing traffic from a given port. It's accessible
 only by using sudo or root access.
 
 ### Do you support all http request types?
-Right now it supports only "GET" requests.
+Yes. ~~Right now it supports only "GET" requests.~~
 
 ## TODO
 
