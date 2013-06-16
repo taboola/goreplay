@@ -53,11 +53,13 @@ func (t *TCPPacket) read(data interface{}) {
 	binary.Read(t.buf, binary.BigEndian, data)
 }
 
-// Inspired by: https://gist.github.com/clicube/4978853
 func (t *TCPPacket) Parse() {
 	t.read(&t.source_port)
 	t.read(&t.dest_port)
+}
 
+// Inspired by: https://gist.github.com/clicube/4978853
+func (t *TCPPacket) ParseFull() {
 	t.read(&t.sequence)
 	t.read(&t.asknowledgement)
 	t.read(&t.doff_reserved)

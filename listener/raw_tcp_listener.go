@@ -42,6 +42,7 @@ func (t *RAWTCPListener) listen() {
 			if msg.Complete() {
 				messages = t.c_messages
 				message = msg
+				break
 			}
 		}
 
@@ -67,7 +68,8 @@ func (t *RAWTCPListener) readTCPPackets() {
 	}
 
 	for {
-		buf := make([]byte, 65565)
+		buf := make([]byte, 1500*2)
+
 		n, _, err := conn.ReadFrom(buf)
 
 		if err != nil {
@@ -78,6 +80,7 @@ func (t *RAWTCPListener) readTCPPackets() {
 			packet := NewTCPPacket(buf[:n])
 
 			if int(packet.dest_port) == t.port {
+				packet.ParseFull()
 				t.c_packets <- packet
 			}
 		}

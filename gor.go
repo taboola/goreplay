@@ -10,12 +10,18 @@ import (
 	"fmt"
 	"github.com/buger/gor/listener"
 	"github.com/buger/gor/replay"
+	"log"
 	"os"
+	"runtime/pprof"
+	"time"
 )
 
 const (
-	VERSION = "0.3"
+	VERSION = "0.3.1"
 )
+
+var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+var memprofile = flag.String("memprofile", "", "write memory profile to this file")
 
 func main() {
 	fmt.Println("Version:", VERSION)
@@ -35,6 +41,31 @@ func main() {
 	os.Args = append(os.Args[:1], os.Args[2:]...)
 
 	flag.Parse()
+
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+
+		time.AfterFunc(60*time.Second, func() {
+			pprof.StopCPUProfile()
+			f.Close()
+			log.Println("Stop profiling after 10 seconds")
+		})
+	}
+
+	if *memprofile != "" {
+		f, err := os.Create(*memprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		time.AfterFunc(60*time.Second, func() {
+			pprof.WriteHeapProfile(f)
+			f.Close()
+		})
+	}
 
 	switch mode {
 	case "listen":
