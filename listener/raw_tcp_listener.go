@@ -1,6 +1,7 @@
 package listener
 
 import (
+	"encoding/binary"
 	"log"
 	"net"
 	"time"
@@ -67,9 +68,9 @@ func (t *RAWTCPListener) readTCPPackets() {
 		log.Fatal(e)
 	}
 
-	for {
-		buf := make([]byte, 1500*2)
+	buf := make([]byte, 1500*2)
 
+	for {
 		n, _, err := conn.ReadFrom(buf)
 
 		if err != nil {
@@ -77,11 +78,24 @@ func (t *RAWTCPListener) readTCPPackets() {
 		}
 
 		if n > 0 {
-			packet := NewTCPPacket(buf[:n])
+			// http://en.wikipedia.org/wiki/Transmission_Control_Protocol
+			dest_port := binary.BigEndian.Uint16(buf[2:4])
 
-			if int(packet.dest_port) == t.port {
-				packet.ParseFull()
-				t.c_packets <- packet
+			if int(dest_port) == t.port {
+				// Check TCPPacket code for more description
+				doff := binary.BigEndian.Uint16(buf[12:14])
+				f_psh := (doff & 8) != 0
+
+				// We need only packets with data inside
+				// TCP PSH flag indicate that client should push data to buffer
+				if f_psh {
+					new_buf := make([]byte, n)
+					copy(new_buf, buf[:n])
+
+					packet := NewTCPPacket(new_buf)
+
+					t.c_packets <- packet
+				}
 			}
 		}
 	}
