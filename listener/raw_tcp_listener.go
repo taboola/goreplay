@@ -1,16 +1,15 @@
 package listener
 
 import (
-	"encoding/binary"
+	"github.com/akrennmair/gopcap"
 	"log"
-	"net"
 	"time"
 )
 
 type RAWTCPListener struct {
 	messages map[uint32]*TCPMessage // buffer of TCPMessages waiting to be send
 
-	c_packets  chan *TCPPacket
+	c_packets  chan *pcap.Packet
 	c_messages chan *TCPMessage
 
 	addr string
@@ -21,7 +20,7 @@ func RAWTCPListen(addr string, port int) (listener *RAWTCPListener) {
 	listener = &RAWTCPListener{}
 	listener.messages = make(map[uint32]*TCPMessage)
 
-	listener.c_packets = make(chan *TCPPacket)
+	listener.c_packets = make(chan *pcap.Packet)
 	listener.c_messages = make(chan *TCPMessage)
 
 	listener.addr = addr
@@ -49,7 +48,7 @@ func (t *RAWTCPListener) listen() {
 
 		select {
 		case messages <- message:
-			delete(t.messages, message.ask)
+			delete(t.messages, message.ack)
 		case packet := <-t.c_packets:
 			t.processTCPPacket(packet)
 
@@ -61,60 +60,45 @@ func (t *RAWTCPListener) listen() {
 }
 
 func (t *RAWTCPListener) readTCPPackets() {
-	conn, e := net.ListenPacket("ip4:tcp", t.addr)
-	defer conn.Close()
+	h, err := pcap.Openlive("lo", int32(65535), true, 0)
+	h.Setfilter("tcp dst port " + string(t.port))
 
-	if e != nil {
-		log.Fatal(e)
+	if err != nil {
+		log.Fatal("Error while trying to listen", err)
 	}
 
-	buf := make([]byte, 1500*2)
-
 	for {
-		n, _, err := conn.ReadFrom(buf)
+		pkt := h.Next()
 
-		if err != nil {
-			Debug("Error:", err)
+		if pkt == nil {
+			continue
 		}
 
-		if n > 0 {
-			// http://en.wikipedia.org/wiki/Transmission_Control_Protocol
-			dest_port := binary.BigEndian.Uint16(buf[2:4])
+		pkt.Decode()
 
-			if int(dest_port) == t.port {
-				// Check TCPPacket code for more description
-				doff := binary.BigEndian.Uint16(buf[12:14])
-				f_psh := (doff & 8) != 0
+		switch pkt.Headers[1].(type) {
+		case *pcap.Tcphdr:
+			header := pkt.Headers[1].(*pcap.Tcphdr)
 
-				// We need only packets with data inside
-				// TCP PSH flag indicate that client should push data to buffer
-				if f_psh {
-					new_buf := make([]byte, n)
-					copy(new_buf, buf[:n])
+			port := int(header.DestPort)
 
-					packet := NewTCPPacket(new_buf)
-
-					t.c_packets <- packet
-				}
+			if port == t.port && (header.Flags&pcap.TCP_PSH) != 0 {
+				log.Println("Received packet", port, string(pkt.Payload))
+				t.c_packets <- pkt
 			}
 		}
 	}
 }
 
 //
-func (t *RAWTCPListener) processTCPPacket(packet *TCPPacket) {
-	// We interested only in packets that contain some data
-	if !(packet.f_ask && packet.f_psh) {
-		return
+func (t *RAWTCPListener) processTCPPacket(packet *pcap.Packet) {
+	ack := packet.Headers[1].(*pcap.Tcphdr).Ack
+
+	if _, ok := t.messages[ack]; !ok {
+		t.messages[ack] = NewTCPMessage(ack)
 	}
 
-	ask := packet.asknowledgement
-
-	if _, ok := t.messages[ask]; !ok {
-		t.messages[ask] = NewTCPMessage(ask)
-	}
-
-	t.messages[ask].AddPacket(packet)
+	t.messages[ack].AddPacket(packet)
 }
 
 func (t *RAWTCPListener) Receive() *TCPMessage {
