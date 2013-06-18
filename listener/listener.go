@@ -12,7 +12,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"sync/atomic"
 )
 
 // Enable debug logging only if "--verbose" flag passed
@@ -48,8 +47,6 @@ func Run() {
 	// Sniffing traffic from given port
 	listener := RAWTCPListen("0.0.0.0", Settings.port)
 
-	var requests int64 = 0
-
 	for {
 		message := listener.Receive()
 
@@ -68,12 +65,8 @@ func Run() {
 				}
 			}
 
-			atomic.AddInt64(&requests, 1)
-
 			conn.Write(m.Bytes())
 		}(message)
-
-		log.Println("requests:", requests)
 	}
 
 	conn.Close()
