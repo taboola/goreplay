@@ -14,22 +14,11 @@ import (
 	"os"
 )
 
-type HttpRequest struct {
-	Tag     string            // Not used yet
-	Method  string            // Right now only 'GET'
-	Url     string            // Request URL
-	Headers map[string]string // Request Headers
-}
-
 // Enable debug logging only if "--verbose" flag passed
 func Debug(v ...interface{}) {
 	if Settings.verbose {
 		log.Println(v...)
 	}
-}
-
-func greeting() {
-
 }
 
 // Because its sub-program, Run acts as `main`
@@ -40,7 +29,7 @@ func Run() {
 		os.Exit(1)
 	}
 
-	fmt.Println("Listening for HTTP traffic on", Settings.port, "port")
+	fmt.Println("Listening for HTTP traffic on", Settings.address, ':', Settings.port, "port")
 	fmt.Println("Forwarding requests to replay server:", Settings.ReplayServer())
 
 	// Connection to reaplay server
@@ -52,7 +41,7 @@ func Run() {
 	}
 
 	// Sniffing traffic from given port
-	listener := RAWTCPListen("0.0.0.0", Settings.port)
+	listener := RAWTCPListen(Settings.address, Settings.port)
 
 	for {
 		message := listener.Receive()

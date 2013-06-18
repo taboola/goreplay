@@ -3,19 +3,20 @@ package listener
 import (
 	"flag"
 	"os"
+	"strconv"
 	"strings"
 )
 
 const (
-	defaultPort             = 80
-	defaultNetworkInterface = "any"
+	defaultPort    = 80
+	defaultAddress = "0.0.0.0"
 
 	defaultReplayAddress = "localhost:28020"
 )
 
 type ListenerSettings struct {
-	networkInterface string
-	port             int
+	port    int
+	address string
 
 	replayAddress string
 
@@ -32,6 +33,10 @@ func (s *ListenerSettings) ReplayServer() string {
 	return s.replayAddress
 }
 
+func (s *ListenerSettings) Address() string {
+	return s.address + ':' + strconv.Itoa(s.port)
+}
+
 func init() {
 	if len(os.Args) < 2 || os.Args[1] != "listen" {
 		return
@@ -39,7 +44,7 @@ func init() {
 
 	flag.IntVar(&Settings.port, "p", defaultPort, "Specify the http server port whose traffic you want to capture")
 
-	flag.StringVar(&Settings.networkInterface, "i", defaultNetworkInterface, "By default it try to listen on all network interfaces.To get list of interfaces run `ifconfig`")
+	flag.StringVar(&Settings.address, "ip", defaultAddress, "Specifi IP address to listen")
 
 	flag.StringVar(&Settings.replayAddress, "r", defaultReplayAddress, "Address of replay server.")
 
