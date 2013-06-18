@@ -83,8 +83,8 @@ func (t *RAWTCPListener) readTCPPackets() {
 
 			if int(dest_port) == t.port {
 				// Check TCPPacket code for more description
-				doff := binary.BigEndian.Uint16(buf[12:14])
-				f_psh := (doff & 8) != 0
+				flags := binary.BigEndian.Uint16(buf[12:14]) & 0x1FF
+				f_psh := (flags & TCP_PSH) != 0
 
 				// We need only packets with data inside
 				// TCP PSH flag indicate that client should push data to buffer
@@ -103,7 +103,7 @@ func (t *RAWTCPListener) readTCPPackets() {
 
 //
 func (t *RAWTCPListener) processTCPPacket(packet *TCPPacket) {
-	ack := packet.acknowledgement
+	ack := packet.Ack
 
 	if _, ok := t.messages[ack]; !ok {
 		t.messages[ack] = NewTCPMessage(ack)

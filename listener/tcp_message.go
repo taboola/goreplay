@@ -38,7 +38,7 @@ func (t *TCPMessage) Bytes() (output []byte) {
 	sort.Ints(mk)
 
 	for _, k := range mk {
-		output = append(output, t.packets[k].data...)
+		output = append(output, t.packets[k].Data...)
 	}
 
 	return
@@ -46,7 +46,7 @@ func (t *TCPMessage) Bytes() (output []byte) {
 
 // Add packet to the message
 func (t *TCPMessage) AddPacket(packet *TCPPacket) {
-	seq := int(packet.sequence)
+	seq := int(packet.Seq)
 
 	if _, ok := t.packets[seq]; !ok {
 		t.packets[seq] = packet
