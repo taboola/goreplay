@@ -4,14 +4,16 @@ import (
 	"encoding/binary"
 	"log"
 	"net"
-	"time"
 )
 
 type RAWTCPListener struct {
-	messages map[uint32]*TCPMessage // buffer of TCPMessages waiting to be send
+	messages []*TCPMessage // buffer of TCPMessages waiting to be send
 
 	c_packets  chan *TCPPacket
 	c_messages chan *TCPMessage
+
+	c_add_message chan *TCPMessage
+	c_del_message chan *TCPMessage
 
 	addr string
 	port int
@@ -19,10 +21,11 @@ type RAWTCPListener struct {
 
 func RAWTCPListen(addr string, port int) (listener *RAWTCPListener) {
 	listener = &RAWTCPListener{}
-	listener.messages = make(map[uint32]*TCPMessage)
 
 	listener.c_packets = make(chan *TCPPacket)
 	listener.c_messages = make(chan *TCPMessage)
+	listener.c_add_message = make(chan *TCPMessage)
+	listener.c_del_message = make(chan *TCPMessage)
 
 	listener.addr = addr
 	listener.port = port
@@ -34,30 +37,39 @@ func RAWTCPListen(addr string, port int) (listener *RAWTCPListener) {
 }
 
 func (t *RAWTCPListener) listen() {
-
 	for {
-		var messages chan *TCPMessage
-		var message *TCPMessage
-
-		for _, msg := range t.messages {
-			if msg.Complete() {
-				messages = t.c_messages
-				message = msg
-				break
-			}
-		}
-
 		select {
-		case messages <- message:
-			delete(t.messages, message.ack)
+		case message := <-t.c_del_message:
+			t.deleteMessage(message)
+			Debug("Deleted")
+			t.c_messages <- message
+
 		case packet := <-t.c_packets:
 			t.processTCPPacket(packet)
-
-		// Ensure that this will be run at least each 200 ms, to ensure that all messages will be send
-		// Without it last message may not be send (it will be send only on next TCP packets)
-		case <-time.After(200 * time.Millisecond):
+			Debug("Processed")
 		}
 	}
+}
+
+func (t *RAWTCPListener) deleteMessage(message *TCPMessage) bool {
+	var idx int = -1
+
+	for i, m := range t.messages {
+		if m.Ack == message.Ack {
+			idx = i
+			break
+		}
+	}
+
+	if idx == -1 {
+		return false
+	}
+
+	copy(t.messages[idx:], t.messages[idx+1:])
+	t.messages[len(t.messages)-1] = nil // or the zero value of T
+	t.messages = t.messages[:len(t.messages)-1]
+
+	return true
 }
 
 func (t *RAWTCPListener) readTCPPackets() {
@@ -93,7 +105,6 @@ func (t *RAWTCPListener) readTCPPackets() {
 					copy(new_buf, buf[:n])
 
 					packet := NewTCPPacket(new_buf)
-
 					t.c_packets <- packet
 				}
 			}
@@ -103,13 +114,23 @@ func (t *RAWTCPListener) readTCPPackets() {
 
 //
 func (t *RAWTCPListener) processTCPPacket(packet *TCPPacket) {
-	ack := packet.Ack
+	var message *TCPMessage
 
-	if _, ok := t.messages[ack]; !ok {
-		t.messages[ack] = NewTCPMessage(ack)
+	for _, msg := range t.messages {
+		if msg.Ack == packet.Ack {
+			message = msg
+			break
+		}
 	}
 
-	t.messages[ack].AddPacket(packet)
+	if message == nil {
+		message = NewTCPMessage(packet.Ack, t.c_del_message)
+		Debug("Adding message")
+
+		t.messages = append(t.messages, message)
+	}
+
+	message.c_packets <- packet
 }
 
 func (t *RAWTCPListener) Receive() *TCPMessage {

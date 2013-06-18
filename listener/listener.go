@@ -44,25 +44,23 @@ func Run() {
 	listener := RAWTCPListen(Settings.address, Settings.port)
 
 	for {
-		message := listener.Receive()
+		m := listener.Receive()
 
-		go func(m *TCPMessage) {
-			if Settings.verbose {
-				buf := bytes.NewBuffer(m.Bytes())
-				reader := bufio.NewReader(buf)
+		if Settings.verbose {
+			buf := bytes.NewBuffer(m.Bytes())
+			reader := bufio.NewReader(buf)
 
-				request, err := http.ReadRequest(reader)
+			request, err := http.ReadRequest(reader)
 
-				if err != nil {
-					Debug("Error while parsing request:", string(m.Bytes()))
-				} else {
-					request.ParseMultipartForm(32 << 20)
-					Debug("Forwarding request:", request)
-				}
+			if err != nil {
+				Debug("Error while parsing request:", string(m.Bytes()))
+			} else {
+				request.ParseMultipartForm(32 << 20)
+				Debug("Forwarding request:", request)
 			}
+		}
 
-			conn.Write(m.Bytes())
-		}(message)
+		conn.Write(m.Bytes())
 	}
 
 	conn.Close()
