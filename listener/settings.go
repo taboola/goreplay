@@ -34,7 +34,7 @@ func (s *ListenerSettings) ReplayServer() string {
 }
 
 func (s *ListenerSettings) Address() string {
-	return s.address + ':' + strconv.Itoa(s.port)
+	return s.address + ":" + strconv.Itoa(s.port)
 }
 
 func init() {

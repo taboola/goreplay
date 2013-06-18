@@ -29,7 +29,7 @@ func Run() {
 		os.Exit(1)
 	}
 
-	fmt.Println("Listening for HTTP traffic on", Settings.address, ':', Settings.port, "port")
+	fmt.Println("Listening for HTTP traffic on", Settings.Address())
 	fmt.Println("Forwarding requests to replay server:", Settings.ReplayServer())
 
 	// Connection to reaplay server

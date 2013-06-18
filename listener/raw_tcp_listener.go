@@ -49,7 +49,7 @@ func (t *RAWTCPListener) listen() {
 
 		select {
 		case messages <- message:
-			delete(t.messages, message.ask)
+			delete(t.messages, message.ack)
 		case packet := <-t.c_packets:
 			t.processTCPPacket(packet)
 
@@ -103,18 +103,13 @@ func (t *RAWTCPListener) readTCPPackets() {
 
 //
 func (t *RAWTCPListener) processTCPPacket(packet *TCPPacket) {
-	// We interested only in packets that contain some data
-	if !(packet.f_ask && packet.f_psh) {
-		return
+	ack := packet.acknowledgement
+
+	if _, ok := t.messages[ack]; !ok {
+		t.messages[ack] = NewTCPMessage(ack)
 	}
 
-	ask := packet.asknowledgement
-
-	if _, ok := t.messages[ask]; !ok {
-		t.messages[ask] = NewTCPMessage(ask)
-	}
-
-	t.messages[ask].AddPacket(packet)
+	t.messages[ack].AddPacket(packet)
 }
 
 func (t *RAWTCPListener) Receive() *TCPMessage {

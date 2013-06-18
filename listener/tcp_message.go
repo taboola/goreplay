@@ -8,20 +8,20 @@ import (
 // TCPMessage ensure that all TCP packets for given request is received, and processed in right sequence
 // Its needed because all TCP message can be fragmented or re-transmitted
 //
-// Each TCP Packet have 2 ids: asknowledgement - message_id, and sequence - packet_id
+// Each TCP Packet have 2 ids: acknowledgement - message_id, and sequence - packet_id
 // Message can be compiled from unique packets with same message_id which sorted by sequence
 // Message is received if we did't receive any packets for 200ms OR if we received packet with "fin" flag
 type TCPMessage struct {
-	ask     uint32             // Message ID
+	ack     uint32             // Message ID
 	packets map[int]*TCPPacket // map[packet.sequence]*TCPPacket
 	updated int64              // time of last packet
 }
 
-func NewTCPMessage(ask uint32) (msg *TCPMessage) {
+func NewTCPMessage(ack uint32) (msg *TCPMessage) {
 	msg = &TCPMessage{}
 	msg.packets = make(map[int]*TCPPacket)
 	msg.updated = time.Now().UnixNano()
-	msg.ask = ask
+	msg.ack = ack
 	return
 }
 

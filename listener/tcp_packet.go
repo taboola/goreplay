@@ -19,7 +19,7 @@ type TCPPacket struct {
 	dest_port   uint16
 
 	sequence        uint32
-	asknowledgement uint32
+	acknowledgement uint32
 
 	doff_reserved uint16
 	tcph_length   uint16
@@ -28,7 +28,7 @@ type TCPPacket struct {
 	f_crw bool
 	f_ece bool
 	f_urg bool
-	f_ask bool
+	f_ack bool
 	f_psh bool
 	f_rst bool
 	f_syn bool
@@ -59,7 +59,7 @@ func (t *TCPPacket) Parse() {
 	t.read(&t.dest_port)
 
 	t.read(&t.sequence)
-	t.read(&t.asknowledgement)
+	t.read(&t.acknowledgement)
 	t.read(&t.doff_reserved)
 
 	t.tcph_length = t.doff_reserved >> 12 * 4
@@ -68,7 +68,7 @@ func (t *TCPPacket) Parse() {
 	t.f_crw = (t.doff_reserved & 128) != 0
 	t.f_ece = (t.doff_reserved & 64) != 0
 	t.f_urg = (t.doff_reserved & 32) != 0
-	t.f_ask = (t.doff_reserved & 16) != 0
+	t.f_ack = (t.doff_reserved & 16) != 0
 	t.f_psh = (t.doff_reserved & 8) != 0
 	t.f_rst = (t.doff_reserved & 4) != 0
 	t.f_syn = (t.doff_reserved & 2) != 0
@@ -85,14 +85,14 @@ func (t *TCPPacket) String() string {
 		"Source port: " + strconv.Itoa(int(t.source_port)),
 		"Dest port:" + strconv.Itoa(int(t.dest_port)),
 		"Sequence:" + strconv.Itoa(int(t.sequence)),
-		"Acknowledgement:" + strconv.Itoa(int(t.asknowledgement)),
+		"Acknowledgement:" + strconv.Itoa(int(t.acknowledgement)),
 		"Header len:" + strconv.Itoa(int(t.tcph_length)),
 
 		"Flag ns:" + strconv.FormatBool(t.f_ns),
 		"Flag crw:" + strconv.FormatBool(t.f_crw),
 		"Flag ece:" + strconv.FormatBool(t.f_ece),
 		"Flag urg:" + strconv.FormatBool(t.f_urg),
-		"Flag ask:" + strconv.FormatBool(t.f_ask),
+		"Flag ack:" + strconv.FormatBool(t.f_ack),
 		"Flag psh:" + strconv.FormatBool(t.f_psh),
 		"Flag rst:" + strconv.FormatBool(t.f_rst),
 		"Flag syn:" + strconv.FormatBool(t.f_syn),
