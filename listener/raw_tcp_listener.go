@@ -14,6 +14,8 @@ type RAWTCPListener struct {
 
 	addr string
 	port int
+
+	sniffer *pcap.Pcap
 }
 
 func RAWTCPListen(addr string, port int) (listener *RAWTCPListener) {
@@ -25,6 +27,8 @@ func RAWTCPListen(addr string, port int) (listener *RAWTCPListener) {
 
 	listener.addr = addr
 	listener.port = port
+
+	listener.startSniffer()
 
 	go listener.listen()
 	go listener.readTCPPackets()
@@ -59,16 +63,50 @@ func (t *RAWTCPListener) listen() {
 	}
 }
 
-func (t *RAWTCPListener) readTCPPackets() {
-	h, err := pcap.Openlive("lo", int32(65535), true, 0)
+func (t *RAWTCPListener) startSniffer() {
+	devices, err := pcap.Findalldevs()
+
+	if err != nil {
+		log.Fatal("Error while getting device list", err)
+	}
+
+	availableIPs := []string{}
+	addrValid := false
+	networkInterface := ""
+
+	for _, device := range devices {
+		if device.Name != "any" {
+
+			for _, addr := range device.Addresses {
+				availableIPs = append(availableIPs, addr.IP.String())
+				if addr.IP.String() == Settings.IP {
+					addrValid = true
+					networkInterface = device.Name
+				}
+			}
+		}
+	}
+
+	if addrValid == false {
+		log.Println("Can't listen on given IP:", Settings.IP, ". Available addresses:", availableIPs)
+
+		log.Fatal("`ip` attribute required: gor listen -p 80 -ip 127.0.0.1")
+	}
+
+	h, err := pcap.Openlive(networkInterface, int32(4026), true, 0)
 	h.Setfilter("tcp dst port " + string(t.port))
 
 	if err != nil {
 		log.Fatal("Error while trying to listen", err)
 	}
 
+	t.sniffer = h
+}
+
+func (t *RAWTCPListener) readTCPPackets() {
+
 	for {
-		pkt := h.Next()
+		pkt := t.sniffer.Next()
 
 		if pkt == nil {
 			continue
@@ -83,7 +121,6 @@ func (t *RAWTCPListener) readTCPPackets() {
 			port := int(header.DestPort)
 
 			if port == t.port && (header.Flags&pcap.TCP_PSH) != 0 {
-				log.Println("Received packet", port, string(pkt.Payload))
 				t.c_packets <- pkt
 			}
 		}
