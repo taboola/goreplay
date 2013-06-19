@@ -104,8 +104,10 @@ func (t *RAWTCPListener) readTCPPackets() {
 					new_buf := make([]byte, n)
 					copy(new_buf, buf[:n])
 
-					packet := NewTCPPacket(new_buf)
-					t.c_packets <- packet
+					go func(buf []byte) {
+						packet := NewTCPPacket(new_buf)
+						t.c_packets <- packet
+					}(new_buf)
 				}
 			}
 		}
