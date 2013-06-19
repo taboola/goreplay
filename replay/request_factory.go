@@ -41,13 +41,13 @@ func NewRequestFactory() (factory *RequestFactory) {
 func (f *RequestFactory) sendRequest(host *ForwardHost, request *http.Request) {
 	client := &http.Client{}
 
-	URL := host.Url + request.URL.String()
+	URL := host.Url + request.URL.Path
 
 	request.RequestURI = ""
 	request.URL, _ = url.ParseRequestURI(URL)
 
 	if Settings.verbose {
-		Debug("Sending request:", request)
+		Debug("Sending request:", host.Url, request)
 	}
 
 	resp, err := client.Do(request)
