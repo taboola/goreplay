@@ -41,6 +41,7 @@ func NewRequestFactory() (factory *RequestFactory) {
 func (f *RequestFactory) sendRequest(host *ForwardHost, request *http.Request) {
 	client := &http.Client{}
 
+	// Change HOST of original request
 	URL := host.Url + request.URL.Path + "?" + request.URL.RawQuery
 
 	request.RequestURI = ""

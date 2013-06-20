@@ -40,10 +40,11 @@ func Run() {
 		log.Fatal("Connection error", err)
 	}
 
-	// Sniffing traffic from given port
+	// Sniffing traffic from given address
 	listener := RAWTCPListen(Settings.address, Settings.port)
 
 	for {
+		// Receiving TCPMessage object
 		m := listener.Receive()
 
 		if Settings.verbose {
