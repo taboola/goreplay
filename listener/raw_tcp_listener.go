@@ -90,7 +90,7 @@ func (t *RAWTCPListener) readRAWSocket() {
 		log.Fatal(e)
 	}
 
-	buf := make([]byte, 4096)
+	buf := make([]byte, 4096*2)
 
 	for {
 		// Note: ReadFrom receive messages without IP header
@@ -120,6 +120,7 @@ func (t *RAWTCPListener) readRAWSocket() {
 
 					// To avoid socket locking processing packet in new goroutine
 					go func(buf []byte) {
+						log.Println("Received packet", string(new_buf))
 						packet := NewTCPPacket(new_buf)
 						t.c_packets <- packet
 					}(new_buf)

@@ -1,7 +1,7 @@
 // Listener capture TCP traffic using RAW SOCKETS.
 // Note: it requires sudo or root access.
 //
-// Rigt now it suport only HTTP, and only GET requests.
+// Rigt now it suport only HTTP
 package listener
 
 import (
@@ -54,7 +54,7 @@ func Run() {
 			request, err := http.ReadRequest(reader)
 
 			if err != nil {
-				Debug("Error while parsing request:", string(m.Bytes()))
+				Debug("Error while parsing request:", err, string(m.Bytes()))
 			} else {
 				request.ParseMultipartForm(32 << 20)
 				Debug("Forwarding request:", request)
