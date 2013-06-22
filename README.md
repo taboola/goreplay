@@ -24,7 +24,7 @@ The replay server forwards traffic to a given address.
 sudo gor listen -p 80 -r replay.server.local:28020 
 
 # Replay server (replay.server.local). 
-gor replay -f http://staging.server
+gor replay -f http://staging.server -p 28020
 ```
 
 ## Advanced use
