@@ -120,7 +120,6 @@ func (t *RAWTCPListener) readRAWSocket() {
 
 					// To avoid socket locking processing packet in new goroutine
 					go func(buf []byte) {
-						log.Println("Received packet", string(new_buf))
 						packet := NewTCPPacket(new_buf)
 						t.c_packets <- packet
 					}(new_buf)
@@ -147,7 +146,6 @@ func (t *RAWTCPListener) processTCPPacket(packet *TCPPacket) {
 	if message == nil {
 		// We sending c_del_message channel, so message object can communicate with Listener and notify it if message completed
 		message = NewTCPMessage(packet.Ack, t.c_del_message)
-		Debug("Adding message")
 
 		t.messages = append(t.messages, message)
 	}
