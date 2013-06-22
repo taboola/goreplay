@@ -12,31 +12,25 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"time"
+	"strconv"
 )
 
 // Enable debug logging only if "--verbose" flag passed
 func Debug(v ...interface{}) {
-	if Settings.verbose {
+	if Settings.Verbose {
 		log.Println(v...)
 	}
 }
 
-func ReplayServer() net.Conn {
+func ReplayServer() (conn net.Conn, err error) {
 	// Connection to reaplay server
-	conn, err := net.Dial("tcp", Settings.ReplayServer())
+	conn, err = net.Dial("tcp", Settings.ReplayAddress)
 
 	if err != nil {
-		log.Println("Connection error ", err, Settings.ReplayServer())
-		log.Println("Reconnecting to replay server in 10 seconds")
-
-		time.Sleep(10 * time.Second)
-		return ReplayServer()
+		log.Println("Connection error ", err, Settings.ReplayAddress)
 	}
 
-	log.Println("Connected to replay server:", Settings.ReplayServer())
-
-	return conn
+	return
 }
 
 // Because its sub-program, Run acts as `main`
@@ -47,39 +41,49 @@ func Run() {
 		os.Exit(1)
 	}
 
-	fmt.Println("Listening for HTTP traffic on", Settings.Address())
-	fmt.Println("Forwarding requests to replay server:", Settings.ReplayServer())
+	fmt.Println("Listening for HTTP traffic on", Settings.Address+":"+strconv.Itoa(Settings.Port))
+	fmt.Println("Forwarding requests to replay server:", Settings.ReplayAddress)
 
 	// Sniffing traffic from given address
-	listener := RAWTCPListen(Settings.address, Settings.port)
+	listener := RAWTCPListen(Settings.Address, Settings.Port)
 
 	for {
 		// Receiving TCPMessage object
 		m := listener.Receive()
-		conn := ReplayServer()
 
-		// For debugging purpose
-		// Usually request parsing happens in replay part
-		if Settings.verbose {
-			buf := bytes.NewBuffer(m.Bytes())
-			reader := bufio.NewReader(buf)
+		go sendMessage(m)
+	}
+}
 
-			request, err := http.ReadRequest(reader)
+func sendMessage(m *TCPMessage) {
+	conn, err := ReplayServer()
 
-			if err != nil {
-				Debug("Error while parsing request:", err, string(m.Bytes()))
-			} else {
-				request.ParseMultipartForm(32 << 20)
-				Debug("Forwarding request:", request)
-			}
-		}
+	if err != nil {
+		log.Println("Failed to send message. Replay server not respond.")
+		return
+	} else {
+		defer conn.Close()
+	}
 
-		_, err := conn.Write(m.Bytes())
+	// For debugging purpose
+	// Usually request parsing happens in replay part
+	if Settings.Verbose {
+		buf := bytes.NewBuffer(m.Bytes())
+		reader := bufio.NewReader(buf)
+
+		request, err := http.ReadRequest(reader)
 
 		if err != nil {
-			log.Println("Error while sending requests", err)
+			Debug("Error while parsing request:", err, string(m.Bytes()))
+		} else {
+			request.ParseMultipartForm(32 << 20)
+			Debug("Forwarding request:", request)
 		}
+	}
 
-		conn.Close()
+	_, err = conn.Write(m.Bytes())
+
+	if err != nil {
+		log.Println("Error while sending requests", err)
 	}
 }

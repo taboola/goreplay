@@ -37,7 +37,7 @@ const bufSize = 4096
 
 // Enable debug logging only if "--verbose" flag passed
 func Debug(v ...interface{}) {
-	if Settings.verbose {
+	if Settings.Verbose {
 		log.Println(v...)
 	}
 }

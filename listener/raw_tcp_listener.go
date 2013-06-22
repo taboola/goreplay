@@ -46,8 +46,8 @@ func (t *RAWTCPListener) listen() {
 		select {
 		// If message ready for deletion it means that its also complete or expired by timeout
 		case message := <-t.c_del_message:
-			t.deleteMessage(message)
 			t.c_messages <- message
+			t.deleteMessage(message)
 
 		// We need to use channgels to process each packet to avoid data races
 		case packet := <-t.c_packets:
