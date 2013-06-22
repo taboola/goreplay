@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"time"
 )
 
 // Enable debug logging only if "--verbose" flag passed
@@ -19,6 +20,23 @@ func Debug(v ...interface{}) {
 	if Settings.verbose {
 		log.Println(v...)
 	}
+}
+
+func ReplayServer() net.Conn {
+	// Connection to reaplay server
+	conn, err := net.Dial("tcp", Settings.ReplayServer())
+
+	if err != nil {
+		log.Println("Connection error ", err, Settings.ReplayServer())
+		log.Println("Reconnecting to replay server in 10 seconds")
+
+		time.Sleep(10 * time.Second)
+		return ReplayServer()
+	}
+
+	log.Println("Connected to replay server:", Settings.ReplayServer())
+
+	return conn
 }
 
 // Because its sub-program, Run acts as `main`
@@ -32,21 +50,16 @@ func Run() {
 	fmt.Println("Listening for HTTP traffic on", Settings.Address())
 	fmt.Println("Forwarding requests to replay server:", Settings.ReplayServer())
 
-	// Connection to reaplay server
-	serverAddr, err := net.ResolveUDPAddr("udp4", Settings.ReplayServer())
-	conn, err := net.DialUDP("udp", nil, serverAddr)
-
-	if err != nil {
-		log.Fatal("Connection error", err)
-	}
-
 	// Sniffing traffic from given address
 	listener := RAWTCPListen(Settings.address, Settings.port)
 
 	for {
 		// Receiving TCPMessage object
 		m := listener.Receive()
+		conn := ReplayServer()
 
+		// For debugging purpose
+		// Usually request parsing happens in replay part
 		if Settings.verbose {
 			buf := bytes.NewBuffer(m.Bytes())
 			reader := bufio.NewReader(buf)
@@ -61,8 +74,12 @@ func Run() {
 			}
 		}
 
-		conn.Write(m.Bytes())
-	}
+		_, err := conn.Write(m.Bytes())
 
-	conn.Close()
+		if err != nil {
+			log.Println("Error while sending requests", err)
+		}
+
+		conn.Close()
+	}
 }
