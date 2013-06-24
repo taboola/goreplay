@@ -91,9 +91,7 @@ func handleConnection(conn net.Conn, rf *RequestFactory) error {
 	buf = make([]byte, bufSize)
 
 	for read {
-		log.Println("Start reading")
 		n, err := conn.Read(buf)
-		log.Println("Reading", n, err)
 
 		switch err {
 		case io.EOF:
@@ -108,14 +106,15 @@ func handleConnection(conn net.Conn, rf *RequestFactory) error {
 		}
 	}
 
-	log.Println("Response", string(response))
+	go func() {
+		if request, err := ParseRequest(response); err != nil {
+			Debug("Error while parsing request", err, response)
+		} else {
+			Debug("Adding request", request)
 
-	if request, err := ParseRequest(response); err != nil {
-		Debug("Error while parsing request", err, response)
-	} else {
-		Debug("Adding request", request)
-		rf.Add(request)
-	}
+			rf.Add(request)
+		}
+	}()
 
 	return nil
 }
