@@ -3,6 +3,7 @@ package replay
 import (
 	"fmt"
 	"os"
+	"path"
 	"sync"
 	"time"
 )
@@ -20,10 +21,12 @@ type SiteStats struct {
 
 	file *os.File
 
-	fileOffset int
+	fileOffset int64
 
 	mutex sync.Mutex
 }
+
+var statsID int = 0
 
 func NewSiteStats() (stats *SiteStats) {
 	stats = &SiteStats{}
@@ -38,12 +41,17 @@ func NewSiteStats() (stats *SiteStats) {
 
 	if Settings.StatPath != "" {
 		var err error
-		stats.file, err = os.OpenFile(Settings.StatPath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
+
+		fileName := fmt.Sprint("stats-", time.Now().Format("2006-01-02T15:04:05"), ".", statsID, ".gor")
+
+		stats.file, err = os.OpenFile(path.Join(Settings.StatPath, fileName), os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
 
 		if err != nil {
 			fmt.Println("ERROR: Can't write stats to ", Settings.StatPath, err)
 		}
 	}
+
+	statsID++
 
 	return
 }
@@ -144,7 +152,7 @@ func (s *SiteStats) WriteStats() {
 
 			// We need length of stats records without expired element
 			if i != STATS_BUF {
-				s.fileOffset += len(bytes)
+				s.fileOffset += int64(len(bytes))
 			}
 		}
 	}
