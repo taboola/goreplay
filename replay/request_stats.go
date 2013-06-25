@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const STATS_BUF_SECONDS = 61
+const STATS_BUF = 61
 
 // We store stats for last 60 seconds.
 // Number 60 used because http timeout limit is set to 60 seconds.
@@ -20,6 +20,8 @@ type SiteStats struct {
 
 	file *os.File
 
+	fileOffset int
+
 	mutex sync.Mutex
 }
 
@@ -27,7 +29,7 @@ func NewSiteStats() (stats *SiteStats) {
 	stats = &SiteStats{}
 	stats.Start = time.Now().Unix()
 	stats.Update = time.Now().Unix()
-	stats.stats = make([]*PeriodStats, STATS_BUF_SECONDS)
+	stats.stats = make([]*PeriodStats, STATS_BUF)
 
 	stats.stats[0] = &PeriodStats{}
 	stats.stats[0].Reset()
@@ -47,7 +49,7 @@ func NewSiteStats() (stats *SiteStats) {
 }
 
 func (s *SiteStats) GetCurrent() (rs *PeriodStats, idx int) {
-	idx = int(s.Update-s.Start) % cap(s.stats)
+	idx = int(s.Update-s.Start) % STATS_BUF
 
 	if s.stats[idx] == nil {
 		s.stats[idx] = &PeriodStats{}
@@ -87,41 +89,6 @@ func (s *SiteStats) UpdateCurrent() {
 	}
 }
 
-// Every second flush stats to disk
-func (s *SiteStats) WriteStats() {
-	if s.file == nil {
-		return
-	}
-
-	// On every write, we rewriting whole stats
-	_, err := s.file.Seek(0, 0)
-
-	// If file is too small (less then 60 records), just seek to start of the file
-	if err != nil {
-		s.file.Seek(0, 0)
-	}
-
-	_, currIdx := s.GetCurrent()
-
-	for i := cap(s.stats); i >= 0; i-- {
-		idx := currIdx - i
-
-		if idx < 0 {
-			idx = cap(s.stats) + idx
-		}
-
-		ps := s.stats[idx]
-
-		if (s.Update - s.Start) > int64(idx) {
-			if ps.Count() > 0 {
-				Debug("Writing:", idx, ps.Count())
-			}
-
-			s.file.Write(ps.Encode())
-		}
-	}
-}
-
 func (s *SiteStats) IncReq(req *HttpRequest) {
 	s.UpdateCurrent()
 
@@ -138,4 +105,47 @@ func (s *SiteStats) IncResp(resp *HttpResponse) {
 func (s *SiteStats) Count() int {
 	ps, _ := s.GetCurrent()
 	return ps.Count()
+}
+
+// Every second flush stats to disk
+func (s *SiteStats) WriteStats() {
+	if s.file == nil {
+		return
+	}
+
+	// On every write, we rewriting whole stats, except last expired element
+	_, err := s.file.Seek(s.fileOffset, 2)
+
+	// If file is too small (less then STATS_BUF records), just seek to start of the file
+	if err != nil {
+		s.file.Seek(0, 0)
+	}
+
+	_, currIdx := s.GetCurrent()
+
+	s.fileOffset = 0
+
+	for i := STATS_BUF; i >= 0; i-- {
+		idx := currIdx - i
+
+		if idx < 0 {
+			idx = STATS_BUF + idx
+		}
+
+		ps := s.stats[idx]
+
+		if (s.Update - s.Start) > int64(idx) {
+			if ps.Count() > 0 {
+				Debug("Writing:", idx, ps.Count())
+			}
+
+			bytes := ps.Encode()
+			s.file.Write(bytes)
+
+			// We need length of stats records without expired element
+			if i != STATS_BUF {
+				s.fileOffset += len(bytes)
+			}
+		}
+	}
 }
