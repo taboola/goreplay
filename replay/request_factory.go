@@ -83,14 +83,14 @@ func (f *RequestFactory) handleRequests() {
 		case req := <-f.c_requests:
 			for _, host := range hosts {
 				if host.Limit == 0 || host.Stat.Count() < host.Limit {
-					// Increment Stat.Count
-					host.Stat.IncReq()
-
 					request := &HttpRequest{}
 					request.req = req
 					request.created = time.Now().UnixNano()
 
 					go f.sendRequest(host, request)
+
+					// Increment Stat.Count
+					host.Stat.IncReq(request)
 				}
 			}
 		case resp := <-f.c_responses:
