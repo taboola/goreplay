@@ -69,6 +69,7 @@ func (s *SiteStats) GetCurrent() (rs *PeriodStats, idx int) {
 
 func (s *SiteStats) FindByTime(ts int64) *PeriodStats {
 	for _, stat := range s.stats {
+		Debug("Searching by time:", ts, stat)
 		if stat.timestamp == ts {
 			return stat
 		}
