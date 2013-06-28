@@ -43,12 +43,15 @@ func NewSiteStats() (stats *SiteStats) {
 		var err error
 
 		fileName := fmt.Sprint("stats-", time.Now().Format("2006-01-02T15:04:05"), ".", statsID, ".gor")
+		filePath := path.Join(Settings.StatPath, fileName)
 
-		stats.file, err = os.OpenFile(path.Join(Settings.StatPath, fileName), os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
+		stats.file, err = os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
 
 		if err != nil {
 			fmt.Println("ERROR: Can't write stats to ", Settings.StatPath, err)
 		}
+
+		fmt.Println("Writing stats to:", filePath)
 	}
 
 	statsID++
@@ -69,8 +72,7 @@ func (s *SiteStats) GetCurrent() (rs *PeriodStats, idx int) {
 
 func (s *SiteStats) FindByTime(ts int64) *PeriodStats {
 	for _, stat := range s.stats {
-		Debug("Searching by time:", ts, stat)
-		if stat.timestamp == ts {
+		if stat != nil && stat.Timestamp == ts {
 			return stat
 		}
 	}
@@ -123,7 +125,7 @@ func (s *SiteStats) WriteStats() {
 	}
 
 	// On every write, we rewriting whole stats, except last expired element
-	_, err := s.file.Seek(s.fileOffset, 2)
+	_, err := s.file.Seek(-s.fileOffset, 2)
 
 	// If file is too small (less then STATS_BUF records), just seek to start of the file
 	if err != nil {
@@ -134,7 +136,7 @@ func (s *SiteStats) WriteStats() {
 
 	s.fileOffset = 0
 
-	for i := STATS_BUF; i >= 0; i-- {
+	for i := (STATS_BUF - 1); i >= 0; i-- {
 		idx := currIdx - i
 
 		if idx < 0 {
@@ -143,17 +145,13 @@ func (s *SiteStats) WriteStats() {
 
 		ps := s.stats[idx]
 
-		if (s.Update - s.Start) > int64(idx) {
-			if ps.Count() > 0 {
-				Debug("Writing:", idx, ps.Count())
-			}
-
+		if ps != nil && ps.Count() > 0 {
 			bytes := ps.Encode()
-			s.file.Write(bytes)
+			n, _ := s.file.Write(bytes)
 
 			// We need length of stats records without expired element
-			if i != STATS_BUF {
-				s.fileOffset += int64(len(bytes))
+			if (s.Update - ps.Timestamp) < (STATS_BUF - 1) {
+				s.fileOffset += int64(n)
 			}
 		}
 	}

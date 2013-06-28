@@ -1,19 +1,17 @@
 package replay
 
 import (
-	"bytes"
-	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"math"
+	"strconv"
 	"sync"
 	"time"
 )
 
-type HttpCodeStats map[int]int // StatusCode[Count]
-
 // Stats stores in context of current timestamp
 type RequestStat struct {
-	Codes HttpCodeStats // { 200: 10, 404:2, 500:1 }
+	Codes map[string]int // { 200: 10, 404:2, 500:1 }
 
 	Count    int // All requests including unfinished or errors
 	Finished int
@@ -46,16 +44,18 @@ func (s *RequestStat) IncResp(resp *HttpResponse) {
 		statusCode = resp.resp.StatusCode
 	}
 
-	s.Codes[statusCode]++
+	s.Codes[strconv.Itoa(statusCode)]++
 	s.Finished++
 
 	latency := float64(resp.created-resp.req.created) / float64(time.Millisecond)
 
+	if s.MinLat == 0 {
+		s.MinLat = latency
+	}
+
 	s.MaxLat = math.Max(s.MaxLat, latency)
 	s.MinLat = math.Min(s.MinLat, latency)
 	s.AvgLat = s.AvgLat + (latency-s.AvgLat)/float64(s.Finished)
-
-	Debug("MAX:", s.MaxLat, "Min:", s.MinLat, "Avg:", s.AvgLat)
 }
 
 // Updated stats timestamp to current time and reset to zero all stats values
@@ -63,7 +63,7 @@ func (s *RequestStat) Reset() {
 	s.Lock()
 	defer s.Unlock()
 
-	s.Codes = make(HttpCodeStats)
+	s.Codes = make(map[string]int)
 	s.Count = 0
 	s.Finished = 0
 
@@ -74,7 +74,7 @@ func (s *RequestStat) Reset() {
 
 // Stats for given period of time in context of URL
 type PeriodStats struct {
-	timestamp int64
+	Timestamp int64
 
 	PathStats map[string]*RequestStat
 
@@ -108,16 +108,22 @@ func (s *PeriodStats) IncResp(resp *HttpResponse) {
 }
 
 func (s *PeriodStats) Encode() []byte {
-	var data bytes.Buffer
-	enc := gob.NewEncoder(&data)
-	enc.Encode(s)
+	var data []byte
 
-	return data.Bytes()
+	data, err := json.Marshal(s)
+
+	if err != nil {
+		fmt.Println("Error while encoding", err)
+	}
+
+	data = append(data, '\n')
+
+	return data
 }
 
 func (s *PeriodStats) Reset() {
 	s.PathStats = make(map[string]*RequestStat)
-	s.timestamp = time.Now().Unix()
+	s.Timestamp = time.Now().Unix()
 
 	s.TotalStats = &RequestStat{}
 	s.TotalStats.Reset()
