@@ -50,7 +50,6 @@ func Run() {
 		scanner := bufio.NewScanner(file)
 
 		if err != nil {
-			Debug("Error", err)
 			file.Seek(0, 0)
 		} else {
 			scanner.Scan() // Skip first line since it can be incomplete
