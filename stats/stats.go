@@ -7,7 +7,7 @@ import (
 	tm "github.com/buger/gor/stats/terminal"
 	"log"
 	"os"
-	"text/tabwriter"
+	"strings"
 	"time"
 )
 
@@ -38,14 +38,16 @@ func Run() {
 		allStats = append(allStats, stat)
 	}
 
+	tm.Clear()
+
 	for {
-		tm.Clear()
+		tm.MoveCursor(1, 1)
 
-		fmt.Println("Gor stats tool\t")
-		fmt.Println("Current Time:", time.Now().Format(time.RFC1123))
-		fmt.Println("\n\n")
+		tm.Println("Gor stats tool")
+		tm.Println("Current Time:", time.Now().Format(time.RFC1123))
+		tm.Println("\n\n")
 
-		_, err = file.Seek(-30000, 2)
+		_, err = file.Seek(-50000, 2)
 
 		scanner := bufio.NewScanner(file)
 
@@ -78,11 +80,17 @@ func Run() {
 		started := 0
 		finished := 0
 
-		lastActivity := new(tabwriter.Writer)
-		lastActivity.Init(os.Stdout, 0, 20, 10, ' ', 0)
-		fmt.Fprintln(lastActivity, "Time\tStarted\tInProgress\tFinished\tAvg Lat\tMax Lat\tMin Lat\t.")
+		activity := tm.NewTable(0, 10, 5, ' ', 0)
+
+		header := []string{"Time", "Started", "Active", "Finished", "20x", "30x", "40x", "50x", "Avg Lat.", "Max Lat.", "Min Lat.", "\n"}
+		fmt.Fprintf(activity, strings.Join(header, "\t"))
 
 		for i := len(allStats) - 1; i >= 0; i-- {
+			s20x := 0
+			s30x := 0
+			s40x := 0
+			s50x := 0
+
 			stat := allStats[i].TotalStats
 
 			if stat == nil {
@@ -90,29 +98,42 @@ func Run() {
 			}
 
 			// Limit to 10 latest records
-			if (len(allStats) - i) > 10 {
+			if (len(allStats) - i) > 30 {
 				break
 			}
 
 			started += stat.Count
 			finished += stat.Finished
 
+			for k, v := range stat.Codes {
+				codeType := k[0:1]
+
+				switch codeType {
+				case "2":
+					s20x += v
+				case "3":
+					s30x += v
+				case "4":
+					s40x += v
+				case "5":
+					s50x += v
+				}
+			}
+
 			humanTime := TimeInWords(time.Now().Unix() - allStats[i].Timestamp)
 
-			fmt.Fprintf(lastActivity, "%s\t%d\t%d\t%d\t%f\t%f\t%f\n", humanTime, stat.Count, stat.Count-stat.Finished, stat.Finished, stat.AvgLat, stat.MaxLat, stat.MinLat)
+			fmt.Fprintf(activity, "%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%.2f\t%.2f\t%.2f\n", humanTime, stat.Count, stat.Count-stat.Finished, stat.Finished, s20x, s30x, s40x, s50x, stat.AvgLat, stat.MaxLat, stat.MinLat)
 		}
 
-		fmt.Println(tm.Bold("Total stats"))
+		tm.Println(tm.Bold("Total stats"))
 
-		totals := new(tabwriter.Writer)
-		totals.Init(os.Stdout, 0, 20, 10, ' ', 0)
-		fmt.Fprintln(totals, "Time\tStarted\tInProgress\tFinished\t.")
-		fmt.Fprintf(totals, "All\t%d\t%d\t%d\n", started, started-finished, finished)
-		totals.Flush()
+		totals := tm.NewTable(0, 10, 5, ' ', 0)
+		fmt.Fprintf(totals, "Time\tStarted\tActive\tFinished\n")
+		fmt.Fprintf(totals, "%s\t%d\t%d\t%d\n", "All", started, started-finished, finished)
+		tm.Println(totals)
 
-		fmt.Println("\n\n")
-		fmt.Println(tm.Bold("Latest activity"))
-		lastActivity.Flush()
+		tm.Println(tm.Bold("Latest activity"))
+		tm.Println(activity)
 
 		err = file.Close()
 
@@ -125,6 +146,8 @@ func Run() {
 		if err != nil {
 			Debug(err)
 		}
+
+		tm.Flush()
 
 		time.Sleep(time.Second)
 	}
