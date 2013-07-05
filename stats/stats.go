@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	tm "github.com/buger/gor/stats/terminal"
+	tm "github.com/buger/goterm"
 	"log"
 	"os"
 	"strings"
