@@ -73,7 +73,7 @@ func getWinsize() (*winsize, error) {
 
 var Screen *bytes.Buffer = new(bytes.Buffer)
 
-func getXY(x int, y int) (int, int) {
+func GetXY(x int, y int) (int, int) {
 	if y == -1 {
 		y = CurrentHeight() + 1
 	}
@@ -110,7 +110,7 @@ func MoveCursor(x int, y int) {
 }
 
 func MoveTo(str string, x int, y int) (out string) {
-	x, y = getXY(x, y)
+	x, y = GetXY(x, y)
 
 	return applyTransform(str, func(idx int, line string) string {
 		return fmt.Sprintf("\033[%d;%dH%s", y+idx, x, line)
