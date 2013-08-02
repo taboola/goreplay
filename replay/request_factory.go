@@ -1,6 +1,7 @@
 package replay
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 )
@@ -37,9 +38,19 @@ func NewRequestFactory() (factory *RequestFactory) {
 	return
 }
 
+// Allow only 2 redirects https://github.com/buger/gor/pull/15
+func customCheckRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= 2 {
+		return errors.New("stopped after 2 redirects")
+	}
+	return nil
+}
+
 // Forward http request to given host
 func (f *RequestFactory) sendRequest(host *ForwardHost, request *http.Request) {
-	client := &http.Client{}
+	client := &http.Client{
+		CheckRedirect: customCheckRedirect,
+	}
 
 	// Change HOST of original request
 	URL := host.Url + request.URL.Path + "?" + request.URL.RawQuery
