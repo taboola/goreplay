@@ -1,4 +1,3 @@
 language: go 
 go: 1.1
-before_install: sudo su
 script: sudo -E sh -c "gvm use go1.1 && go test"
