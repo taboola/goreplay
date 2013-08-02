@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/buger/gor.png?branch=master)](https://travis-ci.org/buger/gor)
+
 ## About
 
 Gor is a simple http traffic replication tool written in Go. 
