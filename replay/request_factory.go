@@ -38,9 +38,9 @@ func NewRequestFactory() (factory *RequestFactory) {
 	return
 }
 
-// Allow only 2 redirects https://github.com/buger/gor/pull/15
+// Disable redirects https://github.com/buger/gor/pull/15
 func customCheckRedirect(req *http.Request, via []*http.Request) error {
-	if len(via) >= 2 {
+	if len(via) >= 0 {
 		return errors.New("stopped after 2 redirects")
 	}
 	return nil
