@@ -68,8 +68,6 @@ func Run() {
 			currentRPS++
 		}
 
-		fmt.Println(currentRPS, Settings.ReplayLimit)
-
 		go sendMessage(m)
 	}
 }
