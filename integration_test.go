@@ -29,7 +29,8 @@ type Env struct {
 	ListenHandler http.HandlerFunc
 	ReplayHandler http.HandlerFunc
 
-	ReplayLimit int
+	ReplayLimit   int
+	ListenerLimit int
 }
 
 func (e *Env) start() (p int) {
@@ -53,6 +54,11 @@ func (e *Env) startListener(port int, replayPort int) {
 	listener.Settings.Address = "127.0.0.1"
 	listener.Settings.ReplayAddress = "127.0.0.1:" + strconv.Itoa(replayPort)
 	listener.Settings.Port = port
+
+	if e.ListenerLimit != 0 {
+		listener.Settings.ReplayAddress += "|" + strconv.Itoa(e.ListenerLimit)
+	}
+
 	listener.Run()
 }
 
@@ -127,7 +133,7 @@ func TestReplay(t *testing.T) {
 	}
 }
 
-func rateLimitEnv(limit int) int32 {
+func rateLimitEnv(replayLimit int, listenerLimit int) int32 {
 	var processed int32
 
 	listenHandler := func(w http.ResponseWriter, r *http.Request) {
@@ -142,7 +148,8 @@ func rateLimitEnv(limit int) int32 {
 	env := &Env{
 		ListenHandler: listenHandler,
 		ReplayHandler: replayHandler,
-		ReplayLimit:   limit,
+		ReplayLimit:   replayLimit,
+		ListenerLimit: listenerLimit,
 	}
 
 	p := env.start()
@@ -158,7 +165,7 @@ func rateLimitEnv(limit int) int32 {
 }
 
 func TestWithoutReplayRateLimit(t *testing.T) {
-	processed := rateLimitEnv(0)
+	processed := rateLimitEnv(0, 0)
 
 	if processed != 10 {
 		t.Error("It should forward all requests without rate-limiting", processed)
@@ -166,9 +173,17 @@ func TestWithoutReplayRateLimit(t *testing.T) {
 }
 
 func TestReplayRateLimit(t *testing.T) {
-	processed := rateLimitEnv(5)
+	processed := rateLimitEnv(5, 0)
 
 	if processed != 5 {
 		t.Error("It should forward only 5 requests with rate-limiting", processed)
+	}
+}
+
+func TestListenerRateLimit(t *testing.T) {
+	processed := rateLimitEnv(0, 3)
+
+	if processed != 3 {
+		t.Error("It should forward only 3 requests with rate-limiting", processed)
 	}
 }
