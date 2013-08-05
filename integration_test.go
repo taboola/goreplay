@@ -8,16 +8,23 @@ import (
 
 	"time"
 
+	"fmt"
 	"net/http"
 	"strconv"
 )
+
+func isEqual(t *testing.T, a interface{}, b interface{}) {
+	if a != b {
+		t.Error("Original and Replayed request not match\n", a, "!=", b)
+	}
+}
 
 func startListener() {
 	listener.Settings.Verbose = true
 	listener.Settings.Address = "127.0.0.1"
 	listener.Settings.ReplayAddress = "127.0.0.1:50001"
 	listener.Settings.Port = 50000
-	go listener.Run()
+	listener.Run()
 }
 
 func startReplay() {
@@ -25,11 +32,11 @@ func startReplay() {
 	replay.Settings.Host = "127.0.0.1"
 	replay.Settings.ForwardAddress = "127.0.0.1:50002"
 	replay.Settings.Port = 50001
-	go replay.Run()
+	replay.Run()
 }
 
 func startHTTP(port int, handler http.Handler) {
-	go http.ListenAndServe(":"+strconv.Itoa(port), handler)
+	http.ListenAndServe(":"+strconv.Itoa(port), handler)
 }
 
 func getRequest() *http.Request {
@@ -43,35 +50,37 @@ func getRequest() *http.Request {
 	return req
 }
 
-func TestIntegration(t *testing.T) {
+func startEnv(listenHandler http.HandlerFunc, replayHandler http.HandlerFunc) {
+	go startHTTP(50000, http.HandlerFunc(listenHandler))
+	go startListener()
+	go startReplay()
+	go startHTTP(50002, http.HandlerFunc(replayHandler))
+}
+
+func TestReplay(t *testing.T) {
 	request := getRequest()
+	received := make(chan int)
 
 	listenHandler := func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "404 page not found", http.StatusNotFound)
 	}
-	startHTTP(50000, http.HandlerFunc(listenHandler))
-
-	startListener()
-	startReplay()
-
-	received := make(chan int)
 
 	replayHandler := func(w http.ResponseWriter, r *http.Request) {
-		equal := func(a interface{}, b interface{}) {
-			if a != b {
-				t.Error("Original and Replayed request not match\n", a, "!=", b, "\nReplayed:", r, "\nOriginal:", request)
-			}
-		}
-
-		equal(r.URL.Path, request.URL.Path)
-		equal(r.Cookies()[0].Value, request.Cookies()[0].Value)
+		isEqual(t, r.URL.Path, request.URL.Path)
+		isEqual(t, r.Cookies()[0].Value, request.Cookies()[0].Value)
 
 		http.Error(w, "404 page not found", http.StatusNotFound)
 
+		if t.Failed() {
+			fmt.Println("\nReplayed:", r, "\nOriginal:", request)
+		}
+
 		received <- 1
 	}
-	startHTTP(50002, http.HandlerFunc(replayHandler))
 
+	startEnv(listenHandler, replayHandler)
+
+	// Time to start http and gor instances
 	time.Sleep(time.Millisecond * 100)
 
 	_, err := http.DefaultClient.Do(request)
@@ -85,6 +94,8 @@ func TestIntegration(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Error("Timeout error")
 	}
+}
 
-	time.Sleep(time.Millisecond * 500)
+func TestRateLimit(t *testing.T) {
+
 }
