@@ -19,19 +19,19 @@ func isEqual(t *testing.T, a interface{}, b interface{}) {
 	}
 }
 
-func startListener() {
-	listener.Settings.Verbose = true
+func startListener(port int, replayPort int, verbose bool) {
+	listener.Settings.Verbose = verbose
 	listener.Settings.Address = "127.0.0.1"
-	listener.Settings.ReplayAddress = "127.0.0.1:50001"
-	listener.Settings.Port = 50000
+	listener.Settings.ReplayAddress = "127.0.0.1:" + strconv.Itoa(replayPort)
+	listener.Settings.Port = port
 	listener.Run()
 }
 
-func startReplay() {
-	replay.Settings.Verbose = true
+func startReplay(port int, forwardPort int, verbose bool) {
+	replay.Settings.Verbose = verbose
 	replay.Settings.Host = "127.0.0.1"
-	replay.Settings.ForwardAddress = "127.0.0.1:50002"
-	replay.Settings.Port = 50001
+	replay.Settings.ForwardAddress = "127.0.0.1:" + strconv.Itoa(forwardPort)
+	replay.Settings.Port = port
 	replay.Run()
 }
 
@@ -50,11 +50,15 @@ func getRequest() *http.Request {
 	return req
 }
 
-func startEnv(listenHandler http.HandlerFunc, replayHandler http.HandlerFunc) {
+func startEnv(listenHandler http.HandlerFunc, replayHandler http.HandlerFunc, verbose bool) {
 	go startHTTP(50000, http.HandlerFunc(listenHandler))
-	go startListener()
-	go startReplay()
 	go startHTTP(50002, http.HandlerFunc(replayHandler))
+
+	go startListener(50000, 50001, verbose)
+	go startReplay(50001, 50002, verbose)
+
+	// Time to start http and gor instances
+	time.Sleep(time.Millisecond * 100)
 }
 
 func TestReplay(t *testing.T) {
@@ -62,7 +66,7 @@ func TestReplay(t *testing.T) {
 	received := make(chan int)
 
 	listenHandler := func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "404 page not found", http.StatusNotFound)
+		http.Error(w, "OK", http.StatusNotFound)
 	}
 
 	replayHandler := func(w http.ResponseWriter, r *http.Request) {
@@ -78,10 +82,7 @@ func TestReplay(t *testing.T) {
 		received <- 1
 	}
 
-	startEnv(listenHandler, replayHandler)
-
-	// Time to start http and gor instances
-	time.Sleep(time.Millisecond * 100)
+	startEnv(listenHandler, replayHandler, true)
 
 	_, err := http.DefaultClient.Do(request)
 
