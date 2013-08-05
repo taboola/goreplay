@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+
+	"sync/atomic"
 )
 
 func isEqual(t *testing.T, a interface{}, b interface{}) {
@@ -26,6 +28,8 @@ type Env struct {
 
 	ListenHandler http.HandlerFunc
 	ReplayHandler http.HandlerFunc
+
+	ReplayLimit int
 }
 
 func (e *Env) start() (p int) {
@@ -57,6 +61,11 @@ func (e *Env) startReplay(port int, forwardPort int) {
 	replay.Settings.Host = "127.0.0.1"
 	replay.Settings.ForwardAddress = "127.0.0.1:" + strconv.Itoa(forwardPort)
 	replay.Settings.Port = port
+
+	if e.ReplayLimit != 0 {
+		replay.Settings.ForwardAddress += "|" + strconv.Itoa(e.ReplayLimit)
+	}
+
 	replay.Run()
 }
 
@@ -118,19 +127,48 @@ func TestReplay(t *testing.T) {
 	}
 }
 
-func TestRateLimit(t *testing.T) {
+func rateLimitEnv(limit int) int32 {
+	var processed int32
+
 	listenHandler := func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "OK", http.StatusAccepted)
 	}
 
 	replayHandler := func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&processed, 1)
 		http.Error(w, "OK", http.StatusAccepted)
 	}
 
 	env := &Env{
 		ListenHandler: listenHandler,
 		ReplayHandler: replayHandler,
+		ReplayLimit:   limit,
 	}
 
-	env.start()
+	p := env.start()
+	req := getRequest(p)
+
+	for i := 0; i < 10; i++ {
+		http.DefaultClient.Do(req)
+	}
+
+	time.Sleep(time.Millisecond * 500)
+
+	return processed
+}
+
+func TestWithoutReplayRateLimit(t *testing.T) {
+	processed := rateLimitEnv(0)
+
+	if processed != 10 {
+		t.Error("It should forward all requests without rate-limiting", processed)
+	}
+}
+
+func TestReplayRateLimit(t *testing.T) {
+	processed := rateLimitEnv(5)
+
+	if processed != 5 {
+		t.Error("It should forward only 5 requests with rate-limiting", processed)
+	}
 }
