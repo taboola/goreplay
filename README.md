@@ -87,6 +87,14 @@ only by using sudo or root access.
 ### Do you support all http request types?
 Yes. ~~Right now it supports only "GET" requests.~~
 
+## Contributing
+
+1. Fork it
+2. Create your feature branch (git checkout -b my-new-feature)
+3. Commit your changes (git commit -am 'Added some feature')
+4. Push to the branch (git push origin my-new-feature)
+5. Create new Pull Request
+
 ## TODO
 
 Use buffering for request throttling instead of simple rate limiting. 
