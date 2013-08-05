@@ -19,28 +19,53 @@ func isEqual(t *testing.T, a interface{}, b interface{}) {
 	}
 }
 
-func startListener(port int, replayPort int, verbose bool) {
-	listener.Settings.Verbose = verbose
+var envs int
+
+type Env struct {
+	Verbose bool
+
+	ListenHandler http.HandlerFunc
+	ReplayHandler http.HandlerFunc
+}
+
+func (e *Env) start() (p int) {
+	p = 50000 + envs*10
+
+	go e.startHTTP(p, http.HandlerFunc(e.ListenHandler))
+	go e.startHTTP(p+2, http.HandlerFunc(e.ReplayHandler))
+	go e.startListener(p, p+1)
+	go e.startReplay(p+1, p+2)
+
+	// Time to start http and gor instances
+	time.Sleep(time.Millisecond * 100)
+
+	envs++
+
+	return
+}
+
+func (e *Env) startListener(port int, replayPort int) {
+	listener.Settings.Verbose = e.Verbose
 	listener.Settings.Address = "127.0.0.1"
 	listener.Settings.ReplayAddress = "127.0.0.1:" + strconv.Itoa(replayPort)
 	listener.Settings.Port = port
 	listener.Run()
 }
 
-func startReplay(port int, forwardPort int, verbose bool) {
-	replay.Settings.Verbose = verbose
+func (e *Env) startReplay(port int, forwardPort int) {
+	replay.Settings.Verbose = e.Verbose
 	replay.Settings.Host = "127.0.0.1"
 	replay.Settings.ForwardAddress = "127.0.0.1:" + strconv.Itoa(forwardPort)
 	replay.Settings.Port = port
 	replay.Run()
 }
 
-func startHTTP(port int, handler http.Handler) {
+func (e *Env) startHTTP(port int, handler http.Handler) {
 	http.ListenAndServe(":"+strconv.Itoa(port), handler)
 }
 
-func getRequest() *http.Request {
-	req, _ := http.NewRequest("GET", "http://localhost:50000/test", nil)
+func getRequest(port int) *http.Request {
+	req, _ := http.NewRequest("GET", "http://localhost:"+strconv.Itoa(port)+"/test", nil)
 	ck1 := new(http.Cookie)
 	ck1.Name = "test"
 	ck1.Value = "value"
@@ -50,19 +75,8 @@ func getRequest() *http.Request {
 	return req
 }
 
-func startEnv(listenHandler http.HandlerFunc, replayHandler http.HandlerFunc, verbose bool) {
-	go startHTTP(50000, http.HandlerFunc(listenHandler))
-	go startHTTP(50002, http.HandlerFunc(replayHandler))
-
-	go startListener(50000, 50001, verbose)
-	go startReplay(50001, 50002, verbose)
-
-	// Time to start http and gor instances
-	time.Sleep(time.Millisecond * 100)
-}
-
 func TestReplay(t *testing.T) {
-	request := getRequest()
+	var request *http.Request
 	received := make(chan int)
 
 	listenHandler := func(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +96,14 @@ func TestReplay(t *testing.T) {
 		received <- 1
 	}
 
-	startEnv(listenHandler, replayHandler, true)
+	env := &Env{
+		Verbose:       true,
+		ListenHandler: listenHandler,
+		ReplayHandler: replayHandler,
+	}
+	p := env.start()
+
+	request = getRequest(p)
 
 	_, err := http.DefaultClient.Do(request)
 
@@ -98,5 +119,18 @@ func TestReplay(t *testing.T) {
 }
 
 func TestRateLimit(t *testing.T) {
+	listenHandler := func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "OK", http.StatusAccepted)
+	}
 
+	replayHandler := func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "OK", http.StatusAccepted)
+	}
+
+	env := &Env{
+		ListenHandler: listenHandler,
+		ReplayHandler: replayHandler,
+	}
+
+	env.start()
 }
