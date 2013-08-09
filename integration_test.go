@@ -133,7 +133,7 @@ func TestReplay(t *testing.T) {
 	}
 }
 
-func rateLimitEnv(replayLimit int, listenerLimit int) int32 {
+func rateLimitEnv(replayLimit int, listenerLimit int, connCount int) int32 {
 	var processed int32
 
 	listenHandler := func(w http.ResponseWriter, r *http.Request) {
@@ -155,8 +155,10 @@ func rateLimitEnv(replayLimit int, listenerLimit int) int32 {
 	p := env.start()
 	req := getRequest(p)
 
-	for i := 0; i < 10; i++ {
-		http.DefaultClient.Do(req)
+	for i := 0; i < connCount; i++ {
+		go func() {
+			http.DefaultClient.Do(req)
+		}()
 	}
 
 	time.Sleep(time.Millisecond * 500)
@@ -165,7 +167,7 @@ func rateLimitEnv(replayLimit int, listenerLimit int) int32 {
 }
 
 func TestWithoutReplayRateLimit(t *testing.T) {
-	processed := rateLimitEnv(0, 0)
+	processed := rateLimitEnv(0, 0, 10)
 
 	if processed != 10 {
 		t.Error("It should forward all requests without rate-limiting", processed)
@@ -173,7 +175,7 @@ func TestWithoutReplayRateLimit(t *testing.T) {
 }
 
 func TestReplayRateLimit(t *testing.T) {
-	processed := rateLimitEnv(5, 0)
+	processed := rateLimitEnv(5, 0, 10)
 
 	if processed != 5 {
 		t.Error("It should forward only 5 requests with rate-limiting", processed)
@@ -181,7 +183,7 @@ func TestReplayRateLimit(t *testing.T) {
 }
 
 func TestListenerRateLimit(t *testing.T) {
-	processed := rateLimitEnv(0, 3)
+	processed := rateLimitEnv(0, 3, 100)
 
 	if processed != 3 {
 		t.Error("It should forward only 3 requests with rate-limiting", processed)
