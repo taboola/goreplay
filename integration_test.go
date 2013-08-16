@@ -76,7 +76,11 @@ func (e *Env) startReplay(port int, forwardPort int) {
 }
 
 func (e *Env) startHTTP(port int, handler http.Handler) {
-	http.ListenAndServe(":"+strconv.Itoa(port), handler)
+	err := http.ListenAndServe(":"+strconv.Itoa(port), handler)
+
+	if err != nil {
+		fmt.Println("Error while starting http server:", err)
+	}
 }
 
 func getRequest(port int) *http.Request {
