@@ -189,3 +189,87 @@ func TestListenerRateLimit(t *testing.T) {
 		t.Error("It should forward only 3 requests with rate-limiting", processed)
 	}
 }
+
+func (e *Env) startWithFile() (p int) {
+	p = 50000 + envs*10
+
+	go e.startHTTP(p, http.HandlerFunc(e.ListenHandler))
+	go e.startHTTP(p+2, http.HandlerFunc(e.ReplayHandler))
+	go e.startFileUsingListener(p, p+1)
+	go e.startFileUsingReplay(p+1, p+2)
+
+	// Time to start http and gor instances
+	time.Sleep(time.Millisecond * 100)
+
+	envs++
+
+	return
+}
+
+func (e *Env) startFileUsingListener(port int, replayPort int) {
+	listener.Settings.Verbose = e.Verbose
+	listener.Settings.Address = "127.0.0.1"
+	listener.Settings.FileToReplyPath = "integration_request.gor"
+	listener.Settings.Port = port
+
+	if e.ListenerLimit != 0 {
+		listener.Settings.ReplayAddress += "|" + strconv.Itoa(e.ListenerLimit)
+	}
+
+	listener.Run()
+}
+
+func (e *Env) startFileUsingReplay(port int, forwardPort int) {
+	replay.Settings.Verbose = e.Verbose
+	replay.Settings.FileToReplyPath = "integration_request.gor"
+	replay.Settings.ForwardAddress = "127.0.0.1:" + strconv.Itoa(forwardPort)
+	replay.Settings.Port = port
+
+	if e.ReplayLimit != 0 {
+		replay.Settings.ForwardAddress += "|" + strconv.Itoa(e.ReplayLimit)
+	}
+
+	replay.Run()
+}
+func TestSavingRequestToFileAndReplyThem(t *testing.T) {
+	var request *http.Request
+	received := make(chan int)
+
+	listenHandler := func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "OK", http.StatusNotFound)
+	}
+
+	replayHandler := func(w http.ResponseWriter, r *http.Request) {
+		isEqual(t, r.URL.Path, request.URL.Path)
+		isEqual(t, r.Cookies()[0].Value, request.Cookies()[0].Value)
+
+		http.Error(w, "404 page not found", http.StatusNotFound)
+
+		if t.Failed() {
+			fmt.Println("\nReplayed:", r, "\nOriginal:", request)
+		}
+
+		received <- 1
+	}
+
+	env := &Env{
+		Verbose:       true,
+		ListenHandler: listenHandler,
+		ReplayHandler: replayHandler,
+	}
+	p := env.startWithFile()
+
+	request = getRequest(p)
+
+	_, err := http.DefaultClient.Do(request)
+
+	if err != nil {
+		t.Error("Can't make request", err)
+	}
+
+	select {
+	case <-received:
+	case <-time.After(time.Second):
+		t.Error("Timeout error")
+	}
+}
