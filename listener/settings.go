@@ -49,7 +49,7 @@ func init() {
 
 	flag.StringVar(&Settings.ReplayAddress, "r", defaultReplayAddress, "Address of replay server.")
 
-	flag.StringVar(&Settings.FileToReplyPath, "file", nil, "File to store captured requests")
+	flag.StringVar(&Settings.FileToReplyPath, "file", "", "File to store captured requests")
 
 	flag.BoolVar(&Settings.Verbose, "verbose", false, "Log requests")
 }
