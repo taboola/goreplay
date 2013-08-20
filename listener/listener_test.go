@@ -53,13 +53,13 @@ func TestSaveMessageToFile(t *testing.T) {
 
   requestBytes = []byte("GET http://localhost:50000/pub/WWW/ HTTP/1.1\nHost: www.w3.org\r\n\r\n")
   // TODO: implement foo
-  requestReader = foo(requestBytes)
-	request, err = http.ReadRequest(reader)
+  //requestReader = foo(requestBytes)
+	request, err = http.ReadRequest(bytes.NewBuffer(requestBytes))
 
 	go func() {
     _, err := http.DefaultClient.Do(request)
 		received <- 1
-  }
+  }()
 
 	select {
 	case <-received:
