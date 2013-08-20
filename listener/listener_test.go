@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-  "os"
-  "time"
+	"os"
 	"testing"
+	"time"
 )
 
 func getTCPMessage() (msg *TCPMessage) {
@@ -15,7 +15,6 @@ func getTCPMessage() (msg *TCPMessage) {
 
 	return &TCPMessage{packets: []*TCPPacket{packet}}
 }
-
 
 func mockReplayServer() (listener net.Listener) {
 	listener, _ = net.Listen("tcp", "127.0.0.1:0")
@@ -39,7 +38,7 @@ func TestSendMessage(t *testing.T) {
 	conn, _ := listener.Accept()
 	defer conn.Close()
 
-	buf  := make([]byte, 1024)
+	buf := make([]byte, 1024)
 	n, _ := conn.Read(buf)
 	buf = buf[0:n]
 
@@ -50,27 +49,27 @@ func TestSendMessage(t *testing.T) {
 
 func TestSaveMessageToFile(t *testing.T) {
 	Settings.Verbose = true
-  Settings.FileToReplyPath = "requests.gor"
+	Settings.FileToReplyPath = "requests.gor"
 
 	received := make(chan int)
-  go Run()
+	go Run()
 
-  requestBytes := []byte("GET / HTTP/1.1\nHost: localhost:50000\r\n\r\n")
+	requestBytes := []byte("GET / HTTP/1.1\nHost: localhost:50000\r\n\r\n")
 
-  handler := func(w http.ResponseWriter, r *http.Request) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "OK", http.StatusNotFound)
 		received <- 1
-  }
-
-  go func() {
-    http.ListenAndServe(":50000", http.HandlerFunc(handler))
-    time.Sleep(time.Millisecond * 100)
-  }()
+	}
 
 	go func() {
-    conn, _ := net.Dial("tcp", ":50000")
-    conn.Write(requestBytes)
-  }()
+		http.ListenAndServe(":50000", http.HandlerFunc(handler))
+		time.Sleep(time.Millisecond * 100)
+	}()
+
+	go func() {
+		conn, _ := net.Dial("tcp", ":50000")
+		conn.Write(requestBytes)
+	}()
 
 	select {
 	case <-received:
@@ -78,14 +77,14 @@ func TestSaveMessageToFile(t *testing.T) {
 		t.Error("Timeout error")
 	}
 
-  file, err := os.Open("request.gor")
+	file, err := os.Open("request.gor")
 
-  if err != nil {
-    t.Errorf("Problem with opening file: ", err)
-  }
+	if err != nil {
+		t.Errorf("Problem with opening file: ", err)
+	}
 
-  fileBuf     := make([]byte, 100)
-  file.Read(fileBuf)
+	fileBuf := make([]byte, 100)
+	file.Read(fileBuf)
 
 	if bytes.Compare(fileBuf, requestBytes) != 0 {
 		t.Errorf("Original and received requests does not match")
