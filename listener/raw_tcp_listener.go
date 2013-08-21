@@ -25,18 +25,18 @@ type RAWTCPListener struct {
 	port int    // Port to listen
 }
 
-func RAWTCPListen(addr string, port int) (listener *RAWTCPListener) {
-	listener = &RAWTCPListener{}
+func RAWTCPListen(addr string, port int) (rawListener *RAWTCPListener) {
+	rawListener = &RAWTCPListener{}
 
-	listener.c_packets = make(chan *TCPPacket)
-	listener.c_messages = make(chan *TCPMessage)
-	listener.c_del_message = make(chan *TCPMessage)
+	rawListener.c_packets = make(chan *TCPPacket)
+	rawListener.c_messages = make(chan *TCPMessage)
+	rawListener.c_del_message = make(chan *TCPMessage)
 
-	listener.addr = addr
-	listener.port = port
+	rawListener.addr = addr
+	rawListener.port = port
 
-	go listener.listen()
-	go listener.readRAWSocket()
+	go rawListener.listen()
+	go rawListener.readRAWSocket()
 
 	return
 }
