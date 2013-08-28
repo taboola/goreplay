@@ -51,9 +51,17 @@ func Run() {
 	currentTime := time.Now().UnixNano()
 	currentRPS := 0
 
+	var messageLogger *MessageLogger
+
+	if Settings.FileToReplyPath != "" {
+		messageLogger = NewLog(Settings.FileToReplyPath)
+	}
+
 	for {
 		// Receiving TCPMessage object
+		fmt.Println("FILE: ", Settings.FileToReplyPath)
 		m := listener.Receive()
+		fmt.Println("bla bla bla: ", messageLogger)
 
 		if Settings.ReplayLimit != 0 {
 			if (time.Now().UnixNano() - currentTime) > time.Second.Nanoseconds() {
@@ -68,6 +76,22 @@ func Run() {
 			currentRPS++
 		}
 
+		fmt.Println("FOO BAR: ", messageLogger)
+		if messageLogger != nil {
+			go func() {
+				messageBuffer := new(bytes.Buffer)
+				messageWriter := bufio.NewWriter(messageBuffer)
+
+				fmt.Fprintf(messageWriter, "\n")
+				fmt.Fprintf(messageWriter, "------------------------------------------------\n")
+				fmt.Fprintf(messageWriter, "%s", string(m.Bytes()))
+				fmt.Fprintf(messageWriter, "\n")
+
+				messageWriter.Flush()
+				messageLogger.messageChannel <- messageBuffer.String()
+			}()
+		}
+		fmt.Println("bla bla bla: ", messageLogger)
 		go sendMessage(m)
 	}
 }
