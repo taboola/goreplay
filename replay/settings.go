@@ -18,7 +18,7 @@ type ReplaySettings struct {
 	Port int
 	Host string
 
-	ForwardAddress string
+	ForwardAddress  string
 	FileToReplyPath string
 
 	Verbose bool
