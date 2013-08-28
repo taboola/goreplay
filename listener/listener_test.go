@@ -50,9 +50,10 @@ func TestSendMessage(t *testing.T) {
 func TestSaveMessageToFile(t *testing.T) {
 	Settings.Verbose = true
 	Settings.FileToReplyPath = "requests.gor"
+	Settings.Address = "127.0.0.1"
+	Settings.Port = 50000
 
 	received := make(chan int)
-	go Run()
 
 	requestBytes := []byte("GET / HTTP/1.1\nHost: localhost:50000\r\n\r\n")
 
@@ -63,9 +64,12 @@ func TestSaveMessageToFile(t *testing.T) {
 
 	go func() {
 		http.ListenAndServe(":50000", http.HandlerFunc(handler))
-		time.Sleep(time.Millisecond * 100)
 	}()
 
+	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Millisecond * 100)
+	go Run()
 	go func() {
 		conn, _ := net.Dial("tcp", ":50000")
 		conn.Write(requestBytes)
@@ -73,11 +77,12 @@ func TestSaveMessageToFile(t *testing.T) {
 
 	select {
 	case <-received:
+		time.Sleep(time.Millisecond * 100)
 	case <-time.After(time.Second):
 		t.Error("Timeout error")
 	}
 
-	file, err := os.Open("request.gor")
+	file, err := os.Open("requests.gor")
 
 	if err != nil {
 		t.Errorf("Problem with opening file: ", err)
