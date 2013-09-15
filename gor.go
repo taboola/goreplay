@@ -24,6 +24,16 @@ var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 var memprofile = flag.String("memprofile", "", "write memory profile to this file")
 
 func main() {
+	defer func() {
+		if r := recover(); r != nil {
+			var ok bool
+			_, ok = r.(error)
+			if !ok {
+				fmt.Errorf("pkg: %v", r)
+			}
+		}
+	}()
+
 	fmt.Println("Version:", VERSION)
 
 	mode := "unknown"
@@ -73,5 +83,4 @@ func main() {
 	case "replay":
 		replay.Run()
 	}
-
 }
