@@ -99,14 +99,19 @@ func TestReplay(t *testing.T) {
 	received := make(chan int)
 
 	listenHandler := func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "OK", http.StatusNotFound)
+		http.Error(w, "OK", http.StatusFound)
 	}
 
 	replayHandler := func(w http.ResponseWriter, r *http.Request) {
 		isEqual(t, r.URL.Path, request.URL.Path)
-		isEqual(t, r.Cookies()[0].Value, request.Cookies()[0].Value)
 
-		http.Error(w, "404 page not found", http.StatusNotFound)
+		if len(r.Cookies()) > 0 {
+			isEqual(t, r.Cookies()[0].Value, request.Cookies()[0].Value)
+		} else {
+			t.Error("Cookies should not be blank")
+		}
+
+		http.Error(w, "OK", http.StatusFound)
 
 		if t.Failed() {
 			fmt.Println("\nReplayed:", r, "\nOriginal:", request)
