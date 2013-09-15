@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	VERSION = "0.3.3"
+	VERSION = "0.3.5"
 )
 
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
