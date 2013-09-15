@@ -99,7 +99,7 @@ func TestReplay(t *testing.T) {
 	received := make(chan int)
 
 	listenHandler := func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "OK", http.StatusFound)
+		http.Error(w, "OK", http.StatusAccepted)
 	}
 
 	replayHandler := func(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +111,7 @@ func TestReplay(t *testing.T) {
 			t.Error("Cookies should not be blank")
 		}
 
-		http.Error(w, "OK", http.StatusFound)
+		http.Error(w, "OK", http.StatusAccepted)
 
 		if t.Failed() {
 			fmt.Println("\nReplayed:", r, "\nOriginal:", request)
