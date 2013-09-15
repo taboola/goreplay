@@ -74,9 +74,9 @@ Usage of ./bin/gor-linux:
   -p=28020: specify port number
 ```
 
-## Pre-build binaries
+## Latest releases (including binaries)
 
-[Download binaries (linux 32/64, darwin)](https://drive.google.com/folderview?id=0B46uay48NwcfWFowc1E4a1BISVU&usp=sharing)
+https://github.com/buger/gor/releases
 
 ## Building from source
 1. Setup standard Go environment http://golang.org/doc/code.html and ensure that $GOPATH environment variable properly set.
