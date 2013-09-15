@@ -87,7 +87,7 @@ Usage of ./bin/gor-linux:
 ## FAQ
 
 ### What OS are supported?
-For now only Linux based. *BSD (including MacOS is not supported yet, check #22 for details)
+For now only Linux based. *BSD (including MacOS is not supported yet, check https://github.com/buger/gor/issues/22 for details)
 
 ### Why does the `gor listener` requires sudo or root access?
 Listener works by sniffing traffic from a given port. It's accessible
