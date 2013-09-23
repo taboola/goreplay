@@ -74,9 +74,9 @@ Usage of ./bin/gor-linux:
   -p=28020: specify port number
 ```
 
-## Pre-build binaries
+## Latest releases (including binaries)
 
-[Download binaries (linux 32/64, darwin)](https://drive.google.com/folderview?id=0B46uay48NwcfWFowc1E4a1BISVU&usp=sharing)
+https://github.com/buger/gor/releases
 
 ## Building from source
 1. Setup standard Go environment http://golang.org/doc/code.html and ensure that $GOPATH environment variable properly set.
@@ -85,6 +85,9 @@ Usage of ./bin/gor-linux:
 4. `go build gor.go` to get binary, or `go run gor.go` to build and run (useful for development)
 
 ## FAQ
+
+### What OS are supported?
+For now only Linux based. *BSD (including MacOS is not supported yet, check https://github.com/buger/gor/issues/22 for details)
 
 ### Why does the `gor listener` requires sudo or root access?
 Listener works by sniffing traffic from a given port. It's accessible

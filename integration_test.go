@@ -76,7 +76,11 @@ func (e *Env) startReplay(port int, forwardPort int) {
 }
 
 func (e *Env) startHTTP(port int, handler http.Handler) {
-	http.ListenAndServe(":"+strconv.Itoa(port), handler)
+	err := http.ListenAndServe(":"+strconv.Itoa(port), handler)
+
+	if err != nil {
+		fmt.Println("Error while starting http server:", err)
+	}
 }
 
 func getRequest(port int) *http.Request {
@@ -95,14 +99,19 @@ func TestReplay(t *testing.T) {
 	received := make(chan int)
 
 	listenHandler := func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "OK", http.StatusNotFound)
+		http.Error(w, "OK", http.StatusAccepted)
 	}
 
 	replayHandler := func(w http.ResponseWriter, r *http.Request) {
 		isEqual(t, r.URL.Path, request.URL.Path)
-		isEqual(t, r.Cookies()[0].Value, request.Cookies()[0].Value)
 
-		http.Error(w, "404 page not found", http.StatusNotFound)
+		if len(r.Cookies()) > 0 {
+			isEqual(t, r.Cookies()[0].Value, request.Cookies()[0].Value)
+		} else {
+			t.Error("Cookies should not be blank")
+		}
+
+		http.Error(w, "OK", http.StatusAccepted)
 
 		if t.Failed() {
 			fmt.Println("\nReplayed:", r, "\nOriginal:", request)
