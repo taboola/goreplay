@@ -46,7 +46,6 @@ func (t *TCPMessage) listen() {
 	for {
 		select {
 		case <-t.c_closing:
-			Debug("BLA BLA BLA")
 			close(t.c_packets)
 			return // Stop loop if message completed/expired
 		case packet := <-t.c_packets:
