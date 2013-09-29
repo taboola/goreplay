@@ -80,15 +80,16 @@ func Run() {
 				messageBuffer := new(bytes.Buffer)
 				messageWriter := bufio.NewWriter(messageBuffer)
 
-				// fmt.Fprintf(messageWriter, "------------------------------------------------\n")
 				fmt.Fprintf(messageWriter, "%s", string(m.Bytes()))
+				fmt.Fprintf(messageWriter, "\n--\n")
 
 				messageWriter.Flush()
 				messageLogger.messageChannel <- messageBuffer.String()
 			}()
+    } else {
+      go sendMessage(m)
 		}
 
-		go sendMessage(m)
 	}
 }
 

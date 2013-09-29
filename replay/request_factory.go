@@ -58,8 +58,6 @@ func (f *RequestFactory) sendRequest(host *ForwardHost, request *http.Request) {
 	request.RequestURI = ""
 	request.URL, _ = url.ParseRequestURI(URL)
 
-	Debug("Sending request:", host.Url, request)
-
 	resp, err := client.Do(request)
 
 	if err == nil {
@@ -94,6 +92,7 @@ func (f *RequestFactory) handleRequests() {
 			resp.host.Stat.IncResp(resp)
 		}
 	}
+
 }
 
 // Add request to channel for further processing

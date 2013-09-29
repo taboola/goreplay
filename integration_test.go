@@ -31,6 +31,7 @@ type Env struct {
 
 	ReplayLimit   int
 	ListenerLimit int
+  ForwardPort   int
 }
 
 func (e *Env) start() (p int) {
@@ -199,13 +200,15 @@ func TestListenerRateLimit(t *testing.T) {
 	}
 }
 
-func (e *Env) startWithFile() (p int) {
+func (e *Env) startFileListener() (p int) {
 	p = 50000 + envs*10
 
+  e.ForwardPort = p + 2
 	go e.startHTTP(p, http.HandlerFunc(e.ListenHandler))
 	go e.startHTTP(p+2, http.HandlerFunc(e.ReplayHandler))
 	go e.startFileUsingListener(p, p+1)
-	go e.startFileUsingReplay(p+1, p+2)
+  // we will replay after listener finishes capturing
+	// go e.startFileUsingReplay(p+1, p+2)
 
 	// Time to start http and gor instances
 	time.Sleep(time.Millisecond * 100)
@@ -228,11 +231,10 @@ func (e *Env) startFileUsingListener(port int, replayPort int) {
 	listener.Run()
 }
 
-func (e *Env) startFileUsingReplay(port int, forwardPort int) {
+func (e *Env) startFileUsingReplay() {
 	replay.Settings.Verbose = e.Verbose
 	replay.Settings.FileToReplyPath = "integration_request.gor"
-	replay.Settings.ForwardAddress = "127.0.0.1:" + strconv.Itoa(forwardPort)
-	replay.Settings.Port = port
+	replay.Settings.ForwardAddress = "127.0.0.1:" + strconv.Itoa(e.ForwardPort)
 
 	if e.ReplayLimit != 0 {
 		replay.Settings.ForwardAddress += "|" + strconv.Itoa(e.ReplayLimit)
@@ -240,25 +242,33 @@ func (e *Env) startFileUsingReplay(port int, forwardPort int) {
 
 	replay.Run()
 }
+
 func TestSavingRequestToFileAndReplyThem(t *testing.T) {
 	var request *http.Request
-	received := make(chan int)
+	processed := make(chan int)
 
 	listenHandler := func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "OK", http.StatusNotFound)
 	}
 
+  requestsCount := 0
+  var replayedRequests []*http.Request
 	replayHandler := func(w http.ResponseWriter, r *http.Request) {
+    requestsCount++
+
 		isEqual(t, r.URL.Path, request.URL.Path)
 		isEqual(t, r.Cookies()[0].Value, request.Cookies()[0].Value)
 
 		http.Error(w, "404 page not found", http.StatusNotFound)
 
+    replayedRequests = append(replayedRequests, r)
 		if t.Failed() {
 			fmt.Println("\nReplayed:", r, "\nOriginal:", request)
 		}
 
-		received <- 1
+    if requestsCount > 1 {
+      processed <- 1
+    }
 	}
 
 	env := &Env{
@@ -266,19 +276,32 @@ func TestSavingRequestToFileAndReplyThem(t *testing.T) {
 		ListenHandler: listenHandler,
 		ReplayHandler: replayHandler,
 	}
-	p := env.startWithFile()
+
+	p := env.startFileListener()
 
 	request = getRequest(p)
 
-	_, err := http.DefaultClient.Do(request)
+  for i := 0; i < 2; i++ {
+	  go func() {
+      _, err := http.DefaultClient.Do(request)
 
-	if err != nil {
-		t.Error("Can't make request", err)
-	}
+      if err != nil {
+        t.Error("Can't make request", err)
+      }
+    }()
+  }
+
+  // TODO: wait until gor will process response, should be kind of flag/semaphore
+	time.Sleep(time.Millisecond * 700)
+  go env.startFileUsingReplay()
+
 
 	select {
-	case <-received:
-	case <-time.After(time.Second):
+	case <-processed:
+	case <-time.After(2 * time.Second):
+    for _, value := range replayedRequests {
+      fmt.Println(value)
+    }
 		t.Error("Timeout error")
 	}
 }

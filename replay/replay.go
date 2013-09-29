@@ -35,6 +35,17 @@ import (
 
 const bufSize = 4096
 
+type ReplayManager struct {
+  reqFactory *RequestFactory
+}
+
+func NewReplayManager() (rm *ReplayManager) {
+  rm = &ReplayManager{}
+	rm.reqFactory = NewRequestFactory()
+
+  return
+}
+
 // Enable debug logging only if "--verbose" flag passed
 func Debug(v ...interface{}) {
 	if Settings.Verbose {
@@ -54,6 +65,37 @@ func ParseRequest(data []byte) (request *http.Request, err error) {
 // Replay server listen to UDP traffic from Listeners
 // Each request processed by RequestFactory
 func Run() {
+  rm := NewReplayManager();
+
+  if Settings.FileToReplyPath != "" {
+    rm.RunReplayFromFile()
+  } else {
+    rm.RunReplayFromNetwork()
+  }
+
+}
+
+func (self *ReplayManager) RunReplayFromFile() {
+	log.Println("Starting file reply")
+  requests, err := parseReplyFile()
+  if err != nil {
+    log.Fatal("Can't parse request:", err)
+  }
+
+  for _, request := range requests {
+    parsedReq, err := ParseRequest(request)
+    if err != nil {
+      log.Fatal("Can't parse request:", err)
+    }
+
+    self.sendRequestToReplay(parsedReq)
+  }
+
+  // wait forever
+  select {}
+}
+
+func (self *ReplayManager) RunReplayFromNetwork() {
 	listener, err := net.Listen("tcp", Settings.Address())
 
 	log.Println("Starting replay server at:", Settings.Address())
@@ -66,8 +108,6 @@ func Run() {
 		log.Println("Forwarding requests to:", host.Url, "limit:", host.Limit)
 	}
 
-	requestFactory := NewRequestFactory()
-
 	for {
 		conn, err := listener.Accept()
 
@@ -76,12 +116,12 @@ func Run() {
 			continue
 		}
 
-		go handleConnection(conn, requestFactory)
+		go self.handleConnection(conn)
 	}
 
 }
 
-func handleConnection(conn net.Conn, rf *RequestFactory) error {
+func (self *ReplayManager) handleConnection(conn net.Conn) error {
 	defer conn.Close()
 
 	var read = true
@@ -112,9 +152,13 @@ func handleConnection(conn net.Conn, rf *RequestFactory) error {
 		} else {
 			Debug("Adding request", request)
 
-			rf.Add(request)
+			self.sendRequestToReplay(request)
 		}
 	}()
 
 	return nil
+}
+
+func (self *ReplayManager) sendRequestToReplay(req *http.Request) {
+  self.reqFactory.Add(req)
 }
