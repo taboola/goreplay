@@ -28,9 +28,9 @@ type RAWTCPListener struct {
 func RAWTCPListen(addr string, port int) (listener *RAWTCPListener) {
 	listener = &RAWTCPListener{}
 
-	listener.c_packets = make(chan *TCPPacket)
-	listener.c_messages = make(chan *TCPMessage)
-	listener.c_del_message = make(chan *TCPMessage)
+	listener.c_packets = make(chan *TCPPacket, 100)
+	listener.c_messages = make(chan *TCPMessage, 50)
+	listener.c_del_message = make(chan *TCPMessage, 10)
 
 	listener.addr = addr
 	listener.port = port
@@ -98,35 +98,44 @@ func (t *RAWTCPListener) readRAWSocket() {
 
 		if err != nil {
 			Debug("Error:", err)
+			continue
 		}
 
 		if n > 0 {
-			// To avoid full packet parsing every time, we manually parsing values needed for packet filtering
-			// http://en.wikipedia.org/wiki/Transmission_Control_Protocol
-			dest_port := binary.BigEndian.Uint16(buf[2:4])
-
-			// Because RAW_SOCKET can't be bound to port, we have to control it by ourself
-			if int(dest_port) == t.port {
-				// Check TCPPacket code for more description
-				flags := binary.BigEndian.Uint16(buf[12:14]) & 0x1FF
-				f_psh := (flags & TCP_PSH) != 0
-
-				// We need only packets with data inside
-				// TCP PSH flag indicate that packet have data inside
-				if f_psh {
-					// We should create new buffer because go slices is pointers. So buffer data shoud be immutable.
-					new_buf := make([]byte, n)
-					copy(new_buf, buf[:n])
-
-					// To avoid socket locking processing packet in new goroutine
-					go func(buf []byte) {
-						packet := NewTCPPacket(new_buf)
-						t.c_packets <- packet
-					}(new_buf)
-				}
-			}
+			t.parsePacket(buf[:n])
 		}
 	}
+}
+
+func (t *RAWTCPListener) parsePacket(buf []byte) {
+	if isIncomingDataPacket(buf, t.port) {
+		new_buf := make([]byte, len(buf))
+		copy(new_buf, buf)
+
+		packet := NewTCPPacket(new_buf)
+		t.c_packets <- packet
+	}
+}
+
+func isIncomingDataPacket(buf []byte, port int) bool {
+	// To avoid full packet parsing every time, we manually parsing values needed for packet filtering
+	// http://en.wikipedia.org/wiki/Transmission_Control_Protocol
+	dest_port := binary.BigEndian.Uint16(buf[2:4])
+
+	// Because RAW_SOCKET can't be bound to port, we have to control it by ourself
+	if int(dest_port) == port {
+		// Check TCPPacket code for more description
+		flags := binary.BigEndian.Uint16(buf[12:14]) & 0x1FF
+
+		// We need only packets with data inside
+		// TCP PSH flag indicate that packet have data inside
+		if (flags & TCP_PSH) != 0 {
+			// We should create new buffer because go slices is pointers. So buffer data shoud be immutable.
+			return true
+		}
+	}
+
+	return false
 }
 
 // Trying to add packet to existing message or creating new message
