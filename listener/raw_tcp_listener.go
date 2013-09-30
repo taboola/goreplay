@@ -28,9 +28,9 @@ type RAWTCPListener struct {
 func RAWTCPListen(addr string, port int) (listener *RAWTCPListener) {
 	listener = &RAWTCPListener{}
 
-	listener.c_packets = make(chan *TCPPacket, 1000)
-	listener.c_messages = make(chan *TCPMessage, 1000)
-	listener.c_del_message = make(chan *TCPMessage, 1000)
+	listener.c_packets = make(chan *TCPPacket, 100)
+	listener.c_messages = make(chan *TCPMessage, 100)
+	listener.c_del_message = make(chan *TCPMessage, 100)
 
 	listener.addr = addr
 	listener.port = port
