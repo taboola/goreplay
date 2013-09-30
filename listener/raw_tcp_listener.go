@@ -58,32 +58,6 @@ func (t *RAWTCPListener) listen() {
 	}
 }
 
-// Deleting messages that came from t.c_del_message channel
-func (t *RAWTCPListener) deleteMessage(message *TCPMessage) bool {
-	idx := -1
-
-	// Searching for given message in messages buffer
-	for i, m := range t.messages {
-		if m.Ack == message.Ack {
-			idx = i
-			break
-		}
-	}
-
-	if idx == -1 {
-		return false
-	}
-
-	// Delete element from array
-	// Note: that this version for arrays that consist of pointers
-	// https://code.google.com/p/go-wiki/wiki/SliceTricks
-	copy(t.messages[idx:], t.messages[idx+1:])
-	t.messages[len(t.messages)-1] = nil // Ensure that value will be garbage-collected.
-	t.messages = t.messages[:len(t.messages)-1]
-
-	return true
-}
-
 func (t *RAWTCPListener) readRAWSocket() {
 	conn, e := net.ListenPacket("ip4:tcp", t.addr)
 	defer conn.Close()

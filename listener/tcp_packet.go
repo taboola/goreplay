@@ -38,9 +38,9 @@ type TCPPacket struct {
 
 func ParseTCPPacket(b []byte) (p *TCPPacket) {
 	p = &TCPPacket{Data: b}
-	p.ParseFast()
+	p.ParseBasic()
 
-	return t
+	return p
 }
 
 // Parse TCP Packet, inspired by: https://github.com/miekg/pcap/blob/master/packet.go
