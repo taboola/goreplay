@@ -83,7 +83,7 @@ func (t *RAWTCPListener) readRAWSocket() {
 }
 
 func (t *RAWTCPListener) parsePacket(buf []byte) {
-	if isIncomingDataPacket(buf, t.port) {
+	if t.isIncomingDataPacket(buf) {
 		new_buf := make([]byte, len(buf))
 		copy(new_buf, buf)
 
@@ -91,13 +91,13 @@ func (t *RAWTCPListener) parsePacket(buf []byte) {
 	}
 }
 
-func isIncomingDataPacket(buf []byte, port int) bool {
+func (t *RAWTCPListener) isIncomingDataPacket(buf []byte) bool {
 	// To avoid full packet parsing every time, we manually parsing values needed for packet filtering
 	// http://en.wikipedia.org/wiki/Transmission_Control_Protocol
 	dest_port := binary.BigEndian.Uint16(buf[2:4])
 
 	// Because RAW_SOCKET can't be bound to port, we have to control it by ourself
-	if int(dest_port) == port {
+	if int(dest_port) == t.port {
 		// Check TCPPacket code for more description
 		flags := binary.BigEndian.Uint16(buf[12:14]) & 0x1FF
 
