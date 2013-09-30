@@ -11,6 +11,9 @@
 //     # staging.server not get more than 10 requests per second
 //     gor replay -f "http://staging.server|10"
 //
+// Load testing
+//
+// For load testing reasons you can set limit to be higher than your actual requests count. Gor will increase load based on existing requests. It creates circullar buffer of variable length with existing requests, and use them to increase load.
 //
 // Forward to multiple addresses
 //
