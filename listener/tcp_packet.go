@@ -36,7 +36,7 @@ type TCPPacket struct {
 	Data []byte
 }
 
-func NewTCPPacket(b []byte) (p *TCPPacket) {
+func ParseTCPPacket(b []byte) (p *TCPPacket) {
 	p = &TCPPacket{Data: b}
 	p.ParseFast()
 
