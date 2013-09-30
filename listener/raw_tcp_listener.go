@@ -25,6 +25,7 @@ type RAWTCPListener struct {
 	port int    // Port to listen
 }
 
+// RAWTCPListen creates a listener to capture traffic from RAW_SOCKET
 func RAWTCPListen(addr string, port int) (listener *RAWTCPListener) {
 	listener = &RAWTCPListener{}
 
@@ -50,11 +51,37 @@ func (t *RAWTCPListener) listen() {
 			t.c_messages <- message
 			delete(t.messages, message.Ack)
 
-		// We need to use channgels to process each packet to avoid data races
+		// We need to use channels to process each packet to avoid data races
 		case packet := <-t.c_packets:
 			t.processTCPPacket(packet)
 		}
 	}
+}
+
+// Deleting messages that came from t.c_del_message channel
+func (t *RAWTCPListener) deleteMessage(message *TCPMessage) bool {
+	idx := -1
+
+	// Searching for given message in messages buffer
+	for i, m := range t.messages {
+		if m.Ack == message.Ack {
+			idx = i
+			break
+		}
+	}
+
+	if idx == -1 {
+		return false
+	}
+
+	// Delete element from array
+	// Note: that this version for arrays that consist of pointers
+	// https://code.google.com/p/go-wiki/wiki/SliceTricks
+	copy(t.messages[idx:], t.messages[idx+1:])
+	t.messages[len(t.messages)-1] = nil // Ensure that value will be garbage-collected.
+	t.messages = t.messages[:len(t.messages)-1]
+
+	return true
 }
 
 func (t *RAWTCPListener) readRAWSocket() {
@@ -130,6 +157,7 @@ func (t *RAWTCPListener) processTCPPacket(packet *TCPPacket) {
 	message.c_packets <- packet
 }
 
+// Receive TCP messages from the listener channel
 func (t *RAWTCPListener) Receive() *TCPMessage {
 	return <-t.c_messages
 }

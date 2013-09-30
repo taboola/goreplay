@@ -74,9 +74,9 @@ Usage of ./bin/gor-linux:
   -p=28020: specify port number
 ```
 
-## Pre-build binaries
+## Latest releases (including binaries)
 
-[Download binaries (linux 32/64, darwin)](https://drive.google.com/folderview?id=0B46uay48NwcfWFowc1E4a1BISVU&usp=sharing)
+https://github.com/buger/gor/releases
 
 ## Building from source
 1. Setup standard Go environment http://golang.org/doc/code.html and ensure that $GOPATH environment variable properly set.
@@ -104,10 +104,7 @@ Yes. ~~Right now it supports only "GET" requests.~~
 4. Push to the branch (git push origin my-new-feature)
 5. Create new Pull Request
 
-## TODO
+## Companies using Gor
 
-Use buffering for request throttling instead of simple rate limiting. 
-
-Better stats
-
-Optimize for load testing cases
+* http://granify.com
+* To add your company drop me a line to github.com/buger or leonsbox@gmail.com
