@@ -14,7 +14,7 @@ import (
 // Since we can't use default TCP libraries RAWTCPLitener implements own TCP layer
 // TCP packets is parsed using tcp_packet.go, and flow control is managed by tcp_message.go
 type RAWTCPListener struct {
-	messages []*TCPMessage // buffer of TCPMessages waiting to be send
+	messages map[uint32]*TCPMessage // buffer of TCPMessages waiting to be send
 
 	c_packets  chan *TCPPacket
 	c_messages chan *TCPMessage // Messages ready to be send to client
@@ -31,6 +31,7 @@ func RAWTCPListen(addr string, port int) (listener *RAWTCPListener) {
 	listener.c_packets = make(chan *TCPPacket, 100)
 	listener.c_messages = make(chan *TCPMessage, 100)
 	listener.c_del_message = make(chan *TCPMessage, 100)
+	listener.messages = make(map[uint32]*TCPMessage)
 
 	listener.addr = addr
 	listener.port = port
@@ -47,39 +48,13 @@ func (t *RAWTCPListener) listen() {
 		// If message ready for deletion it means that its also complete or expired by timeout
 		case message := <-t.c_del_message:
 			t.c_messages <- message
-			t.deleteMessage(message)
+			delete(t.messages, message.Ack)
 
 		// We need to use channgels to process each packet to avoid data races
 		case packet := <-t.c_packets:
 			t.processTCPPacket(packet)
 		}
 	}
-}
-
-// Deleting messages that came from t.c_del_message channel
-func (t *RAWTCPListener) deleteMessage(message *TCPMessage) bool {
-	var idx int = -1
-
-	// Searching for given message in messages buffer
-	for i, m := range t.messages {
-		if m.Ack == message.Ack {
-			idx = i
-			break
-		}
-	}
-
-	if idx == -1 {
-		return false
-	}
-
-	// Delete element from array
-	// Note: that this version for arrays that consist of pointers
-	// https://code.google.com/p/go-wiki/wiki/SliceTricks
-	copy(t.messages[idx:], t.messages[idx+1:])
-	t.messages[len(t.messages)-1] = nil // Ensure that value will be garbage-collected.
-	t.messages = t.messages[:len(t.messages)-1]
-
-	return true
 }
 
 func (t *RAWTCPListener) readRAWSocket() {
@@ -143,19 +118,12 @@ func isIncomingDataPacket(buf []byte, port int) bool {
 func (t *RAWTCPListener) processTCPPacket(packet *TCPPacket) {
 	var message *TCPMessage
 
-	// Searching for message with same Ack
-	for _, msg := range t.messages {
-		if msg.Ack == packet.Ack {
-			message = msg
-			break
-		}
-	}
+	message, ok := t.messages[packet.Ack]
 
-	if message == nil {
+	if !ok {
 		// We sending c_del_message channel, so message object can communicate with Listener and notify it if message completed
 		message = NewTCPMessage(packet.Ack, t.c_del_message)
-
-		t.messages = append(t.messages, message)
+		t.messages[packet.Ack] = message
 	}
 
 	// Adding packet to message
