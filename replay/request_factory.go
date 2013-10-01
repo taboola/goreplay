@@ -1,9 +1,12 @@
 package replay
 
 import (
+	"container/ring"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 // HttpResponse contains a host, a http request,
@@ -26,6 +29,9 @@ type HttpResponse struct {
 type RequestFactory struct {
 	c_responses chan *HttpResponse
 	c_requests  chan *http.Request
+
+	reqBuf        *ring.Ring
+	reqBufForSend *ring.Ring
 }
 
 // NewRequestFactory returns a RequestFactory pointer
@@ -34,8 +40,11 @@ func NewRequestFactory() (factory *RequestFactory) {
 	factory = &RequestFactory{}
 	factory.c_responses = make(chan *HttpResponse)
 	factory.c_requests = make(chan *http.Request)
+	factory.reqBuf = ring.New(100)
+	factory.reqBufForSend = factory.reqBuf
 
 	go factory.handleRequests()
+	go factory.sendRequests()
 
 	return
 }
@@ -80,20 +89,61 @@ func (f *RequestFactory) handleRequests() {
 	for {
 		select {
 		case req := <-f.c_requests:
+			f.reqBuf.Value = req
+			f.reqBuf = f.reqBuf.Next()
+
 			for _, host := range hosts {
-				// Ensure that we have actual stats for given timestamp
-				host.Stat.Touch()
-
-				if host.Limit == 0 || host.Stat.Count < host.Limit {
-					// Increment Stat.Count
-					host.Stat.IncReq()
-
+				if host.Limit == 0 {
 					go f.sendRequest(host, req)
 				}
 			}
 		case resp := <-f.c_responses:
 			// Increment returned http code stats, and elapsed time
 			resp.host.Stat.IncResp(resp)
+		}
+	}
+}
+
+func (f *RequestFactory) sendRequests() {
+	hosts := Settings.ForwardedHosts()
+
+	for _, host := range hosts {
+		// Ensure that we have actual stats for given timestamp
+		if host.Limit != 0 {
+			go func() {
+				for {
+					host.Stat.Touch()
+					// Increment Stat.Count
+					host.Stat.IncReq()
+
+					req, err := f.getReqFromBuf(0)
+
+					if err == nil {
+						go f.sendRequest(host, req)
+					} else {
+						fmt.Println("Request not found")
+					}
+
+					delay := float64(1) / float64(host.Limit) * float64(time.Second)
+
+					fmt.Println(int(time.Duration(delay) / time.Millisecond))
+					time.Sleep(time.Duration(delay))
+				}
+			}()
+		}
+	}
+}
+
+func (f *RequestFactory) getReqFromBuf(retries int) (*http.Request, error) {
+	f.reqBufForSend = f.reqBufForSend.Prev()
+
+	if f.reqBufForSend.Value != nil {
+		return f.reqBufForSend.Value.(*http.Request), nil
+	} else {
+		if retries <= f.reqBufForSend.Len() {
+			return f.getReqFromBuf(retries + 1)
+		} else {
+			return nil, errors.New("Requests not found")
 		}
 	}
 }

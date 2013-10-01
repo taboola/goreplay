@@ -168,7 +168,7 @@ func rateLimitEnv(replayLimit int, listenerLimit int, connCount int) int32 {
 		}()
 	}
 
-	time.Sleep(time.Millisecond * 500)
+	time.Sleep(time.Second + 200*time.Millisecond)
 
 	return processed
 }
@@ -178,6 +178,14 @@ func TestWithoutReplayRateLimit(t *testing.T) {
 
 	if processed != 10 {
 		t.Error("It should forward all requests without rate-limiting", processed)
+	}
+}
+
+func TestReplayRateOverLimit(t *testing.T) {
+	processed := rateLimitEnv(10, 0, 5)
+
+	if processed != 10 {
+		t.Error("It should forward 2x more requests with rate over actual request count", processed)
 	}
 }
 
