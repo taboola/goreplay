@@ -46,13 +46,14 @@ func NewReplayManager() (rm *ReplayManager) {
   return
 }
 
-// Enable debug logging only if "--verbose" flag passed
+// Debug enables logging only if "--verbose" flag passed
 func Debug(v ...interface{}) {
   if Settings.Verbose {
     log.Println(v...)
   }
 }
 
+// ParseRequest in []byte returns a http request or an error
 func ParseRequest(data []byte) (request *http.Request, err error) {
   buf := bytes.NewBuffer(data)
   reader := bufio.NewReader(buf)
@@ -66,18 +67,17 @@ func ParseRequest(data []byte) (request *http.Request, err error) {
   return
 }
 
-// Because its sub-program, Run acts as `main`
+// Run acts as `main` function of replay
 // Replay server listen to UDP traffic from Listeners
 // Each request processed by RequestFactory
 func Run() {
-  rm := NewReplayManager();
+  rm := NewReplayManager()
 
   if Settings.FileToReplyPath != "" {
     rm.RunReplayFromFile()
   } else {
     rm.RunReplayFromNetwork()
   }
-
 }
 
 func (self *ReplayManager) RunReplayFromFile() {
@@ -103,9 +103,9 @@ func (self *ReplayManager) RunReplayFromFile() {
 }
 
 func (self *ReplayManager) RunReplayFromNetwork() {
-  listener, err := net.Listen("tcp", Settings.Address())
+  listener, err := net.Listen("tcp", Settings.Address)
 
-  log.Println("Starting replay server at:", Settings.Address())
+  log.Println("Starting replay server at:", Settings.Address)
 
   if err != nil {
     log.Fatal("Can't start:", err)
@@ -129,41 +129,41 @@ func (self *ReplayManager) RunReplayFromNetwork() {
 }
 
 func (self *ReplayManager) handleConnection(conn net.Conn) error {
-  defer conn.Close()
+	defer conn.Close()
 
-  var read = true
-  var response []byte
-  var buf []byte
+	var read = true
+	var response []byte
+	var buf []byte
 
-  buf = make([]byte, bufSize)
+	buf = make([]byte, bufSize)
 
-  for read {
-    n, err := conn.Read(buf)
+	for read {
+		n, err := conn.Read(buf)
 
-    switch err {
-    case io.EOF:
-      read = false
-    case nil:
-      response = append(response, buf[0:n]...)
-      if n < bufSize {
-        read = false
-      }
-    default:
-      read = false
-    }
-  }
+		switch err {
+		case io.EOF:
+			read = false
+		case nil:
+			response = append(response, buf[:n]...)
+			if n < bufSize {
+				read = false
+			}
+		default:
+			read = false
+		}
+	}
 
-  go func() {
-    if request, err := ParseRequest(response); err != nil {
-      Debug("Error while parsing request", err, response)
-    } else {
-      Debug("Adding request", request)
+	go func() {
+		if request, err := ParseRequest(response); err != nil {
+			Debug("Error while parsing request", err, response)
+		} else {
+			Debug("Adding request", request)
 
       self.sendRequestToReplay(request)
-    }
-  }()
+		}
+	}()
 
-  return nil
+	return nil
 }
 
 func (self *ReplayManager) sendRequestToReplay(req *http.Request) {

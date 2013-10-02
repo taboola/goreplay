@@ -104,10 +104,7 @@ Yes. ~~Right now it supports only "GET" requests.~~
 4. Push to the branch (git push origin my-new-feature)
 5. Create new Pull Request
 
-## TODO
+## Companies using Gor
 
-Use buffering for request throttling instead of simple rate limiting. 
-
-Better stats
-
-Optimize for load testing cases
+* http://granify.com
+* To add your company drop me a line to github.com/buger or leonsbox@gmail.com

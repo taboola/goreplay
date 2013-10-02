@@ -10,28 +10,25 @@ const MSG_EXPIRE = 200 * time.Millisecond
 // TCPMessage ensure that all TCP packets for given request is received, and processed in right sequence
 // Its needed because all TCP message can be fragmented or re-transmitted
 //
-// Each TCP Packet have 2 ids: acknowledgement - message_id, and sequence - packet_id
+// Each TCP Packet have 2 ids: acknowledgment - message_id, and sequence - packet_id
 // Message can be compiled from unique packets with same message_id which sorted by sequence
-// Message is received if we did't receive any packets for 200ms
+// Message is received if we didn't receive any packets for 200ms
 type TCPMessage struct {
 	Ack     uint32 // Message ID
 	packets []*TCPPacket
 
 	timer *time.Timer // Used for expire check
 
-	expired bool
-
 	c_packets chan *TCPPacket
-	c_closing chan int
 
 	c_del_message chan *TCPMessage
 }
 
+// NewTCPMessage pointer created from a Acknowledgment number and a channel of messages readuy to be deleted
 func NewTCPMessage(Ack uint32, c_del chan *TCPMessage) (msg *TCPMessage) {
 	msg = &TCPMessage{Ack: Ack}
 
 	msg.c_packets = make(chan *TCPPacket)
-	msg.c_closing = make(chan int)
 	msg.c_del_message = c_del // used for notifying that message completed or expired
 
 	// Every time we receive packet we reset this timer
@@ -45,21 +42,24 @@ func NewTCPMessage(Ack uint32, c_del chan *TCPMessage) (msg *TCPMessage) {
 func (t *TCPMessage) listen() {
 	for {
 		select {
-		case <-t.c_closing:
-			close(t.c_packets)
-			return // Stop loop if message completed/expired
-		case packet := <-t.c_packets:
-			t.AddPacket(packet)
+		case packet, more := <-t.c_packets:
+			if more {
+				t.AddPacket(packet)
+			} else {
+				// Stop loop if channel closed
+				return
+			}
 		}
 	}
 }
 
+// Timeout notifies message to stop listening, close channel and message ready to be sent
 func (t *TCPMessage) Timeout() {
-	t.c_closing <- 1     // Notify to stop listen loop and close channel
+	close(t.c_packets)   // Notify to stop listen loop and close channel
 	t.c_del_message <- t // Notify RAWListener that message is ready to be send to replay server
 }
 
-// Sort packets in right orders and return message content
+// Bytes sorts packets in right orders and return message content
 func (t *TCPMessage) Bytes() (output []byte) {
 	mk := make([]int, len(t.packets))
 
@@ -78,14 +78,9 @@ func (t *TCPMessage) Bytes() (output []byte) {
 	return
 }
 
-// Add packet to the message and ensure packet uniquiness
+// AddPacket to the message and ensure packet uniqueness
 // TCP allows that packet can be re-send multiple times
 func (t *TCPMessage) AddPacket(packet *TCPPacket) {
-	if t.expired {
-		Debug("Adding packet to expired message")
-		return
-	}
-
 	packetFound := false
 
 	for _, pkt := range t.packets {
