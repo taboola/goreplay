@@ -81,7 +81,7 @@ func Run() {
 				messageWriter := bufio.NewWriter(messageBuffer)
 
 				fmt.Fprintf(messageWriter, "%s", string(m.Bytes()))
-				fmt.Fprintf(messageWriter, "\n--\n")
+				// fmt.Fprintf(messageWriter, "\n--\n")
 
 				messageWriter.Flush()
 				messageLogger.messageChannel <- messageBuffer.String()

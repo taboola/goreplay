@@ -31,7 +31,7 @@ type Env struct {
 
 	ReplayLimit   int
 	ListenerLimit int
-  ForwardPort   int
+	ForwardPort   int
 }
 
 func (e *Env) start() (p int) {
@@ -203,11 +203,11 @@ func TestListenerRateLimit(t *testing.T) {
 func (e *Env) startFileListener() (p int) {
 	p = 50000 + envs*10
 
-  e.ForwardPort = p + 2
+	e.ForwardPort = p + 2
 	go e.startHTTP(p, http.HandlerFunc(e.ListenHandler))
 	go e.startHTTP(p+2, http.HandlerFunc(e.ReplayHandler))
 	go e.startFileUsingListener(p, p+1)
-  // we will replay after listener finishes capturing
+	// we will replay after listener finishes capturing
 	// go e.startFileUsingReplay(p+1, p+2)
 
 	// Time to start http and gor instances
@@ -251,24 +251,24 @@ func TestSavingRequestToFileAndReplyThem(t *testing.T) {
 		http.Error(w, "OK", http.StatusNotFound)
 	}
 
-  requestsCount := 0
-  var replayedRequests []*http.Request
+	requestsCount := 0
+	var replayedRequests []*http.Request
 	replayHandler := func(w http.ResponseWriter, r *http.Request) {
-    requestsCount++
+		requestsCount++
 
 		isEqual(t, r.URL.Path, request.URL.Path)
 		isEqual(t, r.Cookies()[0].Value, request.Cookies()[0].Value)
 
 		http.Error(w, "404 page not found", http.StatusNotFound)
 
-    replayedRequests = append(replayedRequests, r)
+		replayedRequests = append(replayedRequests, r)
 		if t.Failed() {
 			fmt.Println("\nReplayed:", r, "\nOriginal:", request)
 		}
 
-    if requestsCount > 1 {
-      processed <- 1
-    }
+		if requestsCount > 1 {
+			processed <- 1
+		}
 	}
 
 	env := &Env{
@@ -281,27 +281,26 @@ func TestSavingRequestToFileAndReplyThem(t *testing.T) {
 
 	request = getRequest(p)
 
-  for i := 0; i < 2; i++ {
-	  go func() {
-      _, err := http.DefaultClient.Do(request)
+	for i := 0; i < 2; i++ {
+		go func() {
+			_, err := http.DefaultClient.Do(request)
 
-      if err != nil {
-        t.Error("Can't make request", err)
-      }
-    }()
-  }
+			if err != nil {
+				t.Error("Can't make request", err)
+			}
+		}()
+	}
 
-  // TODO: wait until gor will process response, should be kind of flag/semaphore
+	// TODO: wait until gor will process response, should be kind of flag/semaphore
 	time.Sleep(time.Millisecond * 700)
-  go env.startFileUsingReplay()
-
+	go env.startFileUsingReplay()
 
 	select {
 	case <-processed:
 	case <-time.After(2 * time.Second):
-    for _, value := range replayedRequests {
-      fmt.Println(value)
-    }
+		for _, value := range replayedRequests {
+			fmt.Println(value)
+		}
 		t.Error("Timeout error")
 	}
 }

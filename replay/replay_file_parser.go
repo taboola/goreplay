@@ -21,6 +21,7 @@ func parseReplyFile() (requests [][]byte, err error) {
 // and returns a slice of its lines.
 func readLines(path string) (requests [][]byte, err error) {
   file, err := os.Open(path)
+
   if err != nil {
     return nil, err
   }
@@ -28,11 +29,13 @@ func readLines(path string) (requests [][]byte, err error) {
 
   scanner := bufio.NewScanner(file)
   scanner.Split(scanLinesFunc)
+
   for scanner.Scan() {
     if len(scanner.Text()) > 5 {
       requests = append(requests, scanner.Bytes())
     }
   }
+
   return requests, scanner.Err()
 }
 
@@ -42,23 +45,20 @@ func scanLinesFunc(data []byte, atEOF bool) (advance int, token []byte, err erro
 		return 0, nil, nil
 	}
 
-  delimiter := []byte{'\n','-','-','\n'}
+  delimiter := []byte{'\r', '\n', '\r', '\n', '\n'}
+
 	if i := bytes.Index(data, delimiter); i >= 0 {
-		// We have a full newline-terminated line.
-		return i + len(delimiter), dropCR(data[0:i]), nil
+    // We have a http request end: \r\n\r\n
+    log.Printf("to read: %v", i + len(delimiter))
+
+		return (i + len(delimiter)), data[0:(i + len(delimiter))], nil
 	}
+
 	// If we're at EOF, we have a final, non-terminated line. Return it.
 	if atEOF {
-		return len(data), dropCR(data), nil
+		return len(data), data, nil
 	}
+
 	// Request more data.
 	return 0, nil, nil
 }
-
-func dropCR(data []byte) []byte {
-	if len(data) > 0 && data[len(data)-1] == '\r' {
-		return data[0 : len(data)-1]
-	}
-	return data
-}
-
