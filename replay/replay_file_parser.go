@@ -47,10 +47,8 @@ func scanLinesFunc(data []byte, atEOF bool) (advance int, token []byte, err erro
 
   delimiter := []byte{'\r', '\n', '\r', '\n', '\n'}
 
+  // We have a http request end: \r\n\r\n
 	if i := bytes.Index(data, delimiter); i >= 0 {
-    // We have a http request end: \r\n\r\n
-    log.Printf("to read: %v", i + len(delimiter))
-
 		return (i + len(delimiter)), data[0:(i + len(delimiter))], nil
 	}
 
