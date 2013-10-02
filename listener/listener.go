@@ -81,11 +81,11 @@ func Run() {
 				messageBuffer := new(bytes.Buffer)
 				messageWriter := bufio.NewWriter(messageBuffer)
 
+        // TODO: add timestamp to message
 				fmt.Fprintf(messageWriter, "%s", string(m.Bytes()))
-				// fmt.Fprintf(messageWriter, "\n--\n")
 
 				messageWriter.Flush()
-				messageLogger.messageChannel <- messageBuffer.String()
+				messageLogger.Println(messageBuffer.String())
 			}()
     } else {
       go sendMessage(m)

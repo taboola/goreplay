@@ -125,7 +125,6 @@ func (self *ReplayManager) RunReplayFromNetwork() {
 
     go self.handleConnection(conn)
   }
-
 }
 
 func (self *ReplayManager) handleConnection(conn net.Conn) error {
