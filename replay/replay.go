@@ -31,7 +31,9 @@ import (
   "log"
   "net"
   "net/http"
+  "time"
 )
+
 
 const bufSize = 4096
 
@@ -88,17 +90,27 @@ func (self *ReplayManager) RunReplayFromFile() {
     log.Fatal("Can't parse request: ", err)
   }
 
+  var lastTimestamp int64
+
+  if len(requests) > 0 {
+    lastTimestamp = requests[0].Timestamp
+  }
   for _, request := range requests {
-    parsedReq, err := ParseRequest(request)
+
+    parsedReq, err := ParseRequest(request.Request)
 
     if err != nil {
       log.Fatal("Can't parse request...:", err)
     }
 
+    time.Sleep(time.Duration(request.Timestamp - lastTimestamp))
+
     self.sendRequestToReplay(parsedReq)
+    lastTimestamp = request.Timestamp
   }
 
   // wait forever
+  // TODO: quit when all request finishes
   select {}
 }
 

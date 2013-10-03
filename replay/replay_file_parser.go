@@ -5,9 +5,21 @@ import (
   "log"
   "os"
   "bytes"
+  "strconv"
+
+  "fmt"
 )
 
-func parseReplyFile() (requests [][]byte, err error) {
+type ParsedRequest struct {
+  Request []byte
+  Timestamp int64
+}
+
+func (self ParsedRequest) String() string {
+  return fmt.Sprintf("Request: %v, timestamp: %v", string(self.Request), self.Timestamp)
+}
+
+func parseReplyFile() (requests []ParsedRequest, err error) {
   requests, err = readLines(Settings.FileToReplyPath)
 
   if err != nil {
@@ -19,7 +31,7 @@ func parseReplyFile() (requests [][]byte, err error) {
 
 // readLines reads a whole file into memory
 // and returns a slice of its lines.
-func readLines(path string) (requests [][]byte, err error) {
+func readLines(path string) (requests []ParsedRequest, err error) {
   file, err := os.Open(path)
 
   if err != nil {
@@ -32,7 +44,13 @@ func readLines(path string) (requests [][]byte, err error) {
 
   for scanner.Scan() {
     if len(scanner.Text()) > 5 {
-      requests = append(requests, scanner.Bytes())
+      Debug(scanner.Text())
+      i := bytes.IndexByte(scanner.Bytes(), '\n')
+      timestamp, _ := strconv.Atoi(string(scanner.Bytes()[i + 1:]))
+      pr := ParsedRequest{scanner.Bytes()[:i], int64(timestamp)}
+
+      Debug(pr)
+      requests = append(requests, pr)
     }
   }
 
