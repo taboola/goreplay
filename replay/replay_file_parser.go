@@ -44,12 +44,10 @@ func readLines(path string) (requests []ParsedRequest, err error) {
 
   for scanner.Scan() {
     if len(scanner.Text()) > 5 {
-      Debug(scanner.Text())
       i := bytes.IndexByte(scanner.Bytes(), '\n')
-      timestamp, _ := strconv.Atoi(string(scanner.Bytes()[i + 1:]))
-      pr := ParsedRequest{scanner.Bytes()[:i], int64(timestamp)}
+      timestamp, _ := strconv.Atoi(string(scanner.Bytes()[:i]))
+      pr := ParsedRequest{scanner.Bytes()[i + 1:], int64(timestamp)}
 
-      Debug(pr)
       requests = append(requests, pr)
     }
   }

@@ -83,7 +83,6 @@ func Run() {
 
         // TODO: add timestamp to message
 				fmt.Fprintf(messageWriter, "%v\n", time.Now().UnixNano())
-        fmt.Printf("timestamp: %v", time.Now().UnixNano())
 				fmt.Fprintf(messageWriter, "%s", string(m.Bytes()))
 
 				messageWriter.Flush()
