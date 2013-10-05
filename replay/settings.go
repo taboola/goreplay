@@ -27,6 +27,7 @@ type ReplaySettings struct {
 }
 
 var Settings ReplaySettings = ReplaySettings{}
+var esp ESPlugin
 
 type ResponseAnalyzer interface {
 	ResponseAnalyze(*HttpResponse)
@@ -90,4 +91,10 @@ func init() {
 	flag.StringVar(&Settings.ForwardAddress, "f", defaultForwardAddress, "http address to forward traffic.\n\tYou can limit requests per second by adding `|num` after address.\n\tIf you have multiple addresses with different limits. For example: http://staging.example.com|100,http://dev.example.com|10")
 
 	flag.BoolVar(&Settings.Verbose, "verbose", false, "Log requests")
+
+	// ElasticSearch Plugin Settings
+	flag.BoolVar(&esp.Active, "es", false, "enable elasticsearch")
+	flag.StringVar(&esp.Host, "esh", "localhost", "specify elasticsearch host")
+	flag.IntVar(&esp.ApiPort, "esp", 9200, "specify elasticsearch port")
+	flag.StringVar(&esp.Index, "esi", "gor", "specify elasticsearch index name")
 }
