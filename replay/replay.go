@@ -63,6 +63,7 @@ func Run() {
 		log.Fatal("Can't start:", err)
 	}
 
+	// Register Plugins
 	for _, host := range Settings.ForwardedHosts() {
 		log.Println("Forwarding requests to:", host.Url, "limit:", host.Limit)
 	}

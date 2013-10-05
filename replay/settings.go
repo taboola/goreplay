@@ -28,6 +28,16 @@ type ReplaySettings struct {
 
 var Settings ReplaySettings = ReplaySettings{}
 
+type ResponseAnalyzer interface {
+	ResponseAnalyze(*HttpResponse)
+}
+
+var activeRespAnalyzePlugins []ResponseAnalyzer
+
+func RegisterResponseAnalyzePlugin(f ResponseAnalyzer) {
+	activeRespAnalyzePlugins = append(activeRespAnalyzePlugins, f)
+}
+
 // ForwardedHosts implements forwardAddress syntax support for multiple hosts (coma separated), and rate limiting by specifing "|maxRps" after host name.
 //
 //    -f "host1,http://host2|10,host3"

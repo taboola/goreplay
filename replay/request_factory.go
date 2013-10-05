@@ -94,6 +94,9 @@ func (f *RequestFactory) handleRequests() {
 		case resp := <-f.c_responses:
 			// Increment returned http code stats, and elapsed time
 			resp.host.Stat.IncResp(resp)
+			for _, rap := range activeRespAnalyzePlugins {
+				go rap.ResponseAnalyze(resp)
+			}
 		}
 	}
 }
