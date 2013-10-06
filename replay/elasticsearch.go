@@ -5,9 +5,8 @@ import (
 	"github.com/mattbaird/elastigo/api"
 	"github.com/mattbaird/elastigo/core"
 	"log"
-	"mime"
+	"net/http"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -20,16 +19,29 @@ type ESPlugin struct {
 	done    chan bool
 }
 
-type ESResponse struct {
-	Url              string `json:"URL"`
-	Status           string
-	StatusCode       int
-	Proto            string
-	ContentLength    int64
-	TransferEncoding []string
-	MimeType         string
-	Rtt              int64 `json:"RTT"`
-	Timestamp        time.Time
+type ESRequestResponse struct {
+	ReqUrl               string         `json:"Req_URL"`
+	ReqMethod            string         `json:"Req_Method"`
+	ReqUserAgent         string         `json:"Req_User-Agent"`
+	ReqAcceptLanguage    string         `json:"Req_Accept-Language,omitempty"`
+	ReqAccept            string         `json:"Req_Accept,omitempty"`
+	ReqAcceptEncoding    string         `json:"Req_Accept-Encoding,omitempty"`
+	ReqIfModifiedSince   string         `json:"Req_If-Modified-Since,omitempty"`
+	ReqConnection        string         `json:"Req_Connection,omitempty"`
+	ReqCookies           []*http.Cookie `json:"Req_Cookies,omitempty"`
+	RespStatus           string         `json:"Resp_Status"`
+	RespStatusCode       int            `json:"Resp_Status-Code"`
+	RespProto            string         `json:"Resp_Proto,omitempty"`
+	RespContentLength    int64          `json:"Resp_Content-Length,omitempty"`
+	RespContentType      string         `json:"Resp_Content-Type,omitempty"`
+	RespTransferEncoding []string       `json:"Resp_Transfer-Encoding,omitempty"`
+	RespContentEncoding  string         `json:"Resp_Content-Encoding,omitempty"`
+	RespExpires          string         `json:"Resp_Expires,omitempty"`
+	RespCacheControl     string         `json:"Resp_Cache-Control,omitempty"`
+	RespVary             string         `json:"Resp_Vary,omitempty"`
+	RespSetCookie        string         `json:"Resp_Set-Cookie,omitempty"`
+	Rtt                  int64          `json:"RTT"`
+	Timestamp            time.Time
 }
 
 func (p *ESPlugin) Init() {
@@ -67,42 +79,33 @@ func (p *ESPlugin) RttDurationToMs(d time.Duration) int64 {
 	return int64(fl)
 }
 
-func (p *ESPlugin) GetMimeFromUrl(url string) string {
-	// get extension string
-	split := strings.Split(url, "/")
-	ls := split[len(split)-1]
-	if strings.Contains(ls, ".") {
-		// could be a file with extension
-		extsplit := strings.Split(ls, ".")
-		extls := extsplit[len(extsplit)-1]
-		qstrsplit := strings.Split(extls, "?")
-		m := mime.TypeByExtension("." + qstrsplit[0])
-		if len(m) > 0 {
-			Debug("MimeType: " + m)
-		} else {
-			Debug("MimeType: Not found")
-		}
-		return m
-	} else {
-		// no extension - no mime type
-		return ""
-	}
-}
-
 func (p *ESPlugin) ResponseAnalyze(r *HttpResponse) {
 	t := time.Now()
 	rtt := p.RttDurationToMs(r.timing.respDone.Sub(r.timing.reqStart))
 
-	resp := ESResponse{
-		Url:              r.req.URL.String(),
-		Status:           r.resp.Status,
-		StatusCode:       r.resp.StatusCode,
-		Proto:            r.resp.Proto,
-		ContentLength:    r.resp.ContentLength,
-		TransferEncoding: r.resp.TransferEncoding,
-		MimeType:         p.GetMimeFromUrl(r.req.URL.String()),
-		Rtt:              rtt,
-		Timestamp:        t,
+	resp := ESRequestResponse{
+		ReqUrl:               r.req.URL.String(),
+		ReqMethod:            r.req.Method,
+		ReqUserAgent:         r.req.UserAgent(),
+		ReqAcceptLanguage:    r.req.Header.Get("Accept-Language"),
+		ReqAccept:            r.req.Header.Get("Accept"),
+		ReqAcceptEncoding:    r.req.Header.Get("Accept-Encoding"),
+		ReqIfModifiedSince:   r.req.Header.Get("If-Modified-Since"),
+		ReqConnection:        r.req.Header.Get("Connection"),
+		ReqCookies:           r.req.Cookies(),
+		RespStatus:           r.resp.Status,
+		RespStatusCode:       r.resp.StatusCode,
+		RespProto:            r.resp.Proto,
+		RespContentLength:    r.resp.ContentLength,
+		RespContentType:      r.resp.Header.Get("Content-Type"),
+		RespTransferEncoding: r.resp.TransferEncoding,
+		RespContentEncoding:  r.resp.Header.Get("Content-Encoding"),
+		RespExpires:          r.resp.Header.Get("Expires"),
+		RespCacheControl:     r.resp.Header.Get("Cache-Control"),
+		RespVary:             r.resp.Header.Get("Vary"),
+		RespSetCookie:        r.resp.Header.Get("Set-Cookie"),
+		Rtt:                  rtt,
+		Timestamp:            t,
 	}
 	j, err := json.Marshal(&resp)
 	if err != nil {
@@ -111,7 +114,7 @@ func (p *ESPlugin) ResponseAnalyze(r *HttpResponse) {
 		if Settings.Verbose {
 			log.Printf("Elasticsearch - Response to Index: %s", j)
 		}
-		p.indexor.Index(p.Index, "response", "", "", &t, j)
+		p.indexor.Index(p.Index, "RequestResponse", "", "", &t, j)
 	}
 	return
 }
