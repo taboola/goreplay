@@ -83,6 +83,8 @@ func Run() {
 }
 
 func (self *ReplayManager) RunReplayFromFile() {
+  TotalResponsesCount = 0
+
   log.Println("Starting file reply")
   requests, err := parseReplyFile()
 
@@ -95,6 +97,20 @@ func (self *ReplayManager) RunReplayFromFile() {
   if len(requests) > 0 {
     lastTimestamp = requests[0].Timestamp
   }
+
+  requestsToReplay := 0
+
+	hosts := Settings.ForwardedHosts()
+  log.Println("requests", len(requests))
+  for _, host := range hosts {
+    log.Println(host.Limit)
+    if host.Limit > 0 {
+      requestsToReplay += host.Limit
+    } else {
+      requestsToReplay += len(requests)
+    }
+  }
+
   for _, request := range requests {
 
     parsedReq, err := ParseRequest(request.Request)
@@ -109,9 +125,10 @@ func (self *ReplayManager) RunReplayFromFile() {
     lastTimestamp = request.Timestamp
   }
 
-  // wait forever
-  // TODO: quit when all request finishes
-  select {}
+  for requestsToReplay > TotalResponsesCount {
+    time.Sleep(time.Second)
+  }
+
 }
 
 func (self *ReplayManager) RunReplayFromNetwork() {
