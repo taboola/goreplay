@@ -205,8 +205,6 @@ func (e *Env) startFileListener() (p int) {
 	go e.startHTTP(p, http.HandlerFunc(e.ListenHandler))
 	go e.startHTTP(p+2, http.HandlerFunc(e.ReplayHandler))
 	go e.startFileUsingListener(p, p+1)
-	// we will replay after listener finishes capturing
-	// go e.startFileUsingReplay(p+1, p+2)
 
 	// Time to start http and gor instances
 	time.Sleep(time.Millisecond * 100)
