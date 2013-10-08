@@ -44,7 +44,18 @@ func Run() {
 	}
 
 	fmt.Println("Listening for HTTP traffic on", Settings.Address+":"+strconv.Itoa(Settings.Port))
-	fmt.Println("Forwarding requests to replay server:", Settings.ReplayAddress, "Limit:", Settings.ReplayLimit)
+
+	var messageLogger *MessageLogger
+
+	if Settings.FileToReplyPath != "" {
+		messageLogger = NewLog(Settings.FileToReplyPath)
+	}
+
+  if messageLogger == nil {
+    fmt.Println("Forwarding requests to replay server:", Settings.ReplayAddress, "Limit:", Settings.ReplayLimit)
+  } else {
+    fmt.Println("Saving requests to file", Settings.FileToReplyPath)
+  }
 
 	// Sniffing traffic from given address
 	listener := RAWTCPListen(Settings.Address, Settings.Port)
@@ -52,11 +63,6 @@ func Run() {
 	currentTime := time.Now().UnixNano()
 	currentRPS := 0
 
-	var messageLogger *MessageLogger
-
-	if Settings.FileToReplyPath != "" {
-		messageLogger = NewLog(Settings.FileToReplyPath)
-	}
 
 	for {
 		// Receiving TCPMessage object
@@ -76,12 +82,10 @@ func Run() {
 		}
 
 		if messageLogger != nil {
-      fmt.Println("FILE: ", Settings.FileToReplyPath)
 			go func() {
 				messageBuffer := new(bytes.Buffer)
 				messageWriter := bufio.NewWriter(messageBuffer)
 
-        // TODO: add timestamp to message
 				fmt.Fprintf(messageWriter, "%v\n", time.Now().UnixNano())
 				fmt.Fprintf(messageWriter, "%s", string(m.Bytes()))
 
