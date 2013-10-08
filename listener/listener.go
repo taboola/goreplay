@@ -45,10 +45,18 @@ func Run() {
 
 	fmt.Println("Listening for HTTP traffic on", Settings.Address+":"+strconv.Itoa(Settings.Port))
 
-	var messageLogger *MessageLogger
+	var messageLogger *log.Logger
 
 	if Settings.FileToReplyPath != "" {
-		messageLogger = NewLog(Settings.FileToReplyPath)
+
+    file, err := os.OpenFile(Settings.FileToReplyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+    defer file.Close()
+
+    if err != nil {
+      log.Fatal("Cannot open file %q. Error: %s", Settings.FileToReplyPath, err)
+    }
+
+    messageLogger = log.New(file, "", 0)
 	}
 
   if messageLogger == nil {
@@ -95,7 +103,6 @@ func Run() {
     } else {
       go sendMessage(m)
 		}
-
 	}
 }
 

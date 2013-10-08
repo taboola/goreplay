@@ -101,9 +101,7 @@ func (self *ReplayManager) RunReplayFromFile() {
   requestsToReplay := 0
 
 	hosts := Settings.ForwardedHosts()
-  log.Println("requests", len(requests))
   for _, host := range hosts {
-    log.Println(host.Limit)
     if host.Limit > 0 {
       requestsToReplay += host.Limit
     } else {
