@@ -80,6 +80,10 @@ func (p *ESPlugin) RttDurationToMs(d time.Duration) int64 {
 }
 
 func (p *ESPlugin) ResponseAnalyze(r *HttpResponse) {
+	if r.resp == nil {
+		Debug("nil http response - skipped elasticsearch export for this request")
+		return
+	}
 	t := time.Now()
 	rtt := p.RttDurationToMs(r.timing.respDone.Sub(r.timing.reqStart))
 
