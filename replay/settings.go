@@ -20,9 +20,9 @@ type ReplaySettings struct {
 	Port int
 	Host string
 
-	Address        string
+	Address string
 
-	ForwardAddress  string
+	ForwardAddress string
 
 	FileToReplyPath string
 
@@ -69,9 +69,15 @@ func (r *ReplaySettings) ForwardedHosts() (hosts []*ForwardHost) {
 	return
 }
 
-// SetAddress with port, e.g.: 127.0.0.1:28020
-func (r *ReplaySettings) SetAddress() {
+func (r *ReplaySettings) Parse() {
 	r.Address = r.Host + ":" + strconv.Itoa(r.Port)
+
+	// Register Plugins
+	// Elasticsearch Plugin
+	if esp.Active {
+		esp.Init()
+		RegisterResponseAnalyzePlugin(&esp)
+	}
 }
 
 func init() {
@@ -90,7 +96,6 @@ func init() {
 
 	flag.StringVar(&Settings.Host, "ip", defaultHost, "ip addresses to listen on")
 
-	Settings.SetAddress()
 	flag.StringVar(&Settings.ForwardAddress, "f", defaultForwardAddress, "http address to forward traffic.\n\tYou can limit requests per second by adding `|num` after address.\n\tIf you have multiple addresses with different limits. For example: http://staging.example.com|100,http://dev.example.com|10")
 
 	flag.StringVar(&Settings.FileToReplyPath, "file", "", "File to replay captured requests from")

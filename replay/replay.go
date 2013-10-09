@@ -72,12 +72,7 @@ func ParseRequest(data []byte) (request *http.Request, err error) {
 // Replay server listen to UDP traffic from Listeners
 // Each request processed by RequestFactory
 func Run() {
-	// Register Plugins
-	// Elasticsearch Plugin
-	if esp.Active {
-		esp.Init()
-		RegisterResponseAnalyzePlugin(&esp)
-	}
+	Settings.Parse()
 
 	rm := NewReplayManager()
 
