@@ -43,34 +43,35 @@ func Run() {
 		os.Exit(1)
 	}
 
+	Settings.Parse()
+
 	fmt.Println("Listening for HTTP traffic on", Settings.Address+":"+strconv.Itoa(Settings.Port))
 
 	var messageLogger *log.Logger
 
 	if Settings.FileToReplyPath != "" {
 
-    file, err := os.OpenFile(Settings.FileToReplyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
-    defer file.Close()
+		file, err := os.OpenFile(Settings.FileToReplyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+		defer file.Close()
 
-    if err != nil {
-      log.Fatal("Cannot open file %q. Error: %s", Settings.FileToReplyPath, err)
-    }
+		if err != nil {
+			log.Fatal("Cannot open file %q. Error: %s", Settings.FileToReplyPath, err)
+		}
 
-    messageLogger = log.New(file, "", 0)
+		messageLogger = log.New(file, "", 0)
 	}
 
-  if messageLogger == nil {
-    fmt.Println("Forwarding requests to replay server:", Settings.ReplayAddress, "Limit:", Settings.ReplayLimit)
-  } else {
-    fmt.Println("Saving requests to file", Settings.FileToReplyPath)
-  }
+	if messageLogger == nil {
+		fmt.Println("Forwarding requests to replay server:", Settings.ReplayAddress, "Limit:", Settings.ReplayLimit)
+	} else {
+		fmt.Println("Saving requests to file", Settings.FileToReplyPath)
+	}
 
 	// Sniffing traffic from given address
 	listener := RAWTCPListen(Settings.Address, Settings.Port)
 
 	currentTime := time.Now().UnixNano()
 	currentRPS := 0
-
 
 	for {
 		// Receiving TCPMessage object
@@ -100,8 +101,8 @@ func Run() {
 				messageWriter.Flush()
 				messageLogger.Println(messageBuffer.String())
 			}()
-    } else {
-      go sendMessage(m)
+		} else {
+			go sendMessage(m)
 		}
 	}
 }

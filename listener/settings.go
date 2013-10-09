@@ -30,8 +30,8 @@ type ListenerSettings struct {
 var Settings ListenerSettings = ListenerSettings{}
 
 // ReplayServer generates ReplayLimit and ReplayAddress settings out of the replayAddress
-func (s *ListenerSettings) ReplayServer(replayAddress string) {
-	host_info := strings.Split(replayAddress, "|")
+func (s *ListenerSettings) Parse() {
+	host_info := strings.Split(s.ReplayAddress, "|")
 
 	if len(host_info) > 1 {
 		s.ReplayLimit, _ = strconv.Atoi(host_info[1])
@@ -48,8 +48,7 @@ func init() {
 	flag.IntVar(&Settings.Port, "p", defaultPort, "Specify the http server port whose traffic you want to capture")
 	flag.StringVar(&Settings.Address, "ip", defaultAddress, "Specify IP address to listen")
 
-	replayAddress := flag.String("r", defaultReplayAddress, "Address of replay server.")
-	Settings.ReplayServer(*replayAddress)
+	flag.StringVar(&Settings.ReplayAddress, "r", defaultReplayAddress, "Address of replay server.")
 
 	flag.StringVar(&Settings.FileToReplyPath, "file", "", "File to store captured requests")
 
