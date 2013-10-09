@@ -62,7 +62,7 @@ func ParseRequest(data []byte) (request *http.Request, err error) {
 	request, err = http.ReadRequest(reader)
 
 	if err != nil {
-		log.Fatal("Can not parse request", string(data), err)
+		log.Println("Can not parse request", string(data), err)
 	}
 
 	return
