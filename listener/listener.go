@@ -19,7 +19,9 @@ import (
 // Debug enables logging only if "--verbose" flag passed
 func Debug(v ...interface{}) {
 	if Settings.Verbose {
-		log.Println(v...)
+		log.Print("\033[32mListener:")
+		log.Print(v...)
+		log.Println("\033[0m")
 	}
 }
 
