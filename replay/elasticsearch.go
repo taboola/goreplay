@@ -74,7 +74,7 @@ func (p *ESPlugin) Init(URI string) {
 	err, p.Host, p.ApiPort, p.Index = parseURI(URI)
 
 	api.Domain = p.Host
-	api.Port = p.Host
+	api.Port = p.ApiPort
 
 	if err != nil {
 		log.Fatal("Can't initialize ElasticSearch plugin.", err)
