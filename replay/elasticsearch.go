@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-type UriErorr struct{}
+type ESUriErorr struct{}
 
-func (e *UriErorr) Error() string {
+func (e *ESUriErorr) Error() string {
 	return "Wrong ElasticSearch URL format. Expected to be: host:port/index_name"
 }
 
@@ -58,7 +58,7 @@ func parseURI(URI string) (err error, host string, port string, index string) {
 	match := rURI.FindAllStringSubmatch(URI, -1)
 
 	if len(match) == 0 {
-		err = new(UriErorr)
+		err = new(ESUriErorr)
 	} else {
 		host = match[0][1]
 		port = match[0][2]
@@ -73,12 +73,12 @@ func (p *ESPlugin) Init(URI string) {
 
 	err, p.Host, p.ApiPort, p.Index = parseURI(URI)
 
-	api.Domain = p.Host
-	api.Port = p.ApiPort
-
 	if err != nil {
 		log.Fatal("Can't initialize ElasticSearch plugin.", err)
 	}
+
+	api.Domain = p.Host
+	api.Port = p.ApiPort
 
 	p.indexor = core.NewBulkIndexorErrors(50, 60)
 	p.done = make(chan bool)
