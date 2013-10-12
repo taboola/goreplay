@@ -88,11 +88,12 @@ func (e *Env) startHTTP(port int, handler http.Handler) {
 func getRequest(port int) *http.Request {
 	var req *http.Request
 
-	if rand.Int()%2 == 0 {
+	rand.Seed(time.Now().UTC().UnixNano())
+
+	if rand.Int31n(2) == 0 {
 		req, _ = http.NewRequest("GET", "http://localhost:"+strconv.Itoa(port)+"/test", nil)
 	} else {
 		buf := bytes.NewReader([]byte("a=b&c=d"))
-
 		req, _ = http.NewRequest("POST", "http://localhost:"+strconv.Itoa(port)+"/test", buf)
 	}
 
@@ -153,7 +154,7 @@ func TestReplay(t *testing.T) {
 	}
 }
 
-func rateLimitEnv(replayLimit int, listenerLimit int, connCount int) int32 {
+func rateLimitEnv(replayLimit int, listenerLimit int, connCount int, t *testing.T) int32 {
 	var processed int32
 
 	listenHandler := func(w http.ResponseWriter, r *http.Request) {
@@ -174,11 +175,17 @@ func rateLimitEnv(replayLimit int, listenerLimit int, connCount int) int32 {
 	}
 
 	p := env.start()
-	req := getRequest(p)
 
 	for i := 0; i < connCount; i++ {
+		req := getRequest(p)
+
 		go func() {
-			http.DefaultClient.Do(req)
+			resp, err := http.DefaultClient.Do(req)
+			if err == nil {
+				resp.Body.Close()
+			} else {
+				t.Errorf("", err)
+			}
 		}()
 	}
 
@@ -188,7 +195,7 @@ func rateLimitEnv(replayLimit int, listenerLimit int, connCount int) int32 {
 }
 
 func TestWithoutReplayRateLimit(t *testing.T) {
-	processed := rateLimitEnv(0, 0, 10)
+	processed := rateLimitEnv(0, 0, 10, t)
 
 	if processed != 10 {
 		t.Error("It should forward all requests without rate-limiting, got:", processed)
@@ -196,7 +203,7 @@ func TestWithoutReplayRateLimit(t *testing.T) {
 }
 
 func TestReplayRateLimit(t *testing.T) {
-	processed := rateLimitEnv(5, 0, 10)
+	processed := rateLimitEnv(5, 0, 10, t)
 
 	if processed != 5 {
 		t.Error("It should forward only 5 requests with rate-limiting, got:", processed)
@@ -204,7 +211,7 @@ func TestReplayRateLimit(t *testing.T) {
 }
 
 func TestListenerRateLimit(t *testing.T) {
-	processed := rateLimitEnv(0, 3, 100)
+	processed := rateLimitEnv(0, 3, 100, t)
 
 	if processed != 3 {
 		t.Error("It should forward only 3 requests with rate-limiting, got:", processed)
