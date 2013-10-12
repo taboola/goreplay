@@ -295,9 +295,9 @@ func TestSavingRequestToFileAndReplyThem(t *testing.T) {
 
 	p := env.startFileListener()
 
-	request = getRequest(p)
-
 	for i := 0; i < 2; i++ {
+		request = getRequest(p)
+
 		go func() {
 			_, err := http.DefaultClient.Do(request)
 
