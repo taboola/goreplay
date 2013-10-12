@@ -133,7 +133,7 @@ func TestReplay(t *testing.T) {
 		http.Error(w, "OK", http.StatusAccepted)
 
 		if t.Failed() {
-			fmt.Println("\nReplayed:", r, "\nOriginal:", request)
+			fmt.Println("\nReplayed:", r)
 		}
 
 		received <- 1
@@ -267,7 +267,6 @@ func (e *Env) startFileUsingReplay() {
 }
 
 func TestSavingRequestToFileAndReplyThem(t *testing.T) {
-	var request *http.Request
 	processed := make(chan int)
 
 	listenHandler := func(w http.ResponseWriter, r *http.Request) {
@@ -279,14 +278,14 @@ func TestSavingRequestToFileAndReplyThem(t *testing.T) {
 	replayHandler := func(w http.ResponseWriter, r *http.Request) {
 		requestsCount++
 
-		isEqual(t, r.URL.Path, request.URL.Path)
-		isEqual(t, r.Cookies()[0].Value, request.Cookies()[0].Value)
+		isEqual(t, r.URL.Path, "/test")
+		isEqual(t, r.Cookies()[0].Value, "value")
 
 		http.Error(w, "404 page not found", http.StatusNotFound)
 
 		replayedRequests = append(replayedRequests, r)
 		if t.Failed() {
-			fmt.Println("\nReplayed:", r, "\nOriginal:", request)
+			fmt.Println("\nReplayed:", r)
 		}
 
 		if requestsCount > 1 {
@@ -302,8 +301,8 @@ func TestSavingRequestToFileAndReplyThem(t *testing.T) {
 
 	p := env.startFileListener()
 
-	for i := 0; i < 2; i++ {
-		request = getRequest(p)
+	for i := 0; i < 10; i++ {
+		request := getRequest(p)
 
 		go func() {
 			_, err := http.DefaultClient.Do(request)
