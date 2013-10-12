@@ -39,6 +39,11 @@ func (e *Env) start() (p int) {
 
 	go e.startHTTP(p, http.HandlerFunc(e.ListenHandler))
 	go e.startHTTP(p+2, http.HandlerFunc(e.ReplayHandler))
+
+	go e.startHTTP(p+3, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "OK", http.StatusAccepted)
+	}))
+
 	go e.startListener(p, p+1)
 	go e.startReplay(p+1, p+2)
 
@@ -73,6 +78,8 @@ func (e *Env) startReplay(port int, forwardPort int) {
 	if e.ReplayLimit != 0 {
 		replay.Settings.ForwardAddress += "|" + strconv.Itoa(e.ReplayLimit)
 	}
+
+	replay.Settings.ForwardAddress += ",127.0.0.1:" + strconv.Itoa(forwardPort+1)
 
 	replay.Run()
 }
