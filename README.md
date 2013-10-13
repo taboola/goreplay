@@ -115,8 +115,10 @@ For now only Linux based. *BSD (including MacOS is not supported yet, check http
 Listener works by sniffing traffic from a given port. It's accessible
 only by using sudo or root access.
 
-### Do you support all http request types?
-Yes. ~~Right now it supports only "GET" requests.~~
+### I'm getting 'too many open files' error
+Typical linux shell has a small open files soft limit at 1024. You can easily raise that when you do this before starting your gor replay process:
+  
+  ulimit -n 64000
 
 ## Contributing
 
