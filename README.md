@@ -120,6 +120,8 @@ Typical linux shell has a small open files soft limit at 1024. You can easily ra
   
   ulimit -n 64000
 
+More about ulimit: http://blog.thecodingmachine.com/content/solving-too-many-open-files-exception-red5-or-any-other-application
+
 ## Contributing
 
 1. Fork it
