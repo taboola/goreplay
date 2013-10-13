@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+type ResponseAnalyzer interface {
+	ResponseAnalyze(*HttpResponse)
+}
+
 // ForwardHost where to forward requests
 type ForwardHost struct {
 	Url   string
@@ -20,13 +24,24 @@ type ReplaySettings struct {
 	Port int
 	Host string
 
-	Address        string
+	Address string
+
 	ForwardAddress string
 
+	FileToReplyPath string
+
 	Verbose bool
+
+	ElastiSearchURI string
+
+	ResponseAnalyzePlugins []ResponseAnalyzer
 }
 
 var Settings ReplaySettings = ReplaySettings{}
+
+func (r *ReplaySettings) RegisterResponseAnalyzePlugin(p ResponseAnalyzer) {
+	r.ResponseAnalyzePlugins = append(r.ResponseAnalyzePlugins, p)
+}
 
 // ForwardedHosts implements forwardAddress syntax support for multiple hosts (coma separated), and rate limiting by specifing "|maxRps" after host name.
 //
@@ -55,9 +70,17 @@ func (r *ReplaySettings) ForwardedHosts() (hosts []*ForwardHost) {
 	return
 }
 
-// SetAddress with port, e.g.: 127.0.0.1:28020
-func (r *ReplaySettings) SetAddress() {
+func (r *ReplaySettings) Parse() {
 	r.Address = r.Host + ":" + strconv.Itoa(r.Port)
+
+	// Register Plugins
+	// Elasticsearch Plugin
+	if Settings.ElastiSearchURI != "" {
+		esp := &ESPlugin{}
+		esp.Init(Settings.ElastiSearchURI)
+
+		r.RegisterResponseAnalyzePlugin(esp)
+	}
 }
 
 func init() {
@@ -76,8 +99,11 @@ func init() {
 
 	flag.StringVar(&Settings.Host, "ip", defaultHost, "ip addresses to listen on")
 
-	Settings.SetAddress()
 	flag.StringVar(&Settings.ForwardAddress, "f", defaultForwardAddress, "http address to forward traffic.\n\tYou can limit requests per second by adding `|num` after address.\n\tIf you have multiple addresses with different limits. For example: http://staging.example.com|100,http://dev.example.com|10")
 
+	flag.StringVar(&Settings.FileToReplyPath, "file", "", "File to replay captured requests from")
+
 	flag.BoolVar(&Settings.Verbose, "verbose", false, "Log requests")
+
+	flag.StringVar(&Settings.ElastiSearchURI, "es", "", "enable elasticsearch\n\tformat: hostname:9200/index_name")
 }

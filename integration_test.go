@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/buger/gor/listener"
 	"github.com/buger/gor/replay"
+
+	"math/rand"
 )
 
 func isEqual(t *testing.T, a interface{}, b interface{}) {
@@ -28,6 +31,7 @@ type Env struct {
 
 	ReplayLimit   int
 	ListenerLimit int
+	ForwardPort   int
 }
 
 func (e *Env) start() (p int) {
@@ -35,6 +39,11 @@ func (e *Env) start() (p int) {
 
 	go e.startHTTP(p, http.HandlerFunc(e.ListenHandler))
 	go e.startHTTP(p+2, http.HandlerFunc(e.ReplayHandler))
+
+	go e.startHTTP(p+3, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "OK", http.StatusAccepted)
+	}))
+
 	go e.startListener(p, p+1)
 	go e.startReplay(p+1, p+2)
 
@@ -70,6 +79,8 @@ func (e *Env) startReplay(port int, forwardPort int) {
 		replay.Settings.ForwardAddress += "|" + strconv.Itoa(e.ReplayLimit)
 	}
 
+	replay.Settings.ForwardAddress += ",127.0.0.1:" + strconv.Itoa(forwardPort+1)
+
 	replay.Run()
 }
 
@@ -82,7 +93,17 @@ func (e *Env) startHTTP(port int, handler http.Handler) {
 }
 
 func getRequest(port int) *http.Request {
-	req, _ := http.NewRequest("GET", "http://localhost:"+strconv.Itoa(port)+"/test", nil)
+	var req *http.Request
+
+	rand.Seed(time.Now().UTC().UnixNano())
+
+	if rand.Int31n(2) == 0 {
+		req, _ = http.NewRequest("GET", "http://localhost:"+strconv.Itoa(port)+"/test", nil)
+	} else {
+		buf := bytes.NewReader([]byte("a=b&c=d"))
+		req, _ = http.NewRequest("POST", "http://localhost:"+strconv.Itoa(port)+"/test", buf)
+	}
+
 	ck1 := new(http.Cookie)
 	ck1.Name = "test"
 	ck1.Value = "value"
@@ -112,7 +133,7 @@ func TestReplay(t *testing.T) {
 		http.Error(w, "OK", http.StatusAccepted)
 
 		if t.Failed() {
-			fmt.Println("\nReplayed:", r, "\nOriginal:", request)
+			fmt.Println("\nReplayed:", r)
 		}
 
 		received <- 1
@@ -140,7 +161,7 @@ func TestReplay(t *testing.T) {
 	}
 }
 
-func rateLimitEnv(replayLimit int, listenerLimit int, connCount int) int32 {
+func rateLimitEnv(replayLimit int, listenerLimit int, connCount int, t *testing.T) int32 {
 	var processed int32
 
 	listenHandler := func(w http.ResponseWriter, r *http.Request) {
@@ -157,14 +178,21 @@ func rateLimitEnv(replayLimit int, listenerLimit int, connCount int) int32 {
 		ReplayHandler: replayHandler,
 		ReplayLimit:   replayLimit,
 		ListenerLimit: listenerLimit,
+		Verbose:       true,
 	}
 
 	p := env.start()
-	req := getRequest(p)
 
 	for i := 0; i < connCount; i++ {
+		req := getRequest(p)
+
 		go func() {
-			http.DefaultClient.Do(req)
+			resp, err := http.DefaultClient.Do(req)
+			if err == nil {
+				resp.Body.Close()
+			} else {
+				t.Errorf("", err)
+			}
 		}()
 	}
 
@@ -174,10 +202,10 @@ func rateLimitEnv(replayLimit int, listenerLimit int, connCount int) int32 {
 }
 
 func TestWithoutReplayRateLimit(t *testing.T) {
-	processed := rateLimitEnv(0, 0, 10)
+	processed := rateLimitEnv(0, 0, 10, t)
 
 	if processed != 10 {
-		t.Error("It should forward all requests without rate-limiting", processed)
+		t.Error("It should forward all requests without rate-limiting, got:", processed)
 	}
 }
 
@@ -190,17 +218,119 @@ func TestReplayRateOverLimit(t *testing.T) {
 }
 
 func TestReplayRateLimit(t *testing.T) {
-	processed := rateLimitEnv(5, 0, 10)
+	processed := rateLimitEnv(5, 0, 10, t)
 
 	if processed != 5 {
-		t.Error("It should forward only 5 requests with rate-limiting", processed)
+		t.Error("It should forward only 5 requests with rate-limiting, got:", processed)
 	}
 }
 
 func TestListenerRateLimit(t *testing.T) {
-	processed := rateLimitEnv(0, 3, 100)
+	processed := rateLimitEnv(0, 3, 100, t)
 
 	if processed != 3 {
-		t.Error("It should forward only 3 requests with rate-limiting", processed)
+		t.Error("It should forward only 3 requests with rate-limiting, got:", processed)
+	}
+}
+
+func (e *Env) startFileListener() (p int) {
+	p = 50000 + envs*10
+
+	e.ForwardPort = p + 2
+	go e.startHTTP(p, http.HandlerFunc(e.ListenHandler))
+	go e.startHTTP(p+2, http.HandlerFunc(e.ReplayHandler))
+	go e.startFileUsingListener(p, p+1)
+
+	// Time to start http and gor instances
+	time.Sleep(time.Millisecond * 100)
+
+	envs++
+
+	return
+}
+
+func (e *Env) startFileUsingListener(port int, replayPort int) {
+	listener.Settings.Verbose = e.Verbose
+	listener.Settings.Address = "127.0.0.1"
+	listener.Settings.FileToReplyPath = "integration_request.gor"
+	listener.Settings.Port = port
+
+	if e.ListenerLimit != 0 {
+		listener.Settings.ReplayAddress += "|" + strconv.Itoa(e.ListenerLimit)
+	}
+
+	listener.Run()
+}
+
+func (e *Env) startFileUsingReplay() {
+	replay.Settings.Verbose = e.Verbose
+	replay.Settings.FileToReplyPath = "integration_request.gor"
+	replay.Settings.ForwardAddress = "127.0.0.1:" + strconv.Itoa(e.ForwardPort)
+
+	if e.ReplayLimit != 0 {
+		replay.Settings.ForwardAddress += "|" + strconv.Itoa(e.ReplayLimit)
+	}
+
+	replay.Run()
+}
+
+func TestSavingRequestToFileAndReplyThem(t *testing.T) {
+	processed := make(chan int)
+
+	listenHandler := func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "OK", http.StatusNotFound)
+	}
+
+	requestsCount := 0
+	var replayedRequests []*http.Request
+	replayHandler := func(w http.ResponseWriter, r *http.Request) {
+		requestsCount++
+
+		isEqual(t, r.URL.Path, "/test")
+		isEqual(t, r.Cookies()[0].Value, "value")
+
+		http.Error(w, "404 page not found", http.StatusNotFound)
+
+		replayedRequests = append(replayedRequests, r)
+		if t.Failed() {
+			fmt.Println("\nReplayed:", r)
+		}
+
+		if requestsCount > 1 {
+			processed <- 1
+		}
+	}
+
+	env := &Env{
+		Verbose:       true,
+		ListenHandler: listenHandler,
+		ReplayHandler: replayHandler,
+	}
+
+	p := env.startFileListener()
+
+	for i := 0; i < 10; i++ {
+		request := getRequest(p)
+
+		go func() {
+			_, err := http.DefaultClient.Do(request)
+
+			if err != nil {
+				t.Error("Can't make request", err)
+			}
+		}()
+	}
+
+	// TODO: wait until gor will process response, should be kind of flag/semaphore
+	time.Sleep(time.Millisecond * 700)
+	go env.startFileUsingReplay()
+
+	select {
+	case <-processed:
+	case <-time.After(2 * time.Second):
+		for _, value := range replayedRequests {
+			fmt.Println(value)
+		}
+		t.Error("Timeout error")
 	}
 }

@@ -19,7 +19,9 @@ import (
 // Debug enables logging only if "--verbose" flag passed
 func Debug(v ...interface{}) {
 	if Settings.Verbose {
-		log.Println(v...)
+		log.Print("\033[32mListener:")
+		log.Print(v...)
+		log.Println("\033[0m")
 	}
 }
 
@@ -43,8 +45,29 @@ func Run() {
 		os.Exit(1)
 	}
 
+	Settings.Parse()
+
 	fmt.Println("Listening for HTTP traffic on", Settings.Address+":"+strconv.Itoa(Settings.Port))
-	fmt.Println("Forwarding requests to replay server:", Settings.ReplayAddress, "Limit:", Settings.ReplayLimit)
+
+	var messageLogger *log.Logger
+
+	if Settings.FileToReplyPath != "" {
+
+		file, err := os.OpenFile(Settings.FileToReplyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+		defer file.Close()
+
+		if err != nil {
+			log.Fatal("Cannot open file %q. Error: %s", Settings.FileToReplyPath, err)
+		}
+
+		messageLogger = log.New(file, "", 0)
+	}
+
+	if messageLogger == nil {
+		fmt.Println("Forwarding requests to replay server:", Settings.ReplayAddress, "Limit:", Settings.ReplayLimit)
+	} else {
+		fmt.Println("Saving requests to file", Settings.FileToReplyPath)
+	}
 
 	// Sniffing traffic from given address
 	listener := RAWTCPListen(Settings.Address, Settings.Port)
@@ -69,7 +92,20 @@ func Run() {
 			currentRPS++
 		}
 
-		go sendMessage(m)
+		if messageLogger != nil {
+			go func() {
+				messageBuffer := new(bytes.Buffer)
+				messageWriter := bufio.NewWriter(messageBuffer)
+
+				fmt.Fprintf(messageWriter, "%v\n", time.Now().UnixNano())
+				fmt.Fprintf(messageWriter, "%s", string(m.Bytes()))
+
+				messageWriter.Flush()
+				messageLogger.Println(messageBuffer.String())
+			}()
+		} else {
+			go sendMessage(m)
+		}
 	}
 }
 
