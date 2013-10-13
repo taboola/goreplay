@@ -210,7 +210,7 @@ func TestWithoutReplayRateLimit(t *testing.T) {
 }
 
 func TestReplayRateOverLimit(t *testing.T) {
-	processed := rateLimitEnv(10, 0, 5)
+	processed := rateLimitEnv(10, 0, 5, t)
 
 	if processed != 10 {
 		t.Error("It should forward 2x more requests with rate over actual request count", processed)
