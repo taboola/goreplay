@@ -50,7 +50,7 @@ func NewRequestFactory() (factory *RequestFactory) {
 	factory = &RequestFactory{}
 	factory.c_responses = make(chan *HttpResponse)
 	factory.c_requests = make(chan *http.Request)
-	factory.reqBuf = ring.New(100)
+	factory.reqBuf = ring.New(1000)
 	factory.reqBufForSend = factory.reqBuf
 
 	go factory.handleRequests()
@@ -139,7 +139,7 @@ func (f *RequestFactory) sendRequests() {
 					if err == nil {
 						go f.sendRequest(host, req)
 					} else {
-						fmt.Println("Request not found")
+						fmt.Println(err)
 					}
 
 					delay := float64(1) / float64(host.Limit) * float64(time.Second)
