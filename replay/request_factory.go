@@ -1,9 +1,12 @@
 package replay
 
 import (
+	"bufio"
+	"bytes"
 	"container/ring"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -166,4 +169,18 @@ func (f *RequestFactory) getReqFromBuf(retries int) (*http.Request, error) {
 // Add request to channel for further processing
 func (f *RequestFactory) Add(request *http.Request) {
 	f.c_requests <- request
+}
+
+// ParseRequest in []byte returns a http request or an error
+func ParseRequest(data []byte) (request *http.Request, err error) {
+	buf := bytes.NewBuffer(data)
+	reader := bufio.NewReader(buf)
+
+	request, err = http.ReadRequest(reader)
+
+	if err != nil {
+		log.Println("Can not parse request", string(data), err)
+	}
+
+	return
 }
