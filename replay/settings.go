@@ -1,6 +1,8 @@
 package replay
 
 import (
+	"errors"
+	"fmt"
 	"flag"
 	"os"
 	"strconv"
@@ -19,6 +21,31 @@ type ForwardHost struct {
 	Stat *RequestStat
 }
 
+type Headers []Header
+type Header struct {
+	Name  string
+	Value string
+}
+
+func (h *Headers) String() string {
+	return fmt.Sprint(*h)
+}
+
+func (h *Headers) Set(value string) error {
+	v := strings.SplitN(value, ":", 2)
+	if len(v) != 2 {
+		return errors.New("Expected `Key: Value`")
+	}
+
+	header := Header{
+		strings.TrimSpace(v[0]),
+		strings.TrimSpace(v[1]),
+	}
+
+	*h = append(*h, header)
+	return nil
+}
+
 // ReplaySettings ListenerSettings contain all the needed configuration for setting up the replay
 type ReplaySettings struct {
 	Port int
@@ -33,6 +60,8 @@ type ReplaySettings struct {
 	Verbose bool
 
 	ElastiSearchURI string
+
+	AdditionalHeaders Headers
 
 	ResponseAnalyzePlugins []ResponseAnalyzer
 }
@@ -106,4 +135,6 @@ func init() {
 	flag.BoolVar(&Settings.Verbose, "verbose", false, "Log requests")
 
 	flag.StringVar(&Settings.ElastiSearchURI, "es", "", "enable elasticsearch\n\tformat: hostname:9200/index_name")
+
+	flag.Var(&Settings.AdditionalHeaders, "header", "Additional `Key: Value` header to inject/overwrite\n\tLeading and trailing whitespace will be stripped from the key and value\n\tMay be specified multiple times")
 }
