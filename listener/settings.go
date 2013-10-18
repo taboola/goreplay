@@ -20,7 +20,7 @@ type ListenerSettings struct {
 	Address string
 
 	ReplayAddress   string
-	FileToReplyPath string
+	FileToReplayPath string
 
 	ReplayLimit int
 
@@ -50,7 +50,7 @@ func init() {
 
 	flag.StringVar(&Settings.ReplayAddress, "r", defaultReplayAddress, "Address of replay server.")
 
-	flag.StringVar(&Settings.FileToReplyPath, "file", "", "File to store captured requests")
+	flag.StringVar(&Settings.FileToReplayPath, "file", "", "File to store captured requests")
 
 	flag.BoolVar(&Settings.Verbose, "verbose", false, "Log requests")
 }

@@ -51,13 +51,13 @@ func Run() {
 
 	var messageLogger *log.Logger
 
-	if Settings.FileToReplyPath != "" {
+	if Settings.FileToReplayPath != "" {
 
-		file, err := os.OpenFile(Settings.FileToReplyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+		file, err := os.OpenFile(Settings.FileToReplayPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
 		defer file.Close()
 
 		if err != nil {
-			log.Fatal("Cannot open file %q. Error: %s", Settings.FileToReplyPath, err)
+			log.Fatal("Cannot open file %q. Error: %s", Settings.FileToReplayPath, err)
 		}
 
 		messageLogger = log.New(file, "", 0)
@@ -66,7 +66,7 @@ func Run() {
 	if messageLogger == nil {
 		fmt.Println("Forwarding requests to replay server:", Settings.ReplayAddress, "Limit:", Settings.ReplayLimit)
 	} else {
-		fmt.Println("Saving requests to file", Settings.FileToReplyPath)
+		fmt.Println("Saving requests to file", Settings.FileToReplayPath)
 	}
 
 	// Sniffing traffic from given address
