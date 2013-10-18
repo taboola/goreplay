@@ -61,7 +61,7 @@ You can save request to file for replaying them later:
 gor listen -p 8080 -file requests.gor
 ```
 
-And replaying:
+Replay will preserve the original time differences between requests:
 ```
 gor replay -f "http://staging.server" -file requests.gor
 ```
