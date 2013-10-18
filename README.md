@@ -56,15 +56,17 @@ gor replay -f "http://staging.server|10,http://dev.server|5"
 ```
 
 ### Saving requests to file
-You can save request to file for replaying them later:
+You can save requests to file:
 ```
 gor listen -p 8080 -file requests.gor
 ```
 
-Replay will preserve the original time differences between requests:
+And replay them later:
 ```
 gor replay -f "http://staging.server" -file requests.gor
 ```
+
+**Note:** Replay will preserve the original time differences between requests.
 
 ## Stats 
 
