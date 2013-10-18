@@ -251,7 +251,7 @@ func (e *Env) startFileListener() (p int) {
 func (e *Env) startFileUsingListener(port int, replayPort int) {
 	listener.Settings.Verbose = e.Verbose
 	listener.Settings.Address = "127.0.0.1"
-	listener.Settings.FileToReplyPath = "integration_request.gor"
+	listener.Settings.FileToReplayPath = "integration_request.gor"
 	listener.Settings.Port = port
 
 	if e.ListenerLimit != 0 {
@@ -263,7 +263,7 @@ func (e *Env) startFileUsingListener(port int, replayPort int) {
 
 func (e *Env) startFileUsingReplay() {
 	replay.Settings.Verbose = e.Verbose
-	replay.Settings.FileToReplyPath = "integration_request.gor"
+	replay.Settings.FileToReplayPath = "integration_request.gor"
 	replay.Settings.ForwardAddress = "127.0.0.1:" + strconv.Itoa(e.ForwardPort)
 
 	if e.ReplayLimit != 0 {
@@ -273,7 +273,7 @@ func (e *Env) startFileUsingReplay() {
 	replay.Run()
 }
 
-func TestSavingRequestToFileAndReplyThem(t *testing.T) {
+func TestSavingRequestToFileAndReplayThem(t *testing.T) {
 	processed := make(chan int)
 
 	listenHandler := func(w http.ResponseWriter, r *http.Request) {

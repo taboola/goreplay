@@ -19,8 +19,8 @@ func (self ParsedRequest) String() string {
   return fmt.Sprintf("Request: %v, timestamp: %v", string(self.Request), self.Timestamp)
 }
 
-func parseReplyFile() (requests []ParsedRequest, err error) {
-  requests, err = readLines(Settings.FileToReplyPath)
+func parseReplayFile() (requests []ParsedRequest, err error) {
+  requests, err = readLines(Settings.FileToReplayPath)
 
   if err != nil {
     log.Fatalf("readLines: %s", err)

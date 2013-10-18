@@ -78,7 +78,7 @@ func Run() {
 
 	rm := NewReplayManager()
 
-	if Settings.FileToReplyPath != "" {
+	if Settings.FileToReplayPath != "" {
 		rm.RunReplayFromFile()
 	} else {
 		rm.RunReplayFromNetwork()
@@ -88,8 +88,8 @@ func Run() {
 func (self *ReplayManager) RunReplayFromFile() {
 	TotalResponsesCount = 0
 
-	log.Println("Starting file reply")
-	requests, err := parseReplyFile()
+	log.Println("Starting file replay")
+	requests, err := parseReplayFile()
 
 	if err != nil {
 		log.Fatal("Can't parse request: ", err)
