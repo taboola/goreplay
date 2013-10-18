@@ -104,6 +104,13 @@ func getRequest(port int) *http.Request {
 		req, _ = http.NewRequest("POST", "http://localhost:"+strconv.Itoa(port)+"/test", buf)
 	}
 
+	req.Header.Add("Referer", "http://localhost/test")
+	req.Header.Add("Accept", "*/*")
+	req.Header.Add("Accept-Language", "en-GB,*")
+	req.Header.Add("X-Forwarded-For", "1.1.1.1, 2.2.2.2, 3.3.3.3")
+	req.Header.Add("X-Forwarded-Proto", "http")
+	req.Header.Add("User-Agent", "Mozilla/5.0 (Unknown; Linux x86_64) AppleWebKit/534.34 (KHTML, like Gecko) PhantomJS/1.9.1 Safari/534.34")
+
 	ck1 := new(http.Cookie)
 	ck1.Name = "test"
 	ck1.Value = "value"
@@ -301,7 +308,7 @@ func TestSavingRequestToFileAndReplyThem(t *testing.T) {
 
 	p := env.startFileListener()
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 30; i++ {
 		request := getRequest(p)
 
 		go func() {
