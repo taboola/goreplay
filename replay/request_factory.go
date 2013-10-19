@@ -1,7 +1,6 @@
 package replay
 
 import (
-	"errors"
 	"net/http"
 	"net/url"
 	"time"
@@ -48,10 +47,16 @@ func NewRequestFactory() (factory *RequestFactory) {
 	return
 }
 
+type RedirectNotAllowed struct{}
+
+func (e *RedirectNotAllowed) Error() string {
+	return "Redirects not allowed"
+}
+
 // customCheckRedirect disables redirects https://github.com/buger/gor/pull/15
 func customCheckRedirect(req *http.Request, via []*http.Request) error {
 	if len(via) >= 0 {
-		return errors.New("stopped after 2 redirects")
+		return new(RedirectNotAllowed)
 	}
 	return nil
 }
@@ -75,6 +80,11 @@ func (f *RequestFactory) sendRequest(host *ForwardHost, requestBytes []byte) {
 	tstart := time.Now()
 	resp, err := client.Do(request)
 	tstop := time.Now()
+
+	// We should not count Redirect as errors
+	if _, ok := err.(*RedirectNotAllowed); ok {
+		err = nil
+	}
 
 	if err == nil {
 		defer resp.Body.Close()
