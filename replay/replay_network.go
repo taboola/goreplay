@@ -58,15 +58,7 @@ func handleConnection(conn net.Conn, rf *RequestFactory) error {
 		}
 	}
 
-	go func() {
-		if request, err := ParseRequest(response); err != nil {
-			Debug("Error while parsing request", err, response)
-		} else {
-			Debug("Adding request", request)
-
-			rf.Add(request)
-		}
-	}()
+	rf.Add(response)
 
 	return nil
 }

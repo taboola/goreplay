@@ -48,7 +48,7 @@ func Run() {
 
 	factory := NewRequestFactory()
 
-	if Settings.FileToReplyPath != "" {
+	if Settings.FileToReplayPath != "" {
 		RunReplayFromFile(factory)
 	} else {
 		RunReplayFromNetwork(factory)

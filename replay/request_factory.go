@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+
 	"net/http"
 	"net/url"
 	"time"
@@ -38,7 +39,7 @@ type HttpResponse struct {
 // 4. handleRequest() listen for `response` channel and updates stats
 type RequestFactory struct {
 	c_responses chan *HttpResponse
-	c_requests  chan *http.Request
+	c_requests  chan []byte
 
 	reqBuf        *ring.Ring
 	reqBufForSend *ring.Ring
@@ -49,7 +50,8 @@ type RequestFactory struct {
 func NewRequestFactory() (factory *RequestFactory) {
 	factory = &RequestFactory{}
 	factory.c_responses = make(chan *HttpResponse)
-	factory.c_requests = make(chan *http.Request)
+
+	factory.c_requests = make(chan []byte)
 	factory.reqBuf = ring.New(1000)
 	factory.reqBufForSend = factory.reqBuf
 
@@ -59,19 +61,27 @@ func NewRequestFactory() (factory *RequestFactory) {
 	return
 }
 
+type RedirectNotAllowed struct{}
+
+func (e *RedirectNotAllowed) Error() string {
+	return "Redirects not allowed"
+}
+
 // customCheckRedirect disables redirects https://github.com/buger/gor/pull/15
 func customCheckRedirect(req *http.Request, via []*http.Request) error {
 	if len(via) >= 0 {
-		return errors.New("stopped after 2 redirects")
+		return new(RedirectNotAllowed)
 	}
 	return nil
 }
 
 // sendRequest forwards http request to a given host
-func (f *RequestFactory) sendRequest(host *ForwardHost, request *http.Request) {
+func (f *RequestFactory) sendRequest(host *ForwardHost, requestBytes []byte) {
 	client := &http.Client{
 		CheckRedirect: customCheckRedirect,
 	}
+
+	request, _ := ParseRequest(requestBytes)
 
 	// Change HOST of original request
 	URL := host.Url + request.URL.Path + "?" + request.URL.RawQuery
@@ -84,6 +94,11 @@ func (f *RequestFactory) sendRequest(host *ForwardHost, request *http.Request) {
 	tstart := time.Now()
 	resp, err := client.Do(request)
 	tstop := time.Now()
+
+	// We should not count Redirect as errors
+	if _, ok := err.(*RedirectNotAllowed); ok {
+		err = nil
+	}
 
 	if err == nil {
 		defer resp.Body.Close()
@@ -152,11 +167,11 @@ func (f *RequestFactory) sendRequests() {
 	}
 }
 
-func (f *RequestFactory) getReqFromBuf(retries int) (*http.Request, error) {
+func (f *RequestFactory) getReqFromBuf(retries int) ([]byte, error) {
 	f.reqBufForSend = f.reqBufForSend.Prev()
 
 	if f.reqBufForSend.Value != nil {
-		return f.reqBufForSend.Value.(*http.Request), nil
+		return f.reqBufForSend.Value.([]byte), nil
 	} else {
 		if retries <= f.reqBufForSend.Len() {
 			return f.getReqFromBuf(retries + 1)
@@ -167,7 +182,7 @@ func (f *RequestFactory) getReqFromBuf(retries int) (*http.Request, error) {
 }
 
 // Add request to channel for further processing
-func (f *RequestFactory) Add(request *http.Request) {
+func (f *RequestFactory) Add(request []byte) {
 	f.c_requests <- request
 }
 

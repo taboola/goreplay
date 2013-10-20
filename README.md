@@ -56,21 +56,23 @@ gor replay -f "http://staging.server|10,http://dev.server|5"
 ```
 
 ### Saving requests to file
-You can save request to file for replaying them later:
+You can save requests to file:
 ```
 gor listen -p 8080 -file requests.gor
 ```
 
-And replaying:
+And replay them later:
 ```
 gor replay -f "http://staging.server" -file requests.gor
 ```
+
+**Note:** Replay will preserve the original time differences between requests.
 
 ## Stats 
 
 
 ### ElasticSearch 
-For deep reponse analyze based on url, cookie, user-agent and etc. you can export response metadata to ElasticSearch. See https://github.com/buger/gor/pull/29#issuecomment-25773523 for more details.
+For deep reponse analyze based on url, cookie, user-agent and etc. you can export response metadata to ElasticSearch. See [ELASTICSEARCH.md](ELASTICSEARCH.md) for more details.
 
 ```
 gor replay -f "http://staging.server" -es "es_host:api_port/index_name"
@@ -115,8 +117,12 @@ For now only Linux based. *BSD (including MacOS is not supported yet, check http
 Listener works by sniffing traffic from a given port. It's accessible
 only by using sudo or root access.
 
-### Do you support all http request types?
-Yes. ~~Right now it supports only "GET" requests.~~
+### I'm getting 'too many open files' error
+Typical linux shell has a small open files soft limit at 1024. You can easily raise that when you do this before starting your gor replay process:
+  
+  ulimit -n 64000
+
+More about ulimit: http://blog.thecodingmachine.com/content/solving-too-many-open-files-exception-red5-or-any-other-application
 
 ## Contributing
 

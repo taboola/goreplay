@@ -28,7 +28,7 @@ type ReplaySettings struct {
 
 	ForwardAddress string
 
-	FileToReplyPath string
+	FileToReplayPath string
 
 	Verbose bool
 
@@ -101,7 +101,7 @@ func init() {
 
 	flag.StringVar(&Settings.ForwardAddress, "f", defaultForwardAddress, "http address to forward traffic.\n\tYou can limit requests per second by adding `|num` after address.\n\tIf you have multiple addresses with different limits. For example: http://staging.example.com|100,http://dev.example.com|10")
 
-	flag.StringVar(&Settings.FileToReplyPath, "file", "", "File to replay captured requests from")
+	flag.StringVar(&Settings.FileToReplayPath, "file", "", "File to replay captured requests from")
 
 	flag.BoolVar(&Settings.Verbose, "verbose", false, "Log requests")
 

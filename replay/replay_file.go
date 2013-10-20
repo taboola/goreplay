@@ -8,8 +8,8 @@ import (
 func RunReplayFromFile(rf *RequestFactory) {
 	TotalResponsesCount = 0
 
-	log.Println("Starting file reply")
-	requests, err := parseReplyFile()
+	log.Println("Starting file replay")
+	requests, err := parseReplayFile()
 
 	if err != nil {
 		log.Fatal("Can't parse request: ", err)
@@ -33,22 +33,17 @@ func RunReplayFromFile(rf *RequestFactory) {
 	}
 
 	for _, request := range requests {
-
-		parsedReq, err := ParseRequest(request.Request)
-
 		if err != nil {
 			log.Fatal("Can't parse request...:", err)
 		}
 
 		time.Sleep(time.Duration(request.Timestamp - lastTimestamp))
 
-		rf.Add(parsedReq)
-
+		rf.Add(request.Request)
 		lastTimestamp = request.Timestamp
 	}
 
 	for requestsToReplay > TotalResponsesCount {
 		time.Sleep(time.Second)
 	}
-
 }
