@@ -49,10 +49,13 @@ func TestElasticSearchSettings(t *testing.T) {
 		ElastiSearchURI: "host:10/index_name",
 	}
 
+	// FIXME: This is redundant. We could assign `Settings = *settings` to
+	// check the code path in Init(), but it would result in the ES plugin
+	// being registered twice.
 	settings.Parse()
 
 	esp := &ESPlugin{}
-	esp.Init(Settings.ElastiSearchURI)
+	esp.Init(settings.ElastiSearchURI)
 
 	if esp.ApiPort != "10" {
 		t.Error("Port not match")
