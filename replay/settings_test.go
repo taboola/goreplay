@@ -1,6 +1,8 @@
 package replay
 
 import (
+	"flag"
+	"reflect"
 	"testing"
 )
 
@@ -67,5 +69,43 @@ func TestElasticSearchSettings(t *testing.T) {
 
 	if esp.Index != "index_name" {
 		t.Error("Index not match")
+	}
+}
+
+func TestAdditionalHeaders(t *testing.T) {
+	args := []string{
+		"-header", "Empty:",
+		"-header", "Foo: contains:multiple:colons",
+		"-header", "Host:nospaces.example.com",
+		"-header", "Authorization: Basic Zm9vOmJhcg==",
+		"-header", " User-Agent :  Contains leading and trailing space ",
+	}
+	out := Headers{
+		{"Empty", ""},
+		{"Foo", "contains:multiple:colons"},
+		{"Host", "nospaces.example.com"},
+		{"Authorization", "Basic Zm9vOmJhcg=="},
+		{"User-Agent", "Contains leading and trailing space"},
+	}
+
+	headers := Headers{}
+	fs := flag.NewFlagSet("TestHeaders", flag.ExitOnError)
+	fs.Var(&headers, "header", "blah")
+	fs.Parse(args)
+
+	if !reflect.DeepEqual(headers, out) {
+		t.Error("Headers not parsed as expected")
+	}
+
+	args = []string{
+		"-header", "contains no colons",
+	}
+	headers = Headers{}
+	fs = flag.NewFlagSet("TestHeaders", flag.ContinueOnError)
+	fs.Var(&headers, "header", "blah")
+	err := fs.Parse(args)
+
+	if err == nil {
+		t.Error("Invalid header should be rejected")
 	}
 }
