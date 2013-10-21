@@ -32,6 +32,8 @@ type Env struct {
 	ReplayLimit   int
 	ListenerLimit int
 	ForwardPort   int
+
+	AdditionalHeaders replay.Headers
 }
 
 func (e *Env) start() (p int) {
@@ -77,6 +79,10 @@ func (e *Env) startReplay(port int, forwardPort int) {
 
 	if e.ReplayLimit != 0 {
 		replay.Settings.ForwardAddress += "|" + strconv.Itoa(e.ReplayLimit)
+	}
+
+	if len(e.AdditionalHeaders) > 0 {
+		replay.Settings.AdditionalHeaders = e.AdditionalHeaders
 	}
 
 	replay.Settings.ForwardAddress += ",127.0.0.1:" + strconv.Itoa(forwardPort+1)
@@ -131,6 +137,9 @@ func TestReplay(t *testing.T) {
 	replayHandler := func(w http.ResponseWriter, r *http.Request) {
 		isEqual(t, r.URL.Path, request.URL.Path)
 
+		isEqual(t, r.Header.Get("New-Header"), "Inserted")
+		isEqual(t, r.Header.Get("X-Forwarded-Proto"), "Overwritten")
+
 		if len(r.Cookies()) > 0 {
 			isEqual(t, r.Cookies()[0].Value, request.Cookies()[0].Value)
 		} else {
@@ -150,6 +159,10 @@ func TestReplay(t *testing.T) {
 		Verbose:       true,
 		ListenHandler: listenHandler,
 		ReplayHandler: replayHandler,
+		AdditionalHeaders: replay.Headers{
+			{"New-Header", "Inserted"},
+			{"X-Forwarded-Proto", "Overwritten"},
+		},
 	}
 	p := env.start()
 
