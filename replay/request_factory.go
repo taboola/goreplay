@@ -75,6 +75,10 @@ func (f *RequestFactory) sendRequest(host *ForwardHost, requestBytes []byte) {
 	request.RequestURI = ""
 	request.URL, _ = url.ParseRequestURI(URL)
 
+	for _, header := range Settings.AdditionalHeaders {
+		request.Header.Set(header.Name, header.Value)
+	}
+
 	Debug("Sending request:", host.Url, request)
 
 	tstart := time.Now()
