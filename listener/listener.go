@@ -94,7 +94,7 @@ func Run() {
 
 		if Settings.FileToReplayPath != "" {
 			go func() {
-				message := utils.ParsedRequest{time.Now().UnixNano(), m.Bytes()}
+				message := utils.RawRequest{time.Now().UnixNano(), m.Bytes()}
 				fileEnc.Encode(message)
 			}()
 		} else {

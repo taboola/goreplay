@@ -4,11 +4,11 @@ import (
 	"fmt"
 )
 
-type ParsedRequest struct {
+type RawRequest struct {
 	Timestamp int64
 	Request   []byte
 }
 
-func (self ParsedRequest) String() string {
+func (self RawRequest) String() string {
 	return fmt.Sprintf("Request: %v, timestamp: %v", string(self.Request), self.Timestamp)
 }
