@@ -15,12 +15,9 @@ import (
 	"os"
 	"strconv"
 	"time"
-)
 
-type ParsedRequest struct {
-	Timestamp int64
-	Request   []byte
-}
+	"github.com/buger/gor/utils"
+)
 
 // Debug enables logging only if "--verbose" flag passed
 func Debug(v ...interface{}) {
@@ -97,7 +94,7 @@ func Run() {
 
 		if Settings.FileToReplayPath != "" {
 			go func() {
-				message := ParsedRequest{time.Now().UnixNano(), m.Bytes()}
+				message := utils.ParsedRequest{time.Now().UnixNano(), m.Bytes()}
 				fileEnc.Encode(message)
 			}()
 		} else {

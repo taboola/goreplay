@@ -7,19 +7,10 @@ import (
 	"io/ioutil"
 	"log"
 
-	"fmt"
+	"github.com/buger/gor/utils"
 )
 
-type ParsedRequest struct {
-	Timestamp int64
-	Request   []byte
-}
-
-func (self ParsedRequest) String() string {
-	return fmt.Sprintf("Request: %v, timestamp: %v", string(self.Request), self.Timestamp)
-}
-
-func parseReplayFile() (requests []ParsedRequest, err error) {
+func parseReplayFile() (requests []utils.ParsedRequest, err error) {
 	requests, err = readLines(Settings.FileToReplayPath)
 
 	if err != nil {
@@ -31,7 +22,7 @@ func parseReplayFile() (requests []ParsedRequest, err error) {
 
 // readLines reads a whole file into memory
 // and returns a slice of request+timestamps.
-func readLines(path string) (requests []ParsedRequest, err error) {
+func readLines(path string) (requests []utils.ParsedRequest, err error) {
 	file, err := ioutil.ReadFile(path)
 
 	if err != nil {
@@ -42,7 +33,7 @@ func readLines(path string) (requests []ParsedRequest, err error) {
 	fileDec := gob.NewDecoder(fileBuf)
 
 	for err == nil {
-		var reqBuf ParsedRequest
+		var reqBuf utils.ParsedRequest
 		err = fileDec.Decode(&reqBuf)
 
 		if err == io.EOF {
