@@ -147,5 +147,5 @@ More about ulimit: http://blog.thecodingmachine.com/content/solving-too-many-ope
 ## Companies using Gor
 
 * http://granify.com
-* http://gov.uk ([Government Digital Service](http://digital.cabinetoffice.gov.uk/))
+* [GOV.UK](https://www.gov.uk) ([Government Digital Service](http://digital.cabinetoffice.gov.uk/))
 * To add your company drop me a line to github.com/buger or leonsbox@gmail.com
