@@ -80,6 +80,16 @@ gor replay -f "http://staging.server" \
     -header "Enable-Feature-X: true"
 ```
 
+### Basic Auth
+If your development or staging environment is protected by Basic Authentication
+then those credentials can be injected in during the replay:
+```
+gor replay -f "http://user1:pass1@dev.server,http://user2:pass2@staging.server"
+```
+
+**Note:** This will overwrite any `Authorization` headers in the original
+request.
+
 ## Stats 
 
 
