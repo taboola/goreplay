@@ -86,3 +86,7 @@ func (o *HTTPOutput) sendRequest(data []byte) {
 		log.Println("Request error:", err)
 	}
 }
+
+func (o *HTTPOutput) String() string {
+	return "HTTP output: " + o.address
+}

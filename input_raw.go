@@ -7,12 +7,14 @@ import (
 )
 
 type RAWInput struct {
-	data chan []byte
+	data    chan []byte
+	address string
 }
 
 func NewRAWInput(address string) (i *RAWInput) {
 	i = new(RAWInput)
 	i.data = make(chan []byte)
+	i.address = address
 
 	go i.listen(address)
 
@@ -43,4 +45,8 @@ func (i *RAWInput) listen(address string) {
 
 		i.data <- m.Bytes()
 	}
+}
+
+func (i *RAWInput) String() string {
+	return "RAW Socket input: " + i.address
 }

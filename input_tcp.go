@@ -1,7 +1,6 @@
 package gor
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -11,14 +10,16 @@ import (
 //    echo "asdad" | nc 127.0.0.1 27017
 //
 type TCPInput struct {
-	data chan []byte
+	data    chan []byte
+	address string
 }
 
-func NewTCPInput(options string) (i *TCPInput) {
+func NewTCPInput(address string) (i *TCPInput) {
 	i = new(TCPInput)
 	i.data = make(chan []byte)
+	i.address = address
 
-	go i.listen(options)
+	go i.listen(address)
 
 	return
 }
@@ -26,8 +27,6 @@ func NewTCPInput(options string) (i *TCPInput) {
 func (i *TCPInput) Read(data []byte) (int, error) {
 	buf := <-i.data
 	copy(data, buf)
-
-	fmt.Println("Sending message", buf)
 
 	return len(buf), nil
 }
@@ -77,4 +76,8 @@ func (i *TCPInput) handleConnection(conn net.Conn) {
 	}
 
 	i.data <- response
+}
+
+func (i *TCPInput) String() string {
+	return "TCP input: " + i.address
 }

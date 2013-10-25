@@ -1,7 +1,6 @@
 package gor
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -22,8 +21,6 @@ func (i *DummyInput) Read(data []byte) (int, error) {
 	buf := <-i.data
 	copy(data, buf)
 
-	fmt.Println("Sending message", buf)
-
 	return len(buf), nil
 }
 
@@ -33,7 +30,11 @@ func (i *DummyInput) emit() {
 	for {
 		select {
 		case <-ticker.C:
-			i.data <- []byte("message")
+			i.data <- []byte("GET / HTTP/1.1\r\n\r\n")
 		}
 	}
+}
+
+func (i *DummyInput) String() string {
+	return "Dummy Input"
 }

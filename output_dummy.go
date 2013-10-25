@@ -18,3 +18,7 @@ func (i *DummyOutput) Write(data []byte) (int, error) {
 
 	return len(data), nil
 }
+
+func (i *DummyOutput) String() string {
+	return "Dummy Output"
+}
