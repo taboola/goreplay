@@ -20,6 +20,10 @@ func InitPlugins() {
 		Plugins.Outputs = append(Plugins.Outputs, NewDummyOutput(options))
 	}
 
+	for _, options := range Setttings.inputRAW {
+		Plugins.Inputs = append(Plugins.Inputs, NewRAWInput(options))
+	}
+
 	for _, options := range Setttings.inputTCP {
 		Plugins.Inputs = append(Plugins.Inputs, NewTCPInput(options))
 	}

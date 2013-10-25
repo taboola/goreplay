@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
 )
 
 type RedirectNotAllowed struct{}
@@ -37,6 +39,11 @@ type HTTPOutput struct {
 
 func NewHTTPOutput(address string) (o *HTTPOutput) {
 	o = new(HTTPOutput)
+
+	if !strings.HasPrefix(address, "http") {
+		address = "http://" + address
+	}
+
 	o.address = address
 
 	return
@@ -59,6 +66,12 @@ func (o *HTTPOutput) sendRequest(data []byte) {
 	client := &http.Client{
 		CheckRedirect: customCheckRedirect,
 	}
+
+	// Change HOST of original request
+	URL := o.address + request.URL.Path + "?" + request.URL.RawQuery
+
+	request.RequestURI = ""
+	request.URL, _ = url.ParseRequestURI(URL)
 
 	resp, err := client.Do(request)
 
