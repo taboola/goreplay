@@ -14,7 +14,7 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/buger/gor_new"
+	"github.com/buger/gor"
 )
 
 const (

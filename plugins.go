@@ -27,4 +27,8 @@ func InitPlugins() {
 	for _, options := range Setttings.outputTCP {
 		Plugins.Outputs = append(Plugins.Outputs, NewTCPOutput(options))
 	}
+
+	for _, options := range Setttings.outputHTTP {
+		Plugins.Outputs = append(Plugins.Outputs, NewHTTPOutput(options))
+	}
 }

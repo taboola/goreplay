@@ -10,6 +10,8 @@ type AppSettings struct {
 
 	inputTCP  MultiOption
 	outputTCP MultiOption
+
+	outputHTTP MultiOption
 }
 
 var Setttings AppSettings = AppSettings{}
@@ -20,4 +22,6 @@ func init() {
 
 	flag.Var(&Setttings.inputTCP, "input-tcp", "")
 	flag.Var(&Setttings.outputTCP, "output-tcp", "")
+
+	flag.Var(&Setttings.outputHTTP, "output-http", "")
 }
