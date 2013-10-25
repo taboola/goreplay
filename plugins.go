@@ -32,6 +32,10 @@ func InitPlugins() {
 		Plugins.Outputs = append(Plugins.Outputs, NewTCPOutput(options))
 	}
 
+	for _, options := range Setttings.outputFile {
+		Plugins.Outputs = append(Plugins.Outputs, NewFileOutput(options))
+	}
+
 	for _, options := range Setttings.outputHTTP {
 		Plugins.Outputs = append(Plugins.Outputs, NewHTTPOutput(options))
 	}
