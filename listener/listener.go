@@ -7,6 +7,7 @@ package listener
 import (
 	"bufio"
 	"bytes"
+	"encoding/gob"
 	"fmt"
 	"log"
 	"net"
@@ -14,6 +15,8 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/buger/gor/utils"
 )
 
 // Debug enables logging only if "--verbose" flag passed
@@ -49,7 +52,7 @@ func Run() {
 
 	fmt.Println("Listening for HTTP traffic on", Settings.Address+":"+strconv.Itoa(Settings.Port))
 
-	var messageLogger *log.Logger
+	var fileEnc *gob.Encoder
 
 	if Settings.FileToReplayPath != "" {
 
@@ -60,13 +63,10 @@ func Run() {
 			log.Fatal("Cannot open file %q. Error: %s", Settings.FileToReplayPath, err)
 		}
 
-		messageLogger = log.New(file, "", 0)
-	}
-
-	if messageLogger == nil {
-		fmt.Println("Forwarding requests to replay server:", Settings.ReplayAddress, "Limit:", Settings.ReplayLimit)
-	} else {
+		fileEnc = gob.NewEncoder(file)
 		fmt.Println("Saving requests to file", Settings.FileToReplayPath)
+	} else {
+		fmt.Println("Forwarding requests to replay server:", Settings.ReplayAddress, "Limit:", Settings.ReplayLimit)
 	}
 
 	// Sniffing traffic from given address
@@ -92,16 +92,10 @@ func Run() {
 			currentRPS++
 		}
 
-		if messageLogger != nil {
+		if Settings.FileToReplayPath != "" {
 			go func() {
-				messageBuffer := new(bytes.Buffer)
-				messageWriter := bufio.NewWriter(messageBuffer)
-
-				fmt.Fprintf(messageWriter, "%v\n", time.Now().UnixNano())
-				fmt.Fprintf(messageWriter, "%s", string(m.Bytes()))
-
-				messageWriter.Flush()
-				messageLogger.Println(messageBuffer.String())
+				message := utils.RawRequest{time.Now().UnixNano(), m.Bytes()}
+				fileEnc.Encode(message)
 			}()
 		} else {
 			go sendMessage(m)
