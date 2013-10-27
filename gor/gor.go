@@ -10,15 +10,15 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime/debug"
 	"runtime/pprof"
 	"time"
 
-	"github.com/buger/gor/listener"
-	"github.com/buger/gor/replay"
+	"github.com/buger/gor"
 )
 
 const (
-	VERSION = "0.3.5"
+	VERSION = "0.7"
 )
 
 var (
@@ -28,32 +28,33 @@ var (
 )
 
 func main() {
+	// Don't exit on panic
 	defer func() {
 		if r := recover(); r != nil {
 			if _, ok := r.(error); !ok {
-				fmt.Errorf("pkg: %v", r)
+				fmt.Printf("PANIC: pkg: %v %s \n", r, debug.Stack())
 			}
 		}
 	}()
 
 	fmt.Println("Version:", VERSION)
 
-	if len(os.Args) > 1 {
-		mode = os.Args[1]
-	}
-
-	if mode != "listen" && mode != "replay" {
-		fmt.Println("Usage: \n\tgor listen -h\n\tgor replay -h")
-		return
-	}
-
-	// Remove mode attr
-	os.Args = append(os.Args[:1], os.Args[2:]...)
-
 	flag.Parse()
+	gor.InitPlugins()
+	gor.Start()
+
+	if *memprofile != "" {
+		profileMEM(*memprofile)
+	}
 
 	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
+		profileCPU(*cpuprofile)
+	}
+}
+
+func profileCPU(cpuprofile string) {
+	if cpuprofile != "" {
+		f, err := os.Create(cpuprofile)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -65,9 +66,11 @@ func main() {
 			log.Println("Stop profiling after 60 seconds")
 		})
 	}
+}
 
-	if *memprofile != "" {
-		f, err := os.Create(*memprofile)
+func profileMEM(memprofile string) {
+	if memprofile != "" {
+		f, err := os.Create(memprofile)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -75,12 +78,5 @@ func main() {
 			pprof.WriteHeapProfile(f)
 			f.Close()
 		})
-	}
-
-	switch mode {
-	case "listen":
-		listener.Run()
-	case "replay":
-		replay.Run()
 	}
 }
