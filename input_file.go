@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"log"
 	"os"
+	"time"
 )
 
 type FileInput struct {
@@ -45,12 +46,19 @@ func (i *FileInput) String() string {
 }
 
 func (i *FileInput) emit() {
+	var lastTime int64
+
 	for {
 		raw := new(RawRequest)
 		err := i.decoder.Decode(raw)
 
 		if err != nil {
 			return
+		}
+
+		if lastTime != 0 {
+			time.Sleep(time.Duration(raw.Timestamp - lastTime))
+			lastTime = raw.Timestamp
 		}
 
 		i.data <- raw.Request
