@@ -41,6 +41,11 @@ func main() {
 
 	flag.Parse()
 	gor.InitPlugins()
+
+	if len(gor.Plugins.Inputs) == 0 || len(gor.Plugins.Outputs) == 0 {
+		log.Fatal("Required at least 1 input and 1 output")
+	}
+
 	gor.Start()
 
 	if *memprofile != "" {
