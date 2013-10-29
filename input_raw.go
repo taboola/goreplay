@@ -25,8 +25,6 @@ func (i *RAWInput) Read(data []byte) (int, error) {
 	buf := <-i.data
 	copy(data, buf)
 
-	log.Println("Sending message", buf)
-
 	return len(buf), nil
 }
 

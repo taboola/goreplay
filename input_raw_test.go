@@ -24,17 +24,15 @@ func TestRAWInput(t *testing.T) {
 		wg.Done()
 	})
 
-	startHTTP("127.0.0.1:50004", func(req *http.Request) {
-		wg.Done()
-	})
+	startHTTP("127.0.0.1:50004", func(req *http.Request) {})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
 
 	go Start(quit)
 
+	wg.Add(100)
 	for i := 0; i < 100; i++ {
-		wg.Add(1)
 		res, _ := http.Get("http://127.0.0.1:50004")
 		res.Body.Close()
 	}

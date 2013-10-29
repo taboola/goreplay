@@ -1,14 +1,21 @@
 package gor
 
 import (
+	"encoding/gob"
 	"log"
 	"os"
 	"time"
 )
 
+type RawRequest struct {
+	Timestamp int64
+	Request   []byte
+}
+
 type FileOutput struct {
-	path   string
-	logger *log.Logger
+	path    string
+	encoder *gob.Encoder
+	file    *os.File
 }
 
 func NewFileOutput(path string) (o *FileOutput) {
@@ -20,18 +27,21 @@ func NewFileOutput(path string) (o *FileOutput) {
 }
 
 func (o *FileOutput) Init(path string) {
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+	var err error
+
+	o.file, err = os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
 
 	if err != nil {
 		log.Fatal(o, "Cannot open file %q. Error: %s", path, err)
 	}
 
-	o.logger = log.New(file, "", 0)
+	o.encoder = gob.NewEncoder(o.file)
 }
 
 func (o *FileOutput) Write(data []byte) (n int, err error) {
-	log.Printf("%v\n%s\n", time.Now().UnixNano(), string(data))
-	o.logger.Printf("%v\n%s\n", time.Now().UnixNano(), string(data))
+	raw := RawRequest{time.Now().UnixNano(), data}
+
+	o.encoder.Encode(raw)
 
 	return len(data), nil
 }

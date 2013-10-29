@@ -6,7 +6,7 @@ import (
 
 func Start(stop chan int) {
 	for _, in := range Plugins.Inputs {
-		CopyMulty(in, Plugins.Outputs...)
+		go CopyMulty(in, Plugins.Outputs...)
 	}
 
 	select {
