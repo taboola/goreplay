@@ -46,8 +46,6 @@ func main() {
 		log.Fatal("Required at least 1 input and 1 output")
 	}
 
-	gor.Start()
-
 	if *memprofile != "" {
 		profileMEM(*memprofile)
 	}
@@ -55,6 +53,8 @@ func main() {
 	if *cpuprofile != "" {
 		profileCPU(*cpuprofile)
 	}
+
+	gor.Start()
 }
 
 func profileCPU(cpuprofile string) {
