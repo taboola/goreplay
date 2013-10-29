@@ -54,7 +54,7 @@ func main() {
 		profileCPU(*cpuprofile)
 	}
 
-	gor.Start()
+	gor.Start(nil)
 }
 
 func profileCPU(cpuprofile string) {

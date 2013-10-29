@@ -19,7 +19,7 @@ func NewTCPInput(address string) (i *TCPInput) {
 	i.data = make(chan []byte)
 	i.address = address
 
-	go i.listen(address)
+	i.listen(address)
 
 	return
 }
@@ -38,16 +38,18 @@ func (i *TCPInput) listen(address string) {
 		log.Fatal("Can't start:", err)
 	}
 
-	for {
-		conn, err := listener.Accept()
+	go func() {
+		for {
+			conn, err := listener.Accept()
 
-		if err != nil {
-			log.Println("Error while Accept()", err)
-			continue
+			if err != nil {
+				log.Println("Error while Accept()", err)
+				continue
+			}
+
+			go i.handleConnection(conn)
 		}
-
-		go i.handleConnection(conn)
-	}
+	}()
 }
 
 func (i *TCPInput) handleConnection(conn net.Conn) {

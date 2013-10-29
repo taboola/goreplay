@@ -2,9 +2,12 @@ package gor
 
 import (
 	"flag"
+	"log"
 )
 
 type AppSettings struct {
+	verbose bool
+
 	inputDummy  MultiOption
 	outputDummy MultiOption
 
@@ -22,6 +25,8 @@ type AppSettings struct {
 var Setttings AppSettings = AppSettings{}
 
 func init() {
+	flag.BoolVar(&Setttings.verbose, "verbose", false, "")
+
 	flag.Var(&Setttings.inputDummy, "input-dummy", "")
 	flag.Var(&Setttings.outputDummy, "output-dummy", "")
 
@@ -34,4 +39,10 @@ func init() {
 	flag.Var(&Setttings.inputRAW, "input-raw", "")
 
 	flag.Var(&Setttings.outputHTTP, "output-http", "")
+}
+
+func Debug(args ...interface{}) {
+	if Setttings.verbose {
+		log.Println(args...)
+	}
 }
