@@ -35,7 +35,8 @@ func TestRAWInput(t *testing.T) {
 
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
-		http.Get("http://127.0.0.1:50004")
+		res, _ := http.Get("http://127.0.0.1:50004")
+		res.Body.Close()
 	}
 
 	wg.Wait()

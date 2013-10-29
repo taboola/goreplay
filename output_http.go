@@ -3,9 +3,11 @@ package gor
 import (
 	"bufio"
 	"bytes"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -35,10 +37,14 @@ func ParseRequest(data []byte) (request *http.Request, err error) {
 
 type HTTPOutput struct {
 	address string
+	limit   int
 }
 
-func NewHTTPOutput(address string) (o *HTTPOutput) {
-	o = new(HTTPOutput)
+func NewHTTPOutput(options string) io.Writer {
+	o := new(HTTPOutput)
+
+	optionsArr := strings.Split(options, "|")
+	address := optionsArr[0]
 
 	if !strings.HasPrefix(address, "http") {
 		address = "http://" + address
@@ -46,7 +52,15 @@ func NewHTTPOutput(address string) (o *HTTPOutput) {
 
 	o.address = address
 
-	return
+	if len(optionsArr) > 1 {
+		o.limit, _ = strconv.Atoi(optionsArr[1])
+	}
+
+	if o.limit > 0 {
+		return NewLimiter(o, o.limit)
+	} else {
+		return o
+	}
 }
 
 func (o *HTTPOutput) Write(data []byte) (n int, err error) {
