@@ -20,7 +20,9 @@ func (o *TCPOutput) Write(data []byte) (n int, err error) {
 	conn, err := o.connect(o.address)
 	defer conn.Close()
 
-	n, err = conn.Write(data)
+	if err != nil {
+		n, err = conn.Write(data)
+	}
 
 	return
 }
