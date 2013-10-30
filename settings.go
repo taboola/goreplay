@@ -21,8 +21,9 @@ type AppSettings struct {
 
 	inputRAW MultiOption
 
-	outputHTTP        MultiOption
-	outputHTTPHeaders HTTPHeaders
+	outputHTTP              MultiOption
+	outputHTTPHeaders       HTTPHeaders
+	outputHTTPElasticSearch string
 }
 
 var Settings AppSettings = AppSettings{}
@@ -44,8 +45,8 @@ func init() {
 	flag.Var(&Settings.inputRAW, "input-raw", "")
 
 	flag.Var(&Settings.outputHTTP, "output-http", "")
-
 	flag.Var(&Settings.outputHTTPHeaders, "output-http-header", "")
+	flag.StringVar(&Settings.outputHTTPElasticSearch, "output-http-elasticsearch", "", "")
 }
 
 func Debug(args ...interface{}) {

@@ -22,7 +22,7 @@ func TestHTTPOutput(t *testing.T) {
 	input := NewTestInput()
 
 	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
-	output := NewHTTPOutput("127.0.0.1:50003", headers)
+	output := NewHTTPOutput("127.0.0.1:50003", headers, "")
 
 	startHTTP("127.0.0.1:50003", func(req *http.Request) {
 		if req.Header.Get("User-Agent") != "Gor" {
