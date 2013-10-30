@@ -1,19 +1,34 @@
 package gor
 
 import (
+	"fmt"
+	"io"
 	"log"
 	"net"
+	"strconv"
+	"strings"
 )
 
 type TCPOutput struct {
 	address string
+	limit   int
 }
 
-func NewTCPOutput(address string) (o *TCPOutput) {
-	o = new(TCPOutput)
-	o.address = address
+func NewTCPOutput(options string) io.Writer {
+	o := new(TCPOutput)
 
-	return
+	optionsArr := strings.Split(options, "|")
+	o.address = optionsArr[0]
+
+	if len(optionsArr) > 1 {
+		o.limit, _ = strconv.Atoi(optionsArr[1])
+	}
+
+	if o.limit > 0 {
+		return NewLimiter(o, o.limit)
+	} else {
+		return o
+	}
 }
 
 func (o *TCPOutput) Write(data []byte) (n int, err error) {
@@ -38,5 +53,5 @@ func (o *TCPOutput) connect(address string) (conn net.Conn, err error) {
 }
 
 func (o *TCPOutput) String() string {
-	return "TCP output: " + o.address
+	return fmt.Sprintf("TCP output %s, limit: %d", o.address, o.limit)
 }
