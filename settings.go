@@ -19,30 +19,33 @@ type AppSettings struct {
 
 	inputRAW MultiOption
 
-	outputHTTP MultiOption
+	outputHTTP        MultiOption
+	outputHTTPHeaders HTTPHeaders
 }
 
-var Setttings AppSettings = AppSettings{}
+var Settings AppSettings = AppSettings{}
 
 func init() {
-	flag.BoolVar(&Setttings.verbose, "verbose", false, "")
+	flag.BoolVar(&Settings.verbose, "verbose", false, "")
 
-	flag.Var(&Setttings.inputDummy, "input-dummy", "")
-	flag.Var(&Setttings.outputDummy, "output-dummy", "")
+	flag.Var(&Settings.inputDummy, "input-dummy", "")
+	flag.Var(&Settings.outputDummy, "output-dummy", "")
 
-	flag.Var(&Setttings.inputTCP, "input-tcp", "")
-	flag.Var(&Setttings.outputTCP, "output-tcp", "")
+	flag.Var(&Settings.inputTCP, "input-tcp", "")
+	flag.Var(&Settings.outputTCP, "output-tcp", "")
 
-	flag.Var(&Setttings.inputFile, "input-file", "")
-	flag.Var(&Setttings.outputFile, "output-file", "")
+	flag.Var(&Settings.inputFile, "input-file", "")
+	flag.Var(&Settings.outputFile, "output-file", "")
 
-	flag.Var(&Setttings.inputRAW, "input-raw", "")
+	flag.Var(&Settings.inputRAW, "input-raw", "")
 
-	flag.Var(&Setttings.outputHTTP, "output-http", "")
+	flag.Var(&Settings.outputHTTP, "output-http", "")
+
+	flag.Var(&Settings.outputHTTPHeaders, "output-http-header", "")
 }
 
 func Debug(args ...interface{}) {
-	if Setttings.verbose {
+	if Settings.verbose {
 		log.Println(args...)
 	}
 }

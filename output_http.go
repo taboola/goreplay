@@ -38,9 +38,11 @@ func ParseRequest(data []byte) (request *http.Request, err error) {
 type HTTPOutput struct {
 	address string
 	limit   int
+
+	headers HTTPHeaders
 }
 
-func NewHTTPOutput(options string) io.Writer {
+func NewHTTPOutput(options string, headers HTTPHeaders) io.Writer {
 	o := new(HTTPOutput)
 
 	optionsArr := strings.Split(options, "|")
@@ -51,6 +53,7 @@ func NewHTTPOutput(options string) io.Writer {
 	}
 
 	o.address = address
+	o.headers = headers
 
 	if len(optionsArr) > 1 {
 		o.limit, _ = strconv.Atoi(optionsArr[1])
@@ -86,6 +89,10 @@ func (o *HTTPOutput) sendRequest(data []byte) {
 
 	request.RequestURI = ""
 	request.URL, _ = url.ParseRequestURI(URL)
+
+	for _, header := range o.headers {
+		request.Header.Set(header.Name, header.Value)
+	}
 
 	resp, err := client.Do(request)
 

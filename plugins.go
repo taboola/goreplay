@@ -12,31 +12,31 @@ type InOutPlugins struct {
 var Plugins *InOutPlugins = new(InOutPlugins)
 
 func InitPlugins() {
-	for _, options := range Setttings.inputDummy {
+	for _, options := range Settings.inputDummy {
 		Plugins.Inputs = append(Plugins.Inputs, NewDummyInput(options))
 	}
 
-	for _, options := range Setttings.outputDummy {
+	for _, options := range Settings.outputDummy {
 		Plugins.Outputs = append(Plugins.Outputs, NewDummyOutput(options))
 	}
 
-	for _, options := range Setttings.inputRAW {
+	for _, options := range Settings.inputRAW {
 		Plugins.Inputs = append(Plugins.Inputs, NewRAWInput(options))
 	}
 
-	for _, options := range Setttings.inputTCP {
+	for _, options := range Settings.inputTCP {
 		Plugins.Inputs = append(Plugins.Inputs, NewTCPInput(options))
 	}
 
-	for _, options := range Setttings.outputTCP {
+	for _, options := range Settings.outputTCP {
 		Plugins.Outputs = append(Plugins.Outputs, NewTCPOutput(options))
 	}
 
-	for _, options := range Setttings.outputFile {
+	for _, options := range Settings.outputFile {
 		Plugins.Outputs = append(Plugins.Outputs, NewFileOutput(options))
 	}
 
-	for _, options := range Setttings.outputHTTP {
-		Plugins.Outputs = append(Plugins.Outputs, NewHTTPOutput(options))
+	for _, options := range Settings.outputHTTP {
+		Plugins.Outputs = append(Plugins.Outputs, NewHTTPOutput(options, Settings.outputHTTPHeaders))
 	}
 }
