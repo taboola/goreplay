@@ -8,6 +8,8 @@ import (
 type AppSettings struct {
 	verbose bool
 
+	splitOutput bool
+
 	inputDummy  MultiOption
 	outputDummy MultiOption
 
@@ -27,6 +29,8 @@ var Settings AppSettings = AppSettings{}
 
 func init() {
 	flag.BoolVar(&Settings.verbose, "verbose", false, "")
+
+	flag.BoolVar(&Settings.splitOutput, "split-output", false, "")
 
 	flag.Var(&Settings.inputDummy, "input-dummy", "")
 	flag.Var(&Settings.outputDummy, "output-dummy", "")
