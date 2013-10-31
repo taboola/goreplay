@@ -118,6 +118,46 @@ Feel free to ask question directly by email or by creating github issue.
 
 https://github.com/buger/gor/releases
 
+## Command line reference
+`gor -h` output:
+```
+  -cpuprofile="": write cpu profile to file
+  -memprofile="": write memory profile to this file
+  
+  -input-dummy=[]: Used for testing outputs. Emits 'Get /' request every 1s
+
+  -input-file=[]: Read requests from file: 
+    gor --input-file ./requests.gor --output-http staging.com
+
+  -input-raw=[]: Capture traffic from given port (use RAW sockets and require *sudo* access):
+    # Capture traffic from 8080 port
+    gor --input-raw :8080 --output-http staging.com
+
+  -input-tcp=[]: Used for internal communication between Gor instances. Example: 
+    # Receive requests from other Gor instances on 28020 port, and redirect output to staging
+    gor --input-tcp :28020 --output-http staging.com
+
+  -output-dummy=[]: Used for testing inputs. Just prints data coming from inputs.
+
+  -output-file=[]: Write incoming requests to file: 
+    gor --input-raw :80 --output-file ./requests.gor
+
+  -output-http=[]: Forwards incoming requests to given http address.
+    # Redirect all incoming requests to staging.com address 
+    gor --input-raw :80 --output-http http://staging.com
+
+  -output-http-elasticsearch="": Send request and response stats to ElasticSearch:
+    gor --input-raw :8080 --output-http staging.com --output-http-elasticsearch 'es_host:api_port/index_name'
+
+  -output-http-header=[]: Inject additional headers to http reqest:
+    gor --input-raw :8080 --output-http staging.com --output-http-header 'User-Agent: Gor'
+    
+  -output-tcp=[]: Used for internal communication between Gor instances. Example: 
+    # Listen for requests on 80 port and forward them to other Gor instance on 28020 port
+    gor --input-raw :80 --output-tcp replay.local:28020
+  -split-output=false: By default each output gets same traffic. If set to `true` it splits traffic equally among all outputs.
+```
+
 ## Building from source
 1. Setup standard Go environment http://golang.org/doc/code.html and ensure that $GOPATH environment variable properly set.
 2. `go get github.com/buger/gor`.
