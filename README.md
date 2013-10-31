@@ -155,6 +155,7 @@ https://github.com/buger/gor/releases
   -output-tcp=[]: Used for internal communication between Gor instances. Example: 
     # Listen for requests on 80 port and forward them to other Gor instance on 28020 port
     gor --input-raw :80 --output-tcp replay.local:28020
+    
   -split-output=false: By default each output gets same traffic. If set to `true` it splits traffic equally among all outputs.
 ```
 
