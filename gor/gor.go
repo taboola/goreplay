@@ -17,10 +17,6 @@ import (
 	"github.com/buger/gor"
 )
 
-const (
-	VERSION = "0.7"
-)
-
 var (
 	mode       string
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
@@ -37,7 +33,7 @@ func main() {
 		}
 	}()
 
-	fmt.Println("Version:", VERSION)
+	fmt.Println("Version:", gor.VERSION)
 
 	flag.Parse()
 	gor.InitPlugins()

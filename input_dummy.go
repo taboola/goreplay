@@ -25,7 +25,7 @@ func (i *DummyInput) Read(data []byte) (int, error) {
 }
 
 func (i *DummyInput) emit() {
-	ticker := time.NewTicker(200 * time.Millisecond)
+	ticker := time.NewTicker(time.Second)
 
 	for {
 		select {
