@@ -1,7 +1,6 @@
 package gor
 
 import (
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -73,8 +72,6 @@ func BenchmarkHTTPOutput(b *testing.B) {
 	Plugins.Outputs = []io.Writer{output}
 
 	go Start(quit)
-
-	fmt.Println(b)
 
 	for i := 0; i < b.N; i++ {
 		wg.Add(1)
