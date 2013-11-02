@@ -6,11 +6,12 @@ import (
 	"net/http"
 	"sync"
 	"testing"
+	"time"
 )
 
 func startHTTP(cb func(*http.Request)) net.Listener {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cb(r)
+		go cb(r)
 	})
 
 	listener, _ := net.Listen("tcp", ":0")
@@ -63,7 +64,8 @@ func BenchmarkHTTPOutput(b *testing.B) {
 	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
 
 	listener := startHTTP(func(req *http.Request) {
-		go wg.Done()
+		time.Sleep(50 * time.Millisecond)
+		wg.Done()
 	})
 
 	output := NewHTTPOutput(listener.Addr().String(), headers, "")
