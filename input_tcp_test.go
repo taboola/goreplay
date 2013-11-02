@@ -69,9 +69,10 @@ func BenchmarkTCPInput(b *testing.B) {
 
 	var connections []net.Conn
 
+	// Creating simple pool of workers, same as output_tcp have
 	dataChan := make(chan []byte, 1000)
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		conn, _ := net.DialTCP("tcp", nil, tcpAddr)
 		connections = append(connections, conn)
 
@@ -93,8 +94,8 @@ func BenchmarkTCPInput(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		dataChan <- msg
 		wg.Add(1)
+		dataChan <- msg
 	}
 
 	wg.Wait()
