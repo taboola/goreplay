@@ -40,6 +40,7 @@ func ParseRequest(data []byte) (request *http.Request, err error) {
 type HTTPOutput struct {
 	address string
 	limit   int
+	buf     chan []byte
 
 	headers HTTPHeaders
 
@@ -47,6 +48,7 @@ type HTTPOutput struct {
 }
 
 func NewHTTPOutput(options string, headers HTTPHeaders, elasticSearchAddr string) io.Writer {
+
 	o := new(HTTPOutput)
 
 	optionsArr := strings.Split(options, "|")
@@ -59,6 +61,8 @@ func NewHTTPOutput(options string, headers HTTPHeaders, elasticSearchAddr string
 	o.address = address
 	o.headers = headers
 
+	o.buf = make(chan []byte, 100)
+
 	if elasticSearchAddr != "" {
 		o.elasticSearch = new(es.ESPlugin)
 		o.elasticSearch.Init(elasticSearchAddr)
@@ -68,6 +72,10 @@ func NewHTTPOutput(options string, headers HTTPHeaders, elasticSearchAddr string
 		o.limit, _ = strconv.Atoi(optionsArr[1])
 	}
 
+	for i := 0; i < 10; i++ {
+		go o.worker(i)
+	}
+
 	if o.limit > 0 {
 		return NewLimiter(o, o.limit)
 	} else {
@@ -75,22 +83,29 @@ func NewHTTPOutput(options string, headers HTTPHeaders, elasticSearchAddr string
 	}
 }
 
+func (o *HTTPOutput) worker(n int) {
+	client := &http.Client{
+		CheckRedirect: customCheckRedirect,
+	}
+
+	for {
+		data := <-o.buf
+		o.sendRequest(client, data)
+	}
+}
+
 func (o *HTTPOutput) Write(data []byte) (n int, err error) {
-	go o.sendRequest(data)
+	o.buf <- data
 
 	return len(data), nil
 }
 
-func (o *HTTPOutput) sendRequest(data []byte) {
+func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 	request, err := ParseRequest(data)
 
 	if err != nil {
 		log.Println("Can not parse request", string(data), err)
 		return
-	}
-
-	client := &http.Client{
-		CheckRedirect: customCheckRedirect,
 	}
 
 	// Change HOST of original request
