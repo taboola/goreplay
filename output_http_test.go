@@ -39,8 +39,8 @@ func TestHTTPOutput(t *testing.T) {
 
 	for i := 0; i < 100; i++ {
 		wg.Add(2)
-		input.EmitGET()
 		input.EmitPOST()
+		input.EmitGET()
 	}
 
 	wg.Wait()

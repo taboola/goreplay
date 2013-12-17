@@ -76,7 +76,10 @@ func NewHTTPOutput(options string, headers HTTPHeaders, elasticSearchAddr string
 }
 
 func (o *HTTPOutput) Write(data []byte) (n int, err error) {
-	go o.sendRequest(data)
+	buf := make([]byte, len(data))
+	copy(buf, data)
+
+	go o.sendRequest(buf)
 
 	return len(data), nil
 }
