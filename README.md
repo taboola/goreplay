@@ -1,3 +1,4 @@
+[![Stories in Ready](https://badge.waffle.io/buger/gor.png?label=ready)](https://waffle.io/buger/gor)  
 [![Build Status](https://travis-ci.org/buger/gor.png?branch=master)](https://travis-ci.org/buger/gor)
 
 ## About
@@ -91,6 +92,16 @@ gor --input-raw :80 --output-http "http://staging.server" \
     --output-http-header "Enable-Feature-X: true"
 ```
 
+## Filtering HTTP methods
+
+Requests not matching a specified whitelist can be filtered out. For example to strip non-nullipotent requests:
+
+```
+gor --input-raw :80 --output-http "http://staging.server" \
+    --output-http-method GET \
+    --output-http-method OPTIONS
+```
+
 ### Basic Auth
 
 If your development or staging environment is protected by Basic Authentication then those credentials can be injected in during the replay:
@@ -118,6 +129,47 @@ Feel free to ask question directly by email or by creating github issue.
 
 https://github.com/buger/gor/releases
 
+## Command line reference
+`gor -h` output:
+```
+  -cpuprofile="": write cpu profile to file
+  -memprofile="": write memory profile to this file
+  
+  -input-dummy=[]: Used for testing outputs. Emits 'Get /' request every 1s
+
+  -input-file=[]: Read requests from file: 
+    gor --input-file ./requests.gor --output-http staging.com
+
+  -input-raw=[]: Capture traffic from given port (use RAW sockets and require *sudo* access):
+    # Capture traffic from 8080 port
+    gor --input-raw :8080 --output-http staging.com
+
+  -input-tcp=[]: Used for internal communication between Gor instances. Example: 
+    # Receive requests from other Gor instances on 28020 port, and redirect output to staging
+    gor --input-tcp :28020 --output-http staging.com
+
+  -output-dummy=[]: Used for testing inputs. Just prints data coming from inputs.
+
+  -output-file=[]: Write incoming requests to file: 
+    gor --input-raw :80 --output-file ./requests.gor
+
+  -output-http=[]: Forwards incoming requests to given http address.
+    # Redirect all incoming requests to staging.com address 
+    gor --input-raw :80 --output-http http://staging.com
+
+  -output-http-elasticsearch="": Send request and response stats to ElasticSearch:
+    gor --input-raw :8080 --output-http staging.com --output-http-elasticsearch 'es_host:api_port/index_name'
+
+  -output-http-header=[]: Inject additional headers to http reqest:
+    gor --input-raw :8080 --output-http staging.com --output-http-header 'User-Agent: Gor'
+    
+  -output-tcp=[]: Used for internal communication between Gor instances. Example: 
+    # Listen for requests on 80 port and forward them to other Gor instance on 28020 port
+    gor --input-raw :80 --output-tcp replay.local:28020
+    
+  -split-output=false: By default each output gets same traffic. If set to `true` it splits traffic equally among all outputs.
+```
+
 ## Building from source
 1. Setup standard Go environment http://golang.org/doc/code.html and ensure that $GOPATH environment variable properly set.
 2. `go get github.com/buger/gor`.
@@ -139,6 +191,27 @@ Typical linux shell has a small open files soft limit at 1024. You can easily ra
   ulimit -n 64000
 
 More about ulimit: http://blog.thecodingmachine.com/content/solving-too-many-open-files-exception-red5-or-any-other-application
+
+## Tuning
+
+To achieve the top most performance you should tune the source server system limits:
+
+    net.ipv4.tcp_max_tw_buckets = 65536
+    net.ipv4.tcp_tw_recycle = 1
+    net.ipv4.tcp_tw_reuse = 0
+    net.ipv4.tcp_max_syn_backlog = 131072
+    net.ipv4.tcp_syn_retries = 3
+    net.ipv4.tcp_synack_retries = 3
+    net.ipv4.tcp_retries1 = 3
+    net.ipv4.tcp_retries2 = 8
+    net.ipv4.tcp_rmem = 16384 174760 349520
+    net.ipv4.tcp_wmem = 16384 131072 262144
+    net.ipv4.tcp_mem = 262144 524288 1048576
+    net.ipv4.tcp_max_orphans = 65536
+    net.ipv4.tcp_fin_timeout = 10
+    net.ipv4.tcp_low_latency = 1
+    net.ipv4.tcp_syncookies = 0
+
 
 ## Contributing
 

@@ -43,12 +43,12 @@ type HTTPOutput struct {
 	buf     chan []byte
 
 	headers HTTPHeaders
+	methods HTTPMethods
 
 	elasticSearch *es.ESPlugin
 }
 
-func NewHTTPOutput(options string, headers HTTPHeaders, elasticSearchAddr string) io.Writer {
-
+func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, elasticSearchAddr string) io.Writer {
 	o := new(HTTPOutput)
 
 	optionsArr := strings.Split(options, "|")
@@ -60,6 +60,7 @@ func NewHTTPOutput(options string, headers HTTPHeaders, elasticSearchAddr string
 
 	o.address = address
 	o.headers = headers
+	o.methods = methods
 
 	o.buf = make(chan []byte, 100)
 
@@ -95,7 +96,10 @@ func (o *HTTPOutput) worker(n int) {
 }
 
 func (o *HTTPOutput) Write(data []byte) (n int, err error) {
-	o.buf <- data
+	buf := make([]byte, len(data))
+	copy(buf, data)
+
+	go o.sendRequest(buf)
 
 	return len(data), nil
 }
@@ -106,6 +110,14 @@ func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 	if err != nil {
 		log.Println("Can not parse request", string(data), err)
 		return
+	}
+
+	if len(o.methods) > 0 && !o.methods.Contains(request.Method) {
+		return
+	}
+
+	client := &http.Client{
+		CheckRedirect: customCheckRedirect,
 	}
 
 	// Change HOST of original request
