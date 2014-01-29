@@ -28,9 +28,7 @@ func TestHTTPOutput(t *testing.T) {
 	input := NewTestInput()
 
 	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
-
 	methods := HTTPMethods{"GET", "PUT", "POST"}
-	output := NewHTTPOutput("127.0.0.1:50003", headers, methods, "")
 
 	listener := startHTTP(func(req *http.Request) {
 		if req.Header.Get("User-Agent") != "Gor" {
@@ -44,7 +42,7 @@ func TestHTTPOutput(t *testing.T) {
 		wg.Done()
 	})
 
-	output := NewHTTPOutput(listener.Addr().String(), headers, "")
+	output := NewHTTPOutput(listener.Addr().String(), headers, methods, "")
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
@@ -70,13 +68,14 @@ func BenchmarkHTTPOutput(b *testing.B) {
 	input := NewTestInput()
 
 	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
+	methods := HTTPMethods{"GET", "PUT", "POST"}
 
 	listener := startHTTP(func(req *http.Request) {
 		time.Sleep(50 * time.Millisecond)
 		wg.Done()
 	})
 
-	output := NewHTTPOutput(listener.Addr().String(), headers, "")
+	output := NewHTTPOutput(listener.Addr().String(), headers, methods, "")
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}

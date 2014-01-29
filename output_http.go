@@ -99,7 +99,7 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 	buf := make([]byte, len(data))
 	copy(buf, data)
 
-	go o.sendRequest(buf)
+	o.buf <- buf
 
 	return len(data), nil
 }
@@ -115,11 +115,7 @@ func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 	if len(o.methods) > 0 && !o.methods.Contains(request.Method) {
 		return
 	}
-
-	client := &http.Client{
-		CheckRedirect: customCheckRedirect,
-	}
-
+	
 	// Change HOST of original request
 	URL := o.address + request.URL.Path + "?" + request.URL.RawQuery
 
