@@ -6,8 +6,6 @@ import (
 )
 
 func Start(stop chan int) {
-	runtime.GOMAXPROCS(10)
-
 	for _, in := range Plugins.Inputs {
 		go CopyMulty(in, Plugins.Outputs...)
 	}
