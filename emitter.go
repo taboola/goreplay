@@ -2,7 +2,6 @@ package gor
 
 import (
 	"io"
-	"runtime"
 )
 
 func Start(stop chan int) {
