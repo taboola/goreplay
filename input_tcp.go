@@ -62,7 +62,7 @@ func scanBytes(data []byte, atEOF bool) (advance int, token []byte, err error) {
 
 	// Search for ¶ symbol
 	if i := bytes.IndexByte(data, 194); i >= 0 {
-		if data[i+1] == 182 {
+		if len(data) > i+1 && data[i+1] == 182 {
 			// We have a full newline-terminated line.
 			return i + 2, data[0:i], nil
 		}
