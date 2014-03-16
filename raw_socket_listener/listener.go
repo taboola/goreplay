@@ -118,6 +118,8 @@ func (t *Listener) isIncomingDataPacket(buf []byte) bool {
 //
 // For TCP message unique id is Acknowledgment number (see tcp_packet.go)
 func (t *Listener) processTCPPacket(packet *TCPPacket) {
+	defer func() { recover() }()
+	
 	var message *TCPMessage
 
 	message, ok := t.messages[packet.Ack]
