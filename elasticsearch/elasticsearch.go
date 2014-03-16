@@ -1,4 +1,4 @@
-package gor
+package elasticsearch
 
 import (
 	"encoding/json"
