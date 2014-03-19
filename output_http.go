@@ -115,7 +115,7 @@ func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 	if len(o.methods) > 0 && !o.methods.Contains(request.Method) {
 		return
 	}
-	
+
 	// Change HOST of original request
 	URL := o.address + request.URL.Path + "?" + request.URL.RawQuery
 

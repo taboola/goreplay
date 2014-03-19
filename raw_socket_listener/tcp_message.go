@@ -15,7 +15,7 @@ const MSG_EXPIRE = 200 * time.Millisecond
 // Message can be compiled from unique packets with same message_id which sorted by sequence
 // Message is received if we didn't receive any packets for 200ms
 type TCPMessage struct {
-	Ack     uint32 // Message ID
+	ID      string // Message ID
 	packets []*TCPPacket
 
 	timer *time.Timer // Used for expire check
@@ -26,8 +26,8 @@ type TCPMessage struct {
 }
 
 // NewTCPMessage pointer created from a Acknowledgment number and a channel of messages readuy to be deleted
-func NewTCPMessage(Ack uint32, c_del chan *TCPMessage) (msg *TCPMessage) {
-	msg = &TCPMessage{Ack: Ack}
+func NewTCPMessage(ID string, c_del chan *TCPMessage) (msg *TCPMessage) {
+	msg = &TCPMessage{ID: ID}
 
 	msg.c_packets = make(chan *TCPPacket)
 	msg.c_del_message = c_del // used for notifying that message completed or expired

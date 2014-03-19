@@ -2,6 +2,7 @@ package raw_socket
 
 import (
 	"encoding/binary"
+	"net"
 	"strconv"
 	"strings"
 )
@@ -34,11 +35,14 @@ type TCPPacket struct {
 	Urgent     uint16
 
 	Data []byte
+
+	Addr net.Addr
 }
 
-func ParseTCPPacket(b []byte) (p *TCPPacket) {
+func ParseTCPPacket(addr net.Addr, b []byte) (p *TCPPacket) {
 	p = &TCPPacket{Data: b}
 	p.ParseBasic()
+	p.Addr = addr
 
 	return p
 }
