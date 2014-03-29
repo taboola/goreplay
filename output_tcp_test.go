@@ -44,26 +44,21 @@ func startTCP(cb func([]byte)) net.Listener {
 	go func() {
 		for {
 			conn, _ := listener.Accept()
-			
-			go func() {
-				reader := bufio.NewReader(conn)
-
-				for {
-					cb(func() {
-						buf,err := reader.ReadBytes('¶')
-						new_buf_len := len(buf) - 2
-						new_buf := make([]byte, new_buf_len)
-						copy(new_buf, buf[:new_buf_len])
-						if err != nil {
-							if err != io.EOF {
-								log.Printf("error: %s\n", err)
-							}
+			reader := bufio.NewReader(conn)
+			for {
+				cb(func() {
+					buf,err := reader.ReadBytes('¶')
+					new_buf_len := len(buf) - 2
+					new_buf := make([]byte, new_buf_len)
+					copy(new_buf, buf[:new_buf_len])
+					if err != nil {
+						if err != io.EOF {
+							log.Printf("error: %s\n", err)
 						}
-						return new_buf
 					}
-				conn.Close()
-			
-			}()
+					return new_buf
+				})
+			conn.Close()
 		}
 	}()
 
