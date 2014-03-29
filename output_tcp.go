@@ -49,7 +49,7 @@ func (o *TCPOutput) worker() {
 
 func (o *TCPOutput) Write(data []byte) (n int, err error) {
 	new_buf := make([]byte, len(data) + 2)
-	append(data, []byte("¶"))
+	append(data, []byte("¶")...)
 	copy(new_buf, data)
 	o.buf <- new_buf
 
