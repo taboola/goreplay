@@ -131,8 +131,10 @@ func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 	stop := time.Now()
 
 	// We should not count Redirect as errors
-	if _, ok := err.(*RedirectNotAllowed); ok {
-		err = nil
+	if urlErr, ok := err.(*url.Error); ok {
+		if _, ok := urlErr.Err.(*RedirectNotAllowed); ok {
+			err = nil
+		}
 	}
 
 	if err == nil {

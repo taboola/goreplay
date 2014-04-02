@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const MSG_EXPIRE = 1000 * time.Millisecond
+const MSG_EXPIRE = 200 * time.Millisecond
 
 // TCPMessage ensure that all TCP packets for given request is received, and processed in right sequence
 // Its needed because all TCP message can be fragmented or re-transmitted
