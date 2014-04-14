@@ -10,7 +10,7 @@ Its main goal is to replay traffic from production servers to staging and dev en
 Now you can test your code on real user sessions in an automated and repeatable fashion.
 **No more falling down in production!**
 
-Here is basic worlkflow: The listener server catches http traffic and sends it to the replay server or saves to file.The replay server forwards traffic to a given address.
+Here is basic workflow: The listener server catches http traffic and sends it to the replay server or saves to file.The replay server forwards traffic to a given address.
 
 
 ![Diagram](http://i.imgur.com/9mqj2SK.png)
