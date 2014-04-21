@@ -66,7 +66,7 @@ func (t *TCPMessage) Bytes() (output []byte) {
 
 	i := 0
 	for k, _ := range t.packets {
-		mk[i] = t.packets[i].Seq
+		mk[i] = int(t.packets[i].Seq)
 		i++
 	}
 
