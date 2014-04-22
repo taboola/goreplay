@@ -92,3 +92,9 @@ func (t *TCPPacket) String() string {
 		"Data:" + string(t.Data),
 	}, "\n")
 }
+
+type BySeq []*TCPPacket
+
+func (a BySeq) Len() int			{ return len(a) }
+func (a BySeq) Swap(i, j int)		{ a[i], a[j] = a[j], a[i] }
+func (a BySeq) Less(i, j int) bool	{ return a[i].Seq < a[j].Seq }
