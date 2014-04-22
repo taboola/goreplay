@@ -6,14 +6,14 @@ import (
 	"time"
 )
 
-const MSG_EXPIRE = 300000 * time.Millisecond
+const MSG_EXPIRE = 20000 * time.Millisecond
 
 // TCPMessage ensure that all TCP packets for given request is received, and processed in right sequence
 // Its needed because all TCP message can be fragmented or re-transmitted
 //
 // Each TCP Packet have 2 ids: acknowledgment - message_id, and sequence - packet_id
 // Message can be compiled from unique packets with same message_id which sorted by sequence
-// Message is received if we didn't receive any packets for 200ms
+// Message is received if we didn't receive any packets for 20000ms
 type TCPMessage struct {
 	ID      string // Message ID
 	packets []*TCPPacket
