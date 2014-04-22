@@ -48,7 +48,6 @@ func (t *TCPMessage) listen() {
 				t.AddPacket(packet)
 			} else {
 				// Stop loop if channel closed
-				t.c_del_message <- t
 				return
 			}
 		}
