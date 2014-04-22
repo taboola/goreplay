@@ -63,17 +63,18 @@ func (t *TCPMessage) Timeout() {
 // Bytes sorts packets in right orders and return message content
 func (t *TCPMessage) Bytes() (output []byte) {
 	mk := make([]int, len(t.packets))
-
+	sm := make(map[uint32]*TCPPacket)
 	i := 0
 	for k, _ := range t.packets {
-		mk[t.packets[i].Seq] = k
+		mk[i] = t.packets[k].Seq
+		sm[t.packets[k].Seq] = k
 		i++
 	}
 
 	sort.Ints(mk)
 
-	for _, k := range mk {
-		output = append(output, t.packets[k].Data...)
+	for _, v := range mk {
+		output = append(output, sm[v].Data...)
 	}
 
 	return
