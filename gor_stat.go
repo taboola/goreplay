@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	rate = int64(5)
+	rate = 5
 )
 
 type GorStat struct {
