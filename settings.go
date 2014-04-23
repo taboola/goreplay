@@ -45,6 +45,7 @@ func init() {
 	flag.Usage = usage
 
 	flag.BoolVar(&Settings.verbose, "verbose", false, "Turn on verbose/debug output")
+	flag.BoolVar(&Settings.stats, "stats", false, "Turn on queue stats output")
 
 	flag.BoolVar(&Settings.splitOutput, "split-output", false, "By default each output gets same traffic. If set to `true` it splits traffic equally among all outputs.")
 

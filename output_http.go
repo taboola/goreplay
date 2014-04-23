@@ -46,6 +46,8 @@ type HTTPOutput struct {
 	methods HTTPMethods
 
 	elasticSearch *es.ESPlugin
+
+	bufStats GorStat
 }
 
 func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, elasticSearchAddr string) io.Writer {
@@ -63,6 +65,7 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, ela
 	o.methods = methods
 
 	o.buf = make(chan []byte, 100)
+	o.bufStats = NewGorStat("OUTPUT_HTTP")
 
 	if elasticSearchAddr != "" {
 		o.elasticSearch = new(es.ESPlugin)
@@ -100,6 +103,7 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 	copy(buf, data)
 
 	o.buf <- buf
+	o.bufStats.Write(len(o.buf))
 
 	return len(data), nil
 }
