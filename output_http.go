@@ -65,7 +65,7 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, ela
 	o.methods = methods
 
 	o.buf = make(chan []byte, 100)
-	o.bufStats = NewGorStat("OUTPUT_HTTP")
+	o.bufStats = NewGorStat("output_http")
 
 	if elasticSearchAddr != "" {
 		o.elasticSearch = new(es.ESPlugin)
