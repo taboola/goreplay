@@ -27,7 +27,7 @@ func NewGorStat(statName string) (s *GorStat) {
 	s.count = 0
 
 	if Settings.stats {
-		log.Println(s.statName + ":latest,mean,max,count")
+		log.Println(s.statName + ":latest,mean,max,count,count/second")
 		go s.reportStats()
 	}
 	return
@@ -54,7 +54,7 @@ func (s *GorStat) Reset() {
 }
 
 func (s *GorStat) String() string {
-	return s.statName + ":" + strconv.Itoa(s.latest) + "," + strconv.Itoa(s.mean) + "," + strconv.Itoa(s.max) + "," + strconv.Itoa(s.count)
+	return s.statName + ":" + strconv.Itoa(s.latest) + "," + strconv.Itoa(s.mean) + "," + strconv.Itoa(s.max) + "," + strconv.Itoa(s.count) + "," + strconv.Itoa(s.count / rate)
 }
 
 func (s *GorStat) reportStats() {
