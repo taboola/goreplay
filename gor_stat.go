@@ -1,9 +1,9 @@
 package main
 
 import (
-	"strconv"
 	"time"
 	"log"
+	"strconv"
 )
 
 const (
@@ -19,8 +19,8 @@ type GorStat struct {
 	currentTime int64
 }
 
-func NewGorStat(statName string) (s *GorStat) {
-	s = new(GorStat)
+func NewGorStat(statName string) GorStat {
+	s := new(GorStat)
 	s.statName = statName
 	s.latest = 0
 	s.min = 0
@@ -29,7 +29,7 @@ func NewGorStat(statName string) (s *GorStat) {
 	if Settings.stats {
 		go s.reportStats()
 	}
-	return
+	return s
 }
 
 func (s *GorStat) Write(latest int) {
@@ -45,7 +45,7 @@ func (s *GorStat) Write(latest int) {
 }
 
 func (s *GorStat) String() string {
-	return s.statName + ":" + Itoa(s.latest) + "," + Itoa(s.min) + "," + Itoa(s.max)
+	return s.statName + ":" + strconv.Itoa(s.latest) + "," + strconv.Itoa(s.min) + "," + strconv.Itoa(s.max)
 }
 
 func (s *GorStat) reportStats() {

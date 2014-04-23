@@ -13,6 +13,7 @@ const (
 
 type AppSettings struct {
 	verbose bool
+	stats bool
 
 	splitOutput bool
 
