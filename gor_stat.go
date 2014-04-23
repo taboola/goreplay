@@ -19,7 +19,7 @@ type GorStat struct {
 	currentTime int64
 }
 
-func NewGorStat(statName string) GorStat {
+func NewGorStat(statName string) (s *GorStat) {
 	s := new(GorStat)
 	s.statName = statName
 	s.latest = 0
@@ -29,7 +29,7 @@ func NewGorStat(statName string) GorStat {
 	if Settings.stats {
 		go s.reportStats()
 	}
-	return s
+	return
 }
 
 func (s *GorStat) Write(latest int) {
