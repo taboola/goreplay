@@ -49,7 +49,7 @@ func (s *GorStat) String() string {
 func (s *GorStat) reportStats() {
 	for {
 			log.Println(s)
-			time.Sleep(rate * time.Second.Nanoseconds())
+			time.Sleep(rate * time.Second)
 	}
 }
 
