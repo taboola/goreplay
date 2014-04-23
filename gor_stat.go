@@ -44,6 +44,12 @@ func (s *GorStat) Write(latest int) {
 	}
 }
 
+func (s *GorStat) Reset() {
+	s.latest = 0
+	s.max = 0
+	s.mean = 0
+}
+
 func (s *GorStat) String() string {
 	return s.statName + ":" + strconv.Itoa(s.latest) + "," + strconv.Itoa(s.mean) + "," + strconv.Itoa(s.max)
 }
@@ -51,6 +57,7 @@ func (s *GorStat) String() string {
 func (s *GorStat) reportStats() {
 	for {
 			log.Println(s)
+			s.Reset()
 			time.Sleep(rate * time.Second)
 	}
 }
