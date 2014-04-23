@@ -76,7 +76,7 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, ela
 		o.limit, _ = strconv.Atoi(optionsArr[1])
 	}
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		go o.worker(i)
 	}
 
