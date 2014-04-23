@@ -47,7 +47,7 @@ type HTTPOutput struct {
 
 	elasticSearch *es.ESPlugin
 
-	bufStats GorStat
+	bufStats *GorStat
 }
 
 func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, elasticSearchAddr string) io.Writer {

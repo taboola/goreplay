@@ -20,7 +20,7 @@ type GorStat struct {
 }
 
 func NewGorStat(statName string) (s *GorStat) {
-	s := new(GorStat)
+	s = new(GorStat)
 	s.statName = statName
 	s.latest = 0
 	s.min = 0
