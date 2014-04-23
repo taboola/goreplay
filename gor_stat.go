@@ -25,6 +25,7 @@ func NewGorStat(statName string) (s *GorStat) {
 	s.max = 0
 
 	if Settings.stats {
+		return s.statName + ":latest,mean,max"
 		go s.reportStats()
 	}
 	return
@@ -32,6 +33,7 @@ func NewGorStat(statName string) (s *GorStat) {
 
 func (s *GorStat) Write(latest int) {
 	if Settings.stats {
+		log.Println(s)
 		if latest > s.max {
 			s.max = latest
 		}
