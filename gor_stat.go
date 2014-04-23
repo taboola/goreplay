@@ -33,7 +33,6 @@ func NewGorStat(statName string) (s *GorStat) {
 
 func (s *GorStat) Write(latest int) {
 	if Settings.stats {
-		log.Println(s)
 		if latest > s.max {
 			s.max = latest
 		}
