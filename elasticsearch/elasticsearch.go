@@ -147,7 +147,7 @@ func (p *ESPlugin) ResponseAnalyze(req *http.Request, resp *http.Response, start
 	if err != nil {
 		log.Println(err)
 	} else {
-		p.indexor.Index(p.Index, "RequestResponse", "", "", &t, j)
+		p.indexor.Index(p.Index, "RequestResponse", "", "", &t, j, true)
 	}
 	return
 }
