@@ -26,7 +26,7 @@ func (h *HTTPHeaderFilters) Set(value string) error {
 	}
 	r, err := regexp.Compile(valArr[1])
 	if err != nil {
-		return errors.New("could not compile regexp.")
+		return err
 	}
 
 	*h = append(*h, headerFilter{name: valArr[0], regexp: r})

@@ -23,7 +23,7 @@ func (h *HTTPHeaderHashFilters) String() string {
 func (h *HTTPHeaderHashFilters) Set(value string) error {
 	valArr := strings.SplitN(value, ":", 2)
 	if len(valArr) < 2 {
-		return errors.New("need both header and value, colon-delimited (ex. user_id:^169$).")
+		return errors.New("need both header and value, colon-delimited (ex. user_id:1/2).")
 	}
 
 	fracArr := strings.Split(valArr[1], "/")
