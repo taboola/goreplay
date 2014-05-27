@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 	"errors"
-	"log"
 )
 
 type headerFilter struct {
@@ -37,9 +36,7 @@ func (h *HTTPHeaderFilters) Set(value string) error {
 
 func (h *HTTPHeaderFilters) Good(req *http.Request) bool {
 	for _, f := range *h {
-		log.Print("Header: ", f.name, req.Header.Get(f.name))
 		if !f.regexp.Match([]byte(req.Header.Get(f.name))) {
-			log.Println("Failing request on header regex")
 			return false
 		}
 	} 

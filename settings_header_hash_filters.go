@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"log"
 	"strings"
 	"net/http"
 	"hash/fnv"
@@ -57,13 +56,11 @@ func (h *HTTPHeaderHashFilters) Set(value string) error {
 func (h *HTTPHeaderHashFilters) Good(req *http.Request) bool {
 	for _, f := range *h {
 		if req.Header.Get(f.name) == "" {
-			log.Println("Failing request on incomplete header")
 			return false
 		}
 		hasher := fnv.New32a()
 		hasher.Write([]byte(req.Header.Get(f.name)))
 		if hasher.Sum32() > f.maxHash {
-			log.Println("Failing request on hash > maxHash: ", hasher.Sum32(), f.maxHash)
 			return false
 		}
 	}
