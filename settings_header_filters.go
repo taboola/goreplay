@@ -36,7 +36,7 @@ func (h *HTTPHeaderFilters) Set(value string) error {
 
 func (h *HTTPHeaderFilters) Good(req *http.Request) bool {
 	for _, f := range *h {
-		if !f.regexp.Match([]byte(req.Header.Get(f.name))) {
+		if !f.regexp.MatchString(req.Header.Get(f.name)) {
 			return false
 		}
 	}
