@@ -1,8 +1,8 @@
 package main
 
 import (
-	"regexp"
 	"net/http"
+	"regexp"
 )
 
 type HTTPUrlRegexp struct {

@@ -3,10 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"hash/fnv"
+	"net/http"
 	"strconv"
 	"strings"
-	"net/http"
-	"hash/fnv"
 )
 
 type headerHashFilter struct {
@@ -21,12 +21,12 @@ func (h *HTTPHeaderHashFilters) String() string {
 }
 
 func (h *HTTPHeaderHashFilters) Set(value string) error {
-	valArr := strings.SplitN(value,":", 2)
+	valArr := strings.SplitN(value, ":", 2)
 	if len(valArr) < 2 {
 		return errors.New("need both header and value, colon-delimited (ex. user_id:^169$).")
 	}
 
-	fracArr := strings.Split(valArr[1],"/")
+	fracArr := strings.Split(valArr[1], "/")
 	if len(fracArr) < 2 {
 		return errors.New("need both a numerator and denominator specified, slash-delimited (ex. user_id:1/4).")
 	}
@@ -40,7 +40,7 @@ func (h *HTTPHeaderHashFilters) Set(value string) error {
 	}
 
 	for test := den; test != 1; test /= 2 {
-		if test % 2 == 1 {
+		if test%2 == 1 {
 			return errors.New("must have a denominator which is a power of two.")
 		}
 	}

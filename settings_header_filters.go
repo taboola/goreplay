@@ -1,11 +1,11 @@
 package main
 
 import (
-	"regexp"
-	"net/http"
-	"fmt"
-	"strings"
 	"errors"
+	"fmt"
+	"net/http"
+	"regexp"
+	"strings"
 )
 
 type headerFilter struct {
@@ -39,6 +39,6 @@ func (h *HTTPHeaderFilters) Good(req *http.Request) bool {
 		if !f.regexp.Match([]byte(req.Header.Get(f.name))) {
 			return false
 		}
-	} 
+	}
 	return true
 }
