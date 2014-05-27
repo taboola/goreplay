@@ -13,7 +13,7 @@ const (
 
 type AppSettings struct {
 	verbose bool
-	stats bool
+	stats   bool
 
 	splitOutput bool
 
@@ -31,7 +31,7 @@ type AppSettings struct {
 	outputHTTP                  MultiOption
 	outputHTTPHeaders           HTTPHeaders
 	outputHTTPMethods           HTTPMethods
-	outputHTTPUrlRegexp	        HTTPUrlRegexp
+	outputHTTPUrlRegexp         HTTPUrlRegexp
 	outputHTTPHeaderFilters     HTTPHeaderFilters
 	outputHTTPHeaderHashFilters HTTPHeaderHashFilters
 	outputHTTPElasticSearch     string
