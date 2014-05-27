@@ -36,7 +36,7 @@ func (h *HTTPHeaderHashFilters) Set(value string) error {
 	den, _ = strconv.ParseUint(fracArr[1], 10, 64)
 
 	if num < 1 || den < 1 || num > den {
-		panic("need positive numerators and denominators, with the former greater than the latter.")
+		panic("need positive numerators and denominators, with the former less than the latter.")
 	}
 
 	for test := den; test != 1; test /= 2 {
