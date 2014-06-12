@@ -57,14 +57,20 @@ gor --input-raw :80 --output-tcp "replay.local:28020|10"
 
 #### Match on regexp of url
 ```
-# only forward requests being set to the api... domains
+# only forward requests being sent to the api... domains
 gor --input-raw :8080 --output-http staging.com --output-http-url-regexp ^www.
+```
+
+#### Filter based on regexp of header
+```
+# only forward requests with an api version of 1.0x
+gor --input-raw :8080 --output-http staging.com --output-http-header-filter api-version:^1\.0\d
 ```
 
 #### Filter based on hash of header
 ```
-#send 1/32 of all users consistently to mirror
-gor --input-raw :8080 --output-http staging.com --output-http-header-filter user-id:1/32
+# send 1/32 of all users consistently to staging
+gor --input-raw :8080 --output-http staging.com --output-http-header-hash-filter user-id:1/32
 ```
 
 ### Forward to multiple addresses
