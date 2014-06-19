@@ -13,7 +13,7 @@ const (
 
 type AppSettings struct {
 	verbose bool
-	stats bool
+	stats   bool
 
 	splitOutput bool
 
@@ -28,10 +28,13 @@ type AppSettings struct {
 
 	inputRAW MultiOption
 
-	outputHTTP              MultiOption
-	outputHTTPHeaders       HTTPHeaders
-	outputHTTPMethods       HTTPMethods
-	outputHTTPElasticSearch string
+	outputHTTP                  MultiOption
+	outputHTTPHeaders           HTTPHeaders
+	outputHTTPMethods           HTTPMethods
+	outputHTTPUrlRegexp         HTTPUrlRegexp
+	outputHTTPHeaderFilters     HTTPHeaderFilters
+	outputHTTPHeaderHashFilters HTTPHeaderHashFilters
+	outputHTTPElasticSearch     string
 }
 
 var Settings AppSettings = AppSettings{}
@@ -64,6 +67,10 @@ func init() {
 	flag.Var(&Settings.outputHTTP, "output-http", "Forwards incoming requests to given http address.\n\t# Redirect all incoming requests to staging.com address \n\tgor --input-raw :80 --output-http http://staging.com")
 	flag.Var(&Settings.outputHTTPHeaders, "output-http-header", "Inject additional headers to http reqest:\n\tgor --input-raw :8080 --output-http staging.com --output-http-header 'User-Agent: Gor'")
 	flag.Var(&Settings.outputHTTPMethods, "output-http-method", "Whitelist of HTTP methods to replay. Anything else will be dropped:\n\tgor --input-raw :8080 --output-http staging.com --output-http-method GET --output-http-method OPTIONS")
+	flag.Var(&Settings.outputHTTPUrlRegexp, "output-http-url-regexp", "A regexp to match requests against. Anything else will be dropped:\n\t gor --input-raw :8080 --output-http staging.com --output-http-url-regexp ^www.")
+	flag.Var(&Settings.outputHTTPHeaderFilters, "output-http-header-filter", "A regexp to match a specific header against. Requests with non-matching headers will be dropped:\n\t gor --input-raw :8080 --output-http staging.com --output-http-header-filter api-version:^v1")
+	flag.Var(&Settings.outputHTTPHeaderHashFilters, "output-http-header-hash-filter", "Takes a fraction of requests, consistently taking or rejecting a request based on the FNV32-1A hash of a specific header. The fraction must have a denominator that is a power of two:\n\t gor --input-raw :8080 --output-http staging.com --output-http-header-hash-filter user-id:1/4")
+
 	flag.StringVar(&Settings.outputHTTPElasticSearch, "output-http-elasticsearch", "", "Send request and response stats to ElasticSearch:\n\tgor --input-raw :8080 --output-http staging.com --output-http-elasticsearch 'es_host:api_port/index_name'")
 }
 

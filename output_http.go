@@ -40,7 +40,12 @@ func ParseRequest(data []byte) (request *http.Request, err error) {
 type HTTPOutput struct {
 	address string
 	limit   int
-	buf     chan []byte
+
+	urlRegexp         HTTPUrlRegexp
+	headerFilters     HTTPHeaderFilters
+	headerHashFilters HTTPHeaderHashFilters
+
+	buf chan []byte
 
 	headers HTTPHeaders
 	methods HTTPMethods
@@ -50,7 +55,7 @@ type HTTPOutput struct {
 	bufStats *GorStat
 }
 
-func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, elasticSearchAddr string) io.Writer {
+func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, urlRegexp HTTPUrlRegexp, headerFilters HTTPHeaderFilters, headerHashFilters HTTPHeaderHashFilters, elasticSearchAddr string) io.Writer {
 	o := new(HTTPOutput)
 
 	optionsArr := strings.Split(options, "|")
@@ -63,6 +68,10 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, ela
 	o.address = address
 	o.headers = headers
 	o.methods = methods
+
+	o.urlRegexp = urlRegexp
+	o.headerFilters = headerFilters
+	o.headerHashFilters = headerHashFilters
 
 	o.buf = make(chan []byte, 100)
 	o.bufStats = NewGorStat("output_http")
@@ -117,6 +126,10 @@ func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 	}
 
 	if len(o.methods) > 0 && !o.methods.Contains(request.Method) {
+		return
+	}
+
+	if !(o.urlRegexp.Good(request) && o.headerFilters.Good(request) && o.headerHashFilters.Good(request)) {
 		return
 	}
 

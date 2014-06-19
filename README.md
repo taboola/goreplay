@@ -1,4 +1,4 @@
-[![Stories in Ready](https://badge.waffle.io/buger/gor.png?label=ready)](https://waffle.io/buger/gor)  
+[![Stories in Ready](https://badge.waffle.io/buger/gor.png?label=ready)](https://waffle.io/buger/gor)
 [![Build Status](https://travis-ci.org/buger/gor.png?branch=master)](https://travis-ci.org/buger/gor)
 
 ## About
@@ -53,6 +53,24 @@ gor --input-tcp :28020 --output-http "http://staging.com|10"
 # replay server will not get more than 10 requests per second
 # useful for high-load environments
 gor --input-raw :80 --output-tcp "replay.local:28020|10"
+```
+
+#### Match on regexp of url
+```
+# only forward requests being sent to the api... domains
+gor --input-raw :8080 --output-http staging.com --output-http-url-regexp ^www.
+```
+
+#### Filter based on regexp of header
+```
+# only forward requests with an api version of 1.0x
+gor --input-raw :8080 --output-http staging.com --output-http-header-filter api-version:^1\.0\d
+```
+
+#### Filter based on hash of header
+```
+# send 1/32 of all users consistently to staging
+gor --input-raw :8080 --output-http staging.com --output-http-header-hash-filter user-id:1/32
 ```
 
 ### Forward to multiple addresses
@@ -162,6 +180,15 @@ https://github.com/buger/gor/releases
 
   -output-http-header=[]: Inject additional headers to http reqest:
     gor --input-raw :8080 --output-http staging.com --output-http-header 'User-Agent: Gor'
+
+  -output-http-header-filter=[]: A regexp to match a specific header against. Requests with non-matching headers will be dropped:
+    gor --input-raw :8080 --output-http staging.com --output-http-header-filter api-version:^v1
+
+  -output-http-header-hash-filter=[]: Takes a fraction of requests, consistently taking or rejecting a request based on the FNV32-1A hash of a specific header. The fraction must have a denominator that is a power of two:
+    gor --input-raw :8080 --output-http staging.com --output-http-header-hash-filter user-id:1/4
+
+  -output-http-url-regexp=: A regexp to match requests against. Anything else will be dropped:
+    gor --input-raw :8080 --output-http staging.com --output-http-url-regexp ^www.
     
   -output-tcp=[]: Used for internal communication between Gor instances. Example: 
     # Listen for requests on 80 port and forward them to other Gor instance on 28020 port
