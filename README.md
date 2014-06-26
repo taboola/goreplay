@@ -201,7 +201,7 @@ https://github.com/buger/gor/releases
 1. Setup standard Go environment http://golang.org/doc/code.html and ensure that $GOPATH environment variable properly set.
 2. `go get github.com/buger/gor`.
 3. `cd $GOPATH/src/github.com/buger/gor`
-4. `go build ./bin/gor.go` to get binary, or `go run ./bin/gor.go` to build and run (useful for development)
+4. `go build ./gor.go` to get binary, or `go run ./gor.go` to build and run (useful for development)
 
 ## FAQ
 
