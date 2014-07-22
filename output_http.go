@@ -3,14 +3,12 @@ package main
 import (
 	"bufio"
 	"bytes"
-	es "github.com/buger/gor/elasticsearch"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type RedirectNotAllowed struct{}
@@ -50,12 +48,10 @@ type HTTPOutput struct {
 	headers HTTPHeaders
 	methods HTTPMethods
 
-	elasticSearch *es.ESPlugin
-
 	bufStats *GorStat
 }
 
-func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, urlRegexp HTTPUrlRegexp, headerFilters HTTPHeaderFilters, headerHashFilters HTTPHeaderHashFilters, elasticSearchAddr string) io.Writer {
+func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, urlRegexp HTTPUrlRegexp, headerFilters HTTPHeaderFilters, headerHashFilters HTTPHeaderHashFilters) io.Writer {
 	o := new(HTTPOutput)
 
 	optionsArr := strings.Split(options, "|")
@@ -75,11 +71,6 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 
 	o.buf = make(chan []byte, 100)
 	o.bufStats = NewGorStat("output_http")
-
-	if elasticSearchAddr != "" {
-		o.elasticSearch = new(es.ESPlugin)
-		o.elasticSearch.Init(elasticSearchAddr)
-	}
 
 	if len(optionsArr) > 1 {
 		o.limit, _ = strconv.Atoi(optionsArr[1])
@@ -143,9 +134,7 @@ func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 		request.Header.Set(header.Name, header.Value)
 	}
 
-	start := time.Now()
 	resp, err := client.Do(request)
-	stop := time.Now()
 
 	// We should not count Redirect as errors
 	if urlErr, ok := err.(*url.Error); ok {
@@ -160,9 +149,6 @@ func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 		log.Println("Request error:", err)
 	}
 
-	if o.elasticSearch != nil {
-		o.elasticSearch.ResponseAnalyze(request, resp, start, stop)
-	}
 }
 
 func (o *HTTPOutput) String() string {

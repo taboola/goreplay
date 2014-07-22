@@ -130,15 +130,6 @@ gor --input-raw :80 --output-http "http://user:pass@staging .com"
 
 Note: This will overwrite any Authorization headers in the original request.
 
-## Stats 
-### ElasticSearch 
-For deep response analyze based on url, cookie, user-agent and etc. you can export response metadata to ElasticSearch. See [ELASTICSEARCH.md](ELASTICSEARCH.md) for more details.
-
-```
-gor --input-tcp :80 --output-http "http://staging.com" --output-http-elasticsearch "es_host:api_port/index_name"
-```
-
-
 ## Additional help
 
 Feel free to ask question directly by email or by creating github issue.
@@ -174,9 +165,6 @@ https://github.com/buger/gor/releases
   -output-http=[]: Forwards incoming requests to given http address.
     # Redirect all incoming requests to staging.com address 
     gor --input-raw :80 --output-http http://staging.com
-
-  -output-http-elasticsearch="": Send request and response stats to ElasticSearch:
-    gor --input-raw :8080 --output-http staging.com --output-http-elasticsearch 'es_host:api_port/index_name'
 
   -output-http-header=[]: Inject additional headers to http reqest:
     gor --input-raw :8080 --output-http staging.com --output-http-header 'User-Agent: Gor'
