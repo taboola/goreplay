@@ -105,7 +105,7 @@ Additional headers can be injected/overwritten into requests during replay. This
 
 ```
 gor --input-raw :80 --output-http "http://staging.server" \
-    --output-http-header "User-Agent: Replayed by Gor" -header " \
+    --output-http-header "User-Agent: Replayed by Gor" \
     --output-http-header "Enable-Feature-X: true"
 ```
 
