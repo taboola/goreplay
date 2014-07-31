@@ -131,7 +131,14 @@ func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 	request.URL, _ = url.ParseRequestURI(URL)
 
 	for _, header := range o.headers {
-		request.Header.Set(header.Name, header.Value)
+		// Need to check here for the Host header as it needs to be set on the request and not as a separate header
+		// http.ReadRequest sets it by default to the URL Host of the request being read
+		if header.Name == "Host" {
+			request.Host = header.Value
+		} else {
+			request.Header.Set(header.Name, header.Value)
+		}
+
 	}
 
 	resp, err := client.Do(request)
