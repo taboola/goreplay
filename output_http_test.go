@@ -21,6 +21,27 @@ func startHTTP(cb func(*http.Request)) net.Listener {
 	return listener
 }
 
+func TestSetHeader(t *testing.T) {
+
+	req := &http.Request{
+		Header: make(map[string][]string),
+	}
+	req.Host = "test.com"
+
+	SetHeader(req, "Host", "test2.com")
+
+	if req.Host != "test2.com" {
+		t.Error("Expected test2.com - got ", req.Host)
+	}
+
+	SetHeader(req, "test_header", "test_value")
+
+	if req.Header.Get("test_header") != "test_value" {
+		t.Error("Wrong header value found")
+	}
+
+}
+
 func TestHTTPOutput(t *testing.T) {
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
