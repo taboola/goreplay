@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type RedirectNotAllowed struct{}
@@ -38,12 +39,12 @@ func ParseRequest(data []byte) (request *http.Request, err error) {
 type HTTPOutput struct {
 	address string
 	limit   int
+	buf     chan []byte
+	need_worker chan int
 
 	urlRegexp         HTTPUrlRegexp
 	headerFilters     HTTPHeaderFilters
 	headerHashFilters HTTPHeaderHashFilters
-
-	buf chan []byte
 
 	headers HTTPHeaders
 	methods HTTPMethods
@@ -71,14 +72,13 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 
 	o.buf = make(chan []byte, 100)
 	o.bufStats = NewGorStat("output_http")
+	o.need_worker = make(chan int)
 
 	if len(optionsArr) > 1 {
 		o.limit, _ = strconv.Atoi(optionsArr[1])
 	}
 
-	for i := 0; i < 10; i++ {
-		go o.worker(i)
-	}
+	go o.worker_master(10)
 
 	if o.limit > 0 {
 		return NewLimiter(o, o.limit)
@@ -87,15 +87,40 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 	}
 }
 
-func (o *HTTPOutput) worker(n int) {
-	client := &http.Client{
-		CheckRedirect: customCheckRedirect,
+func (o *HTTPOutput) worker_master(n int) {
+	for i := 0; i < n; i++ {
+		go o.worker()
 	}
 
 	for {
-		data := <-o.buf
-		o.sendRequest(client, data)
+		new_workers := <- o.need_worker
+		for i := 0; i < new_workers; i++ {
+			go o.worker()
+		}
 	}
+}
+
+func (o *HTTPOutput) worker() {
+	client := &http.Client{
+		CheckRedirect: customCheckRedirect,
+	}
+	death_count := 0
+	Loop:
+		for {
+			select {
+				case data := <-o.buf:
+				o.sendRequest(client, data)
+				death_count = 0
+			default:
+				death_count += 1
+				if death_count > 20 {
+					break Loop
+				} else {
+					time.Sleep(time.Millisecond * 100)
+				}
+
+			}
+		}
 }
 
 func (o *HTTPOutput) Write(data []byte) (n int, err error) {
@@ -103,8 +128,13 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 	copy(buf, data)
 
 	o.buf <- buf
+	buf_len := len(o.buf)
 	o.bufStats.Write(len(o.buf))
-
+	if buf_len > 20 {
+		if len(o.need_worker) == 0 {
+			o.need_worker <- buf_len
+		}
+	}
 	return len(data), nil
 }
 

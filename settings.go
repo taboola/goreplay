@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	VERSION = "0.8"
+	VERSION = "0.8.4.1"
 )
 
 type AppSettings struct {
