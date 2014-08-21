@@ -237,7 +237,7 @@ To achieve the top most performance you should tune the source server system lim
 
 ## Companies using Gor
 
-* http://granify.com
+* [Granify](http://granify.com)
 * [GOV.UK](https://www.gov.uk) ([Government Digital Service](http://digital.cabinetoffice.gov.uk/))
 * [theguardian.com](http://theguardian.com)
 * [TomTom](http://www.tomtom.com/)
