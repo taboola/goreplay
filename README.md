@@ -192,9 +192,10 @@ https://github.com/buger/gor/releases
 
 ## Development
 Project contains Docker environment
-1) Build container: `make dbuild`
-2) Run tests: `make dtest`
-3) Bash access to container: `make dbash`. Inside container you have python to run simple web server `python -m SimpleHTTPServer 8080` and `curl` to make http requests. 
+
+1. Build container: `make dbuild`
+2. Run tests: `make dtest`
+3. Bash access to container: `make dbash`. Inside container you have python to run simple web server `python -m SimpleHTTPServer 8080` and `curl` to make http requests. 
 
 ## FAQ
 
