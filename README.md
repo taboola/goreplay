@@ -190,6 +190,12 @@ https://github.com/buger/gor/releases
 3. `cd $GOPATH/src/github.com/buger/gor`
 4. `go build` to get binary, or `go test` to run tests
 
+## Development
+Project contains Docker environment
+1) Build container: `make dbuild`
+2) Run tests: `make dtest`
+3) Bash access to container: `make dbash`. Inside container you have python to run simple web server `python -m SimpleHTTPServer 8080` and `curl` to make http requests. 
+
 ## FAQ
 
 ### What OS are supported?
