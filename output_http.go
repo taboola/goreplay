@@ -2,8 +2,7 @@ package main
 
 import (
 	"bufio"
-	"bytes"
-	es "github.com/buger/gor/elasticsearch"
+	"bytes"	
 	"io"
 	"log"
 	"net/http"
@@ -50,7 +49,7 @@ type HTTPOutput struct {
 	headers HTTPHeaders
 	methods HTTPMethods
 
-	elasticSearch *es.ESPlugin
+	elasticSearch *ESPlugin
 
 	bufStats *GorStat
 }
@@ -77,7 +76,7 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 	o.bufStats = NewGorStat("output_http")
 
 	if elasticSearchAddr != "" {
-		o.elasticSearch = new(es.ESPlugin)
+		o.elasticSearch = new(ESPlugin)
 		o.elasticSearch.Init(elasticSearchAddr)
 	}
 

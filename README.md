@@ -197,13 +197,15 @@ https://github.com/buger/gor/releases
 ```
 
 ## Building from source
+We use `godep` for managing dependencies, you can find instructions here: https://github.com/tools/godep.  Basically it means that all `go` calls should be prefixed by `godep` command.
+
 1. Setup standard Go environment http://golang.org/doc/code.html and ensure that $GOPATH environment variable properly set.
 2. `go get github.com/buger/gor`.
 3. `cd $GOPATH/src/github.com/buger/gor`
-4. `go build` to get binary, or `go test` to run tests
+4. `godep go build` to get binary, or `go test` to run tests
 
 ## Development
-Project contains Docker environment
+Project contains Docker environment.
 
 1. Build container: `make dbuild`
 2. Run tests: `make dtest`

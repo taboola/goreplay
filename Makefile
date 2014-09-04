@@ -16,10 +16,10 @@ dbuild:
 	docker build -t gor .
 
 dtest:
-	docker run -t -i gor go test -v
+	docker run -v `pwd`:/gopath/src/gor -t -i gor godep go test -v
 
-run:
-	docker run -t -i gor go run $(SOURCE) --input-dummy=0 --output-dummy=0 --verbose
+drun:
+	docker run -v `pwd`:/gopath/src/gor -t -i gor godep go run $(SOURCE) --input-dummy=0 --output-dummy=0 --verbose
 
 dbash: 
-	docker run -t -i gor /bin/bash
+	docker run -v `pwd`:/gopath/src/gor -t -i gor /bin/bash
