@@ -182,6 +182,8 @@ https://github.com/buger/gor/releases
     gor --input-raw :80 --output-tcp replay.local:28020
     
   -split-output=false: By default each output gets same traffic. If set to `true` it splits traffic equally among all outputs.
+  
+  -stats=false: If set to `true` it gives out queuing stats for the HTTP output and TCP listener every 5 seconds in the form latest,mean,max,count,count/second.
 ```
 
 ## Building from source
