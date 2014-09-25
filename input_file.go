@@ -58,8 +58,8 @@ func (i *FileInput) emit() {
 
 		if lastTime != 0 {
 			time.Sleep(time.Duration(raw.Timestamp - lastTime))
-			lastTime = raw.Timestamp
 		}
+		lastTime = raw.Timestamp
 
 		i.data <- raw.Request
 	}
