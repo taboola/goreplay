@@ -39,9 +39,10 @@ type HTTPOutput struct {
 	address string
 	limit   int
 
-	urlRegexp         HTTPUrlRegexp
-	headerFilters     HTTPHeaderFilters
-	headerHashFilters HTTPHeaderHashFilters
+	urlRegexp             HTTPUrlRegexp
+	headerFilters         HTTPHeaderFilters
+	headerHashFilters     HTTPHeaderHashFilters
+        outputHTTPUrlRewrite  UrlRewriteMap
 
 	buf chan []byte
 
@@ -51,7 +52,7 @@ type HTTPOutput struct {
 	bufStats *GorStat
 }
 
-func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, urlRegexp HTTPUrlRegexp, headerFilters HTTPHeaderFilters, headerHashFilters HTTPHeaderHashFilters) io.Writer {
+func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, urlRegexp HTTPUrlRegexp, headerFilters HTTPHeaderFilters, headerHashFilters HTTPHeaderHashFilters, outputHTTPUrlRewrite UrlRewriteMap) io.Writer {
 	o := new(HTTPOutput)
 
 	optionsArr := strings.Split(options, "|")
@@ -68,6 +69,7 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 	o.urlRegexp = urlRegexp
 	o.headerFilters = headerFilters
 	o.headerHashFilters = headerHashFilters
+	o.outputHTTPUrlRewrite = outputHTTPUrlRewrite
 
 	o.buf = make(chan []byte, 100)
 	o.bufStats = NewGorStat("output_http")
@@ -123,6 +125,9 @@ func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 	if !(o.urlRegexp.Good(request) && o.headerFilters.Good(request) && o.headerHashFilters.Good(request)) {
 		return
 	}
+
+        // Rewrite the path as necessary
+        request.URL.Path = o.outputHTTPUrlRewrite.Rewrite(request.URL.Path)
 
 	// Change HOST of original request
 	URL := o.address + request.URL.Path + "?" + request.URL.RawQuery

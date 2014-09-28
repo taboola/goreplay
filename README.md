@@ -129,6 +129,12 @@ gor --input-raw :80 --output-http "http://user:pass@staging .com"
 
 Note: This will overwrite any Authorization headers in the original request.
 
+#### Rewrite the target urls based on a mapping
+```
+# rewrite url to match the following
+gor --input-raw :8080 --output-http staging.com --output-http-rewrite-url /xml_test/interface.php:/api/service.do
+```
+
 ## Additional help
 
 Feel free to ask question directly by email or by creating github issue.
@@ -182,6 +188,9 @@ https://github.com/buger/gor/releases
     gor --input-raw :80 --output-tcp replay.local:28020
     
   -split-output=false: By default each output gets same traffic. If set to `true` it splits traffic equally among all outputs.
+
+  -output-http-rewrite-url=[]: Rewrites the url in the request based on a mapping
+    gor --input-raw :8080 --output-http staging.com --output-http-rewrite-url /xml_test/interface.php:/api/service.do
 ```
 
 ## Building from source

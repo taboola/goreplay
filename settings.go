@@ -32,6 +32,7 @@ type AppSettings struct {
 	outputHTTPHeaders           HTTPHeaders
 	outputHTTPMethods           HTTPMethods
 	outputHTTPUrlRegexp         HTTPUrlRegexp
+	outputHTTPUrlRewrite        UrlRewriteMap
 	outputHTTPHeaderFilters     HTTPHeaderFilters
 	outputHTTPHeaderHashFilters HTTPHeaderHashFilters
 	outputHTTPElasticSearch     string
@@ -72,6 +73,7 @@ func init() {
 	flag.Var(&Settings.outputHTTPHeaderHashFilters, "output-http-header-hash-filter", "Takes a fraction of requests, consistently taking or rejecting a request based on the FNV32-1A hash of a specific header. The fraction must have a denominator that is a power of two:\n\t gor --input-raw :8080 --output-http staging.com --output-http-header-hash-filter user-id:1/4")
 
 	flag.StringVar(&Settings.outputHTTPElasticSearch, "output-http-elasticsearch", "", "Send request and response stats to ElasticSearch:\n\tgor --input-raw :8080 --output-http staging.com --output-http-elasticsearch 'es_host:api_port/index_name'")
+	flag.Var(&Settings.outputHTTPUrlRewrite, "output-http-rewrite-url", "Rewrite the requst url based on a mapping:\n\tgor --input-raw :8080 --output-http staging.com --output-http-rewrite-url /xml_test/interface.php:/api/service.do")
 }
 
 func Debug(args ...interface{}) {
