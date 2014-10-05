@@ -40,7 +40,7 @@ type HTTPOutput struct {
 	address string
 	limit   int
 	buf     chan []byte
-	need_worker chan int
+	needWorker chan int
 
 	urlRegexp         HTTPUrlRegexp
 	headerFilters     HTTPHeaderFilters
@@ -71,14 +71,18 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 	o.headerHashFilters = headerHashFilters
 
 	o.buf = make(chan []byte, 100)
-	o.bufStats = NewGorStat("output_http")
-	o.need_worker = make(chan int)
+	if Settings.outputHTTPStats {
+		o.bufStats = NewGorStat("output_http")
+	}
+	if Settings.outputHTTPWorkers == -1 {
+		o.needWorker = make(chan int)
+	}
 
 	if len(optionsArr) > 1 {
 		o.limit, _ = strconv.Atoi(optionsArr[1])
 	}
 
-	go o.worker_master(10)
+	go o.WorkerMaster(Settings.outputHTTPWorkers)
 
 	if o.limit > 0 {
 		return NewLimiter(o, o.limit)
@@ -87,20 +91,22 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 	}
 }
 
-func (o *HTTPOutput) worker_master(n int) {
+func (o *HTTPOutput) WorkerMaster(n int) {
 	for i := 0; i < n; i++ {
-		go o.worker()
+		go o.Worker()
 	}
 
-	for {
-		new_workers := <- o.need_worker
-		for i := 0; i < new_workers; i++ {
-			go o.worker()
+	if Settings.outputHTTPWorkers == -1 {
+		for {
+			new_workers := <-o.needWorker
+			for i := 0; i < new_workers; i++ {
+				go o.Worker()
+			}
 		}
 	}
 }
 
-func (o *HTTPOutput) worker() {
+func (o *HTTPOutput) Worker() {
 	client := &http.Client{
 		CheckRedirect: customCheckRedirect,
 	}
@@ -112,7 +118,9 @@ func (o *HTTPOutput) worker() {
 				o.sendRequest(client, data)
 				death_count = 0
 			default:
-				death_count += 1
+				if Settings.outputHTTPWorkers == -1 {
+					death_count += 1
+				}
 				if death_count > 20 {
 					break Loop
 				} else {
@@ -129,10 +137,15 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 
 	o.buf <- buf
 	buf_len := len(o.buf)
-	o.bufStats.Write(len(o.buf))
-	if buf_len > 20 {
-		if len(o.need_worker) == 0 {
-			o.need_worker <- buf_len
+	if Settings.outputHTTPStats {
+		o.bufStats.Write(len(o.buf))
+	}
+
+	if Settings.outputHTTPWorkers == -1 {
+		if buf_len > 10 {
+			if len(o.needWorker) == 0 {
+				o.needWorker <- buf_len
+			}
 		}
 	}
 	return len(data), nil

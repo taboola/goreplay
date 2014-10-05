@@ -22,6 +22,7 @@ type AppSettings struct {
 
 	inputTCP  MultiOption
 	outputTCP MultiOption
+	outputTCPStats bool
 
 	inputFile  MultiOption
 	outputFile MultiOption
@@ -35,6 +36,8 @@ type AppSettings struct {
 	outputHTTPHeaderFilters     HTTPHeaderFilters
 	outputHTTPHeaderHashFilters HTTPHeaderHashFilters
 	outputHTTPElasticSearch     string
+	outputHTTPWorkers           int
+	outputHTTPStats             bool
 }
 
 var Settings AppSettings = AppSettings{}
@@ -58,6 +61,7 @@ func init() {
 
 	flag.Var(&Settings.inputTCP, "input-tcp", "Used for internal communication between Gor instances. Example: \n\t# Receive requests from other Gor instances on 28020 port, and redirect output to staging\n\tgor --input-tcp :28020 --output-http staging.com")
 	flag.Var(&Settings.outputTCP, "output-tcp", "Used for internal communication between Gor instances. Example: \n\t# Listen for requests on 80 port and forward them to other Gor instance on 28020 port\n\tgor --input-raw :80 --output-tcp replay.local:28020")
+	flag.BoolVar(&Settings.outputTCPStats, "output-tcp-stats", false, "Report TCP output queue stats to console every 5 seconds.")
 
 	flag.Var(&Settings.inputFile, "input-file", "Read requests from file: \n\tgor --input-file ./requests.gor --output-http staging.com")
 	flag.Var(&Settings.outputFile, "output-file", "Write incoming requests to file: \n\tgor --input-raw :80 --output-file ./requests.gor")
@@ -70,6 +74,8 @@ func init() {
 	flag.Var(&Settings.outputHTTPUrlRegexp, "output-http-url-regexp", "A regexp to match requests against. Anything else will be dropped:\n\t gor --input-raw :8080 --output-http staging.com --output-http-url-regexp ^www.")
 	flag.Var(&Settings.outputHTTPHeaderFilters, "output-http-header-filter", "A regexp to match a specific header against. Requests with non-matching headers will be dropped:\n\t gor --input-raw :8080 --output-http staging.com --output-http-header-filter api-version:^v1")
 	flag.Var(&Settings.outputHTTPHeaderHashFilters, "output-http-header-hash-filter", "Takes a fraction of requests, consistently taking or rejecting a request based on the FNV32-1A hash of a specific header. The fraction must have a denominator that is a power of two:\n\t gor --input-raw :8080 --output-http staging.com --output-http-header-hash-filter user-id:1/4")
+	flag.IntVar(&Settings.outputHTTPWorkers, "output-http-workers", 10, "Gor runs 10 workers by default.  Enter -1 to enable dynamic worker scaling.")
+	flag.BoolVar(&Settings.outputHTTPStats, "output-http-stats", false, "Report http output queue stats to console every 5 seconds.")
 
 	flag.StringVar(&Settings.outputHTTPElasticSearch, "output-http-elasticsearch", "", "Send request and response stats to ElasticSearch:\n\tgor --input-raw :8080 --output-http staging.com --output-http-elasticsearch 'es_host:api_port/index_name'")
 }

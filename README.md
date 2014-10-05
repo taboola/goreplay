@@ -177,13 +177,17 @@ https://github.com/buger/gor/releases
   -output-http-url-regexp=: A regexp to match requests against. Anything else will be dropped:
     gor --input-raw :8080 --output-http staging.com --output-http-url-regexp ^www.
     
+  -output-http-workers=10: Number of http output workers desired. Enter -1 for dynamic worker scaling.  Gor will add http workers if its work queue starts getting too full and kill them .
+    
+  -output-http-stats=false: If set to `true` it gives out queuing stats for the HTTP output every 5 seconds in the form latest,mean,max,count,count/second.
+    
   -output-tcp=[]: Used for internal communication between Gor instances. Example: 
     # Listen for requests on 80 port and forward them to other Gor instance on 28020 port
     gor --input-raw :80 --output-tcp replay.local:28020
     
+  -output-tcp-stats=false: If set to `true` it gives out queuing stats for the TCP output every 5 seconds in the form latest,mean,max,count,count/second.
+    
   -split-output=false: By default each output gets same traffic. If set to `true` it splits traffic equally among all outputs.
-  
-  -stats=false: If set to `true` it gives out queuing stats for the HTTP output and TCP listener every 5 seconds in the form latest,mean,max,count,count/second.
 ```
 
 ## Building from source
@@ -214,6 +218,74 @@ Typical linux shell has a small open files soft limit at 1024. You can easily ra
   ulimit -n 64000
 
 More about ulimit: http://blog.thecodingmachine.com/content/solving-too-many-open-files-exception-red5-or-any-other-application
+
+### What do the stats commands do?
+Gor can report stats on the output-tcp and output-http request queues. Stats are reported to the console every 5 seconds in the form `latest,mean,max,count,count/second` by using the `-output-http-stats` and `-output-tcp-stats` options.
+
+Examples:
+
+```
+2014/04/23 21:17:50 output_tcp:latest,mean,max,count,count/second
+2014/04/23 21:17:50 output_tcp:0,0,0,0,0
+2014/04/23 21:17:55 output_tcp:1,1,2,68,13
+2014/04/23 21:18:00 output_tcp:1,1,2,92,18
+2014/04/23 21:18:05 output_tcp:1,1,2,119,23
+2014/04/23 21:18:10 output_tcp:1,0,1,95,19
+2014/04/23 21:18:15 output_tcp:1,1,2,92,18
+2014/04/23 21:18:20 output_tcp:1,1,2,108,21
+2014/04/23 21:18:25 output_tcp:1,1,2,117,23
+2014/04/23 21:18:30 output_tcp:1,1,2,113,22
+2014/04/23 21:18:35 output_tcp:21,20,21,132,26
+2014/04/23 21:18:40 output_tcp:100,99,100,99,19
+```
+
+```
+Version: 0.8
+2014/04/23 21:19:46 output_http:latest,mean,max,count,count/second
+2014/04/23 21:19:46 output_http:0,0,0,0,0
+2014/04/23 21:19:51 output_http:0,0,0,0,0
+2014/04/23 21:19:56 output_http:0,0,0,0,0
+2014/04/23 21:20:01 output_http:1,0,1,50,10
+2014/04/23 21:20:06 output_http:1,1,4,72,14
+2014/04/23 21:20:11 output_http:1,0,1,179,35
+2014/04/23 21:20:16 output_http:1,0,1,148,29
+2014/04/23 21:20:21 output_http:1,1,2,91,18
+2014/04/23 21:20:26 output_http:1,1,2,150,30
+2014/04/23 21:18:15 output_http:100,99,100,70,14
+2014/04/23 21:18:21 output_http:100,99,100,55,11
+2014/04/23 21:18:28 output_http:100,99,100,55,11
+2014/04/23 21:18:34 output_http:100,99,100,57,11
+2014/04/23 21:18:41 output_http:100,99,100,61,12
+2014/04/23 21:18:48 output_http:100,99,100,56,11
+2014/04/23 21:18:56 output_http:100,99,100,58,11
+2014/04/23 21:19:01 output_http:100,99,100,31,6
+2014/04/23 21:19:08 output_http:100,99,100,61,12
+2014/04/23 21:19:15 output_http:100,99,100,64,12
+2014/04/23 21:19:21 output_http:100,99,100,70,14
+2014/04/23 21:19:28 output_http:100,99,100,61,12
+2014/04/23 21:19:35 output_http:100,99,100,56,11
+```
+
+### How can I tell if I have bottlenecks?
+Key areas that sometimes experience bottlenecks are the output-tcp and output-http functions which have internal queues for requests. Each queue has an upper limit of 100. Enable stats reporting to see if any queues are experiencing bottleneck behavior.
+ 
+#### output-http bottlenecks
+When running a Gor replay the output-http feature may bottleneck if:
+
+  * the replay has inadequate bandwidth. If the replay is receiving or sending more messages than its network adapter can handle the output-http-stats  may report that the output-http queue is filling up. See if there is a way to upgrade the replay's bandwidth.
+  * the `-output-http` target is unable to respond to messages in a timely manner.  By default the replay has 10 http output workers which take messages off the output-http queue, process the request, and ensure that the request did not result in an error. The optimal number of output-http-workers can be determined with the formula `output-workers = (Average number of requests per second)/(Average target response time per second)`. Gor also has the setting `--output-http-workers=-1` which enables dynamic worker scaling.
+
+#### output-tcp bottlenecks
+When using the Gor listener the output-tcp feature may bottleneck if:
+
+  * the replay is unable to accept and process more requests than the listener is able generate. Prior to troubleshooting the output-tcp bottleneck, ensure that the replay target is not experiencing any bottlenecks. 
+  * the replay target has inadequate bandwidth to handle all its incoming requests.  If a replay target's incoming bandwidth is maxed out the output-tcp-stats may report that the output-tcp queue is filling up. See if there is a way to upgrade the replay's bandwidth.
+
+### The CPU average across my load-balanced targets is higher than the source
+If you are replaying traffic from multiple listeners to a load-balanced target and you use sticky sessions, you may observe that the target servers have a higher CPU load than the listener servers. This may be because the sticky session cookie of the original load balancer is not honored by the target load balancer thus resulting in requests that would normally hit the same target server hitting different servers on the backend thus reducing some caching benefits gained via the load balancing.  Try running just one listener against one replay target and see if the CPU utilization comparison is more accurate.
+ 
+### How does dynamic http worker scaling work?
+By using the Gor setting `--output-http-workers=-1` Gor will create more http output workers when the http output queue length is greater than 10.  The number of workers created (N) is equal to the queue length at the time which it is checked and found to have a length greater than 10. The queue length is checked every time a message is written to the http output queue.  No more workers will be spawned until that request to spawn N workers is satisfied.  If a dynamic worker cannot process a message at that time, it will sleep for 100 milliseconds. If a dynamic worker cannot process a message for 2 seconds it dies.  
 
 ## Tuning
 
