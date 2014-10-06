@@ -177,7 +177,7 @@ https://github.com/buger/gor/releases
   -output-http-url-regexp=: A regexp to match requests against. Anything else will be dropped:
     gor --input-raw :8080 --output-http staging.com --output-http-url-regexp ^www.
     
-  -output-http-workers=10: Number of http output workers desired. Enter -1 for dynamic worker scaling.  Gor will add http workers if its work queue starts getting too full and kill them .
+  -output-http-workers=-1: Number of http output workers desired. Use default -1 for dynamic worker scaling.  Gor will add http workers if its work queue starts getting too full and kill them .
     
   -output-http-stats=false: If set to `true` it gives out queuing stats for the HTTP output every 5 seconds in the form latest,mean,max,count,count/second.
     
@@ -273,7 +273,7 @@ Key areas that sometimes experience bottlenecks are the output-tcp and output-ht
 When running a Gor replay the output-http feature may bottleneck if:
 
   * the replay has inadequate bandwidth. If the replay is receiving or sending more messages than its network adapter can handle the output-http-stats  may report that the output-http queue is filling up. See if there is a way to upgrade the replay's bandwidth.
-  * the `-output-http` target is unable to respond to messages in a timely manner.  By default the replay has 10 http output workers which take messages off the output-http queue, process the request, and ensure that the request did not result in an error. The optimal number of output-http-workers can be determined with the formula `output-workers = (Average number of requests per second)/(Average target response time per second)`. Gor also has the setting `--output-http-workers=-1` which enables dynamic worker scaling.
+  * with `--output-http-workers` set to anything other than `-1` the `-output-http` target is unable to respond to messages in a timely manner. The http output workers which take messages off the output-http queue, process the request, and ensure that the request did not result in an error may not be able to keep up with the number of incoming requests. If the replay is not using dynamic worker scaling (`--output-http-workers=-1`)  The optimal number of output-http-workers can be determined with the formula `output-workers = (Average number of requests per second)/(Average target response time per second)`.
 
 #### output-tcp bottlenecks
 When using the Gor listener the output-tcp feature may bottleneck if:
