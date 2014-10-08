@@ -203,6 +203,13 @@ Project contains Docker environment
 2. Run tests: `make dtest`
 3. Bash access to container: `make dbash`. Inside container you have python to run simple web server `python -m SimpleHTTPServer 8080` and `curl` to make http requests. 
 
+
+## Questions and support 
+
+All bug-reports and suggestions should go though Github Issues or our [Google Group](https://groups.google.com/forum/#!forum/gor-users). Or you can just send email to gor-users@googlegroups.com
+
+If you have some private questions you can send direct mail to leonsbox@gmail.com
+
 ## FAQ
 
 ### What OS are supported?
