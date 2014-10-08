@@ -23,7 +23,9 @@ func NewTCPOutput(options string) io.Writer {
 	o.address = optionsArr[0]
 
 	o.buf = make(chan []byte, 100)
-	o.bufStats = NewGorStat("output_tcp")
+	if Settings.outputTCPStats {
+		o.bufStats = NewGorStat("output_tcp")
+	}
 
 	if len(optionsArr) > 1 {
 		o.limit, _ = strconv.Atoi(optionsArr[1])
@@ -54,7 +56,9 @@ func (o *TCPOutput) Write(data []byte) (n int, err error) {
 	data = append(data,[]byte("¶")...)
 	copy(new_buf, data)
 	o.buf <- new_buf
-	o.bufStats.Write(len(o.buf))
+	if Settings.outputTCPStats {
+		o.bufStats.Write(len(o.buf))
+	}
 
 	return len(data), nil
 }

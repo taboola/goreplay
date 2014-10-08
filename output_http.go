@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type RedirectNotAllowed struct{}
@@ -38,12 +39,12 @@ func ParseRequest(data []byte) (request *http.Request, err error) {
 type HTTPOutput struct {
 	address string
 	limit   int
+	buf     chan []byte
+	needWorker chan int
 
 	urlRegexp         HTTPUrlRegexp
 	headerFilters     HTTPHeaderFilters
 	headerHashFilters HTTPHeaderHashFilters
-
-	buf chan []byte
 
 	headers HTTPHeaders
 	methods HTTPMethods
@@ -70,15 +71,18 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 	o.headerHashFilters = headerHashFilters
 
 	o.buf = make(chan []byte, 100)
-	o.bufStats = NewGorStat("output_http")
+	if Settings.outputHTTPStats {
+		o.bufStats = NewGorStat("output_http")
+	}
+	if Settings.outputHTTPWorkers == -1 {
+		o.needWorker = make(chan int)
+	}
 
 	if len(optionsArr) > 1 {
 		o.limit, _ = strconv.Atoi(optionsArr[1])
 	}
 
-	for i := 0; i < 10; i++ {
-		go o.worker(i)
-	}
+	go o.WorkerMaster(Settings.outputHTTPWorkers)
 
 	if o.limit > 0 {
 		return NewLimiter(o, o.limit)
@@ -87,15 +91,44 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 	}
 }
 
-func (o *HTTPOutput) worker(n int) {
+func (o *HTTPOutput) WorkerMaster(n int) {
+	for i := 0; i < n; i++ {
+		go o.Worker()
+	}
+
+	if Settings.outputHTTPWorkers == -1 {
+		for {
+			new_workers := <-o.needWorker
+			for i := 0; i < new_workers; i++ {
+				go o.Worker()
+			}
+		}
+	}
+}
+
+func (o *HTTPOutput) Worker() {
 	client := &http.Client{
 		CheckRedirect: customCheckRedirect,
 	}
+	death_count := 0
+	Loop:
+		for {
+			select {
+				case data := <-o.buf:
+				o.sendRequest(client, data)
+				death_count = 0
+			default:
+				if Settings.outputHTTPWorkers == -1 {
+					death_count += 1
+				}
+				if death_count > 20 {
+					break Loop
+				} else {
+					time.Sleep(time.Millisecond * 100)
+				}
 
-	for {
-		data := <-o.buf
-		o.sendRequest(client, data)
-	}
+			}
+		}
 }
 
 func (o *HTTPOutput) Write(data []byte) (n int, err error) {
@@ -103,8 +136,18 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 	copy(buf, data)
 
 	o.buf <- buf
-	o.bufStats.Write(len(o.buf))
+	buf_len := len(o.buf)
+	if Settings.outputHTTPStats {
+		o.bufStats.Write(len(o.buf))
+	}
 
+	if Settings.outputHTTPWorkers == -1 {
+		if buf_len > 10 {
+			if len(o.needWorker) == 0 {
+				o.needWorker <- buf_len
+			}
+		}
+	}
 	return len(data), nil
 }
 
