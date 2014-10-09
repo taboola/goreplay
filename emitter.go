@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"time"
 )
 
 func Start(stop chan int) {
@@ -9,9 +10,12 @@ func Start(stop chan int) {
 		go CopyMulty(in, Plugins.Outputs...)
 	}
 
-	select {
-	case <-stop:
-		return
+	for {
+		select {
+		case <-stop:
+			return
+		case <- time.After(1 * time.Second):
+		}
 	}
 }
 
