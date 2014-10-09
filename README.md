@@ -132,6 +132,13 @@ gor --input-raw :80 --output-http "http://user:pass@staging .com"
 
 Note: This will overwrite any Authorization headers in the original request.
 
+#### Rewrite the target urls based on a mapping
+```
+# rewrite url to match the following
+gor --input-raw :8080 --output-http staging.com --output-http-rewrite-url /xml_test/interface.php:/api/service.do
+```
+
+
 ## Stats 
 ### ElasticSearch 
 For deep response analyze based on url, cookie, user-agent and etc. you can export response metadata to ElasticSearch. See [ELASTICSEARCH.md](ELASTICSEARCH.md) for more details.
@@ -139,7 +146,6 @@ For deep response analyze based on url, cookie, user-agent and etc. you can expo
 ```
 gor --input-tcp :80 --output-http "http://staging.com" --output-http-elasticsearch "es_host:api_port/index_name"
 ```
-
 
 ## Additional help
 
@@ -203,6 +209,9 @@ https://github.com/buger/gor/releases
   -output-tcp-stats=false: If set to `true` it gives out queuing stats for the TCP output every 5 seconds in the form latest,mean,max,count,count/second.
     
   -split-output=false: By default each output gets same traffic. If set to `true` it splits traffic equally among all outputs.
+
+  -output-http-rewrite-url=[]: Rewrites the url in the request based on a mapping
+    gor --input-raw :8080 --output-http staging.com --output-http-rewrite-url /xml_test/interface.php:/api/service.do
 ```
 
 ## Building from source
