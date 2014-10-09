@@ -2,8 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/mattbaird/elastigo/api"
-	"github.com/mattbaird/elastigo/core"
+	"github.com/buger/elastigo/api"
+	"github.com/buger/elastigo/core"
 	"log"
 	"net/http"
 	"regexp"
