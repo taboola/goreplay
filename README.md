@@ -132,6 +132,15 @@ gor --input-raw :80 --output-http "http://user:pass@staging .com"
 
 Note: This will overwrite any Authorization headers in the original request.
 
+## Stats 
+### ElasticSearch 
+For deep response analyze based on url, cookie, user-agent and etc. you can export response metadata to ElasticSearch. See [ELASTICSEARCH.md](ELASTICSEARCH.md) for more details.
+
+```
+gor --input-tcp :80 --output-http "http://staging.com" --output-http-elasticsearch "es_host:api_port/index_name"
+```
+
+
 ## Additional help
 
 Feel free to ask question directly by email or by creating github issue.
@@ -168,6 +177,9 @@ https://github.com/buger/gor/releases
     # Redirect all incoming requests to staging.com address 
     gor --input-raw :80 --output-http http://staging.com
 
+  -output-http-elasticsearch="": Send request and response stats to ElasticSearch:
+    gor --input-raw :8080 --output-http staging.com --output-http-elasticsearch 'es_host:api_port/index_name'
+
   -output-http-header=[]: Inject additional headers to http reqest:
     gor --input-raw :8080 --output-http staging.com --output-http-header 'User-Agent: Gor'
 
@@ -194,13 +206,14 @@ https://github.com/buger/gor/releases
 ```
 
 ## Building from source
+
 1. Setup standard Go environment http://golang.org/doc/code.html and ensure that $GOPATH environment variable properly set.
 2. `go get github.com/buger/gor`.
 3. `cd $GOPATH/src/github.com/buger/gor`
 4. `go build` to get binary, or `go test` to run tests
 
 ## Development
-Project contains Docker environment
+Project contains Docker environment.
 
 1. Build container: `make dbuild`
 2. Run tests: `make dtest`
