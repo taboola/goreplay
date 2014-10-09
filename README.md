@@ -39,7 +39,10 @@ sudo gor --input-raw :80 --output-http "http://staging.com"
 ### Rate limiting
 Both replay and listener support rate limiting. It can be useful if you want
 forward only part of production traffic and not overload your staging
-environment. You can specify your desired requests per second using the
+environment. 
+Current throttling works like this: If for current second it reached specified requests limit - disregard the rest, on next second counter reseted.
+
+You can specify your desired requests per second using the
 "|" operator after the server address:
 
 #### Limiting replay
