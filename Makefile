@@ -1,4 +1,4 @@
-SOURCE = emitter.go gor.go gor_stat.go input_dummy.go input_file.go input_raw.go input_tcp.go limiter.go output_dummy.go output_file.go output_http.go output_tcp.go plugins.go settings.go settings_header_filters.go settings_header_hash_filters.go settings_headers.go settings_methods.go settings_option.go settings_url_regexp.go test_input.go elasticsearch.go
+SOURCE = emitter.go gor.go gor_stat.go input_dummy.go input_file.go input_raw.go input_tcp.go limiter.go output_dummy.go output_file.go output_http.go output_tcp.go plugins.go settings.go settings_header_filters.go settings_header_hash_filters.go settings_headers.go settings_methods.go settings_option.go settings_url_regexp.go test_input.go elasticsearch.go settings_url_map.go
 
 all: build-x86 build-x64
 
