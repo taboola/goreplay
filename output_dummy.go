@@ -14,7 +14,7 @@ func NewDummyOutput(options string) (di *DummyOutput) {
 }
 
 func (i *DummyOutput) Write(data []byte) (int, error) {
-	fmt.Println("Writing message: ", data)
+	fmt.Println("Writing message: ", string(data))
 
 	return len(data), nil
 }

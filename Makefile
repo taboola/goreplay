@@ -12,7 +12,7 @@ dbuild:
 	docker build -t gor .
 
 dtest:
-	docker run -v `pwd`:/gopath/src/gor -t -i gor go test -v
+	docker run -v `pwd`:/gopath/src/gor -t -i --env GORACE="halt_on_error=1" gor go test -race -v
 
 drun:
 	docker run -v `pwd`:/gopath/src/gor -t -i gor go run $(SOURCE) --input-dummy=0 --output-dummy=0 --verbose
