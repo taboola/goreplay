@@ -2,8 +2,11 @@ package main
 
 import (
 	"encoding/gob"
+	"io"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -18,12 +21,25 @@ type FileOutput struct {
 	file    *os.File
 }
 
-func NewFileOutput(path string) (o *FileOutput) {
-	o = new(FileOutput)
+func NewFileOutput(options string) io.Writer {
+	var limit int
+
+	optionsArr := strings.Split(options, "|")
+	path := optionsArr[0]
+
+	if len(optionsArr) > 1 {
+		limit, _ = strconv.Atoi(optionsArr[1])
+	}
+
+	o := new(FileOutput)
 	o.path = path
 	o.Init(path)
 
-	return
+	if limit > 0 {
+		return NewLimiter(o, limit)
+	} else {
+		return o
+	}
 }
 
 func (o *FileOutput) Init(path string) {
