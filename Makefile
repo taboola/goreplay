@@ -3,23 +3,23 @@ SOURCE = emitter.go gor.go gor_stat.go input_dummy.go input_file.go input_raw.go
 release: release-x86 release-x64
 
 release-x64:
-    docker run -v `pwd`:/gopath/src/gor -t --env GOOS=linux --env GOARCH=amd64 --env CGO_ENABLED=0 -i gor go build && tar -czf gor_x64.tar.gz gor && rm gor
-    
+	docker run -v `pwd`:/gopath/src/gor -t --env GOOS=linux --env GOARCH=amd64 --env CGO_ENABLED=0 -i gor go build && tar -czf gor_x64.tar.gz gor && rm gor
+	
 release-x86:
-    docker run -v `pwd`:/gopath/src/gor -t --env GOOS=linux --env GOARCH=386 --env CGO_ENABLED=0 -i gor go build && tar -czf gor_x86.tar.gz gor && rm gor
+	docker run -v `pwd`:/gopath/src/gor -t --env GOOS=linux --env GOARCH=386 --env CGO_ENABLED=0 -i gor go build && tar -czf gor_x86.tar.gz gor && rm gor
 
 dbuild:
-    docker build -t gor .
+	docker build -t gor .
 
 dtest:
-    docker run -v `pwd`:/gopath/src/gor -t -i --env GORACE="halt_on_error=1" gor go test -race -v
+	docker run -v `pwd`:/gopath/src/gor -t -i --env GORACE="halt_on_error=1" gor go test -race -v
 
 dbench:
-    docker run -v `pwd`:/gopath/src/gor -t -i gor go test -v -run NOT_EXISTING -bench HTTP
+	docker run -v `pwd`:/gopath/src/gor -t -i gor go test -v -run NOT_EXISTING -bench HTTP
 
 # Used mainly for debugging, because docker container do not have access to parent machine ports
 drun:
-    docker run -v `pwd`:/gopath/src/gor -t -i gor go run $(SOURCE) --input-dummy=0 --input-http=:9000 --output-http="http://localhost:9000"  --verbose
+	docker run -v `pwd`:/gopath/src/gor -t -i gor go run $(SOURCE) --input-dummy=0 --input-http=:9000 --output-http="http://localhost:9000"  --verbose
 
 dbash: 
-    docker run -v `pwd`:/gopath/src/gor -t -i gor /bin/bash
+	docker run -v `pwd`:/gopath/src/gor -t -i gor /bin/bash
