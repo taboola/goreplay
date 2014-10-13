@@ -10,9 +10,9 @@ import (
 )
 
 type TCPOutput struct {
-	address string
-	limit   int
-	buf     chan []byte
+	address  string
+	limit    int
+	buf      chan []byte
 	bufStats *GorStat
 }
 
@@ -52,8 +52,8 @@ func (o *TCPOutput) worker() {
 }
 
 func (o *TCPOutput) Write(data []byte) (n int, err error) {
-	new_buf := make([]byte, len(data) + 2)
-	data = append(data,[]byte("¶")...)
+	new_buf := make([]byte, len(data)+2)
+	data = append(data, []byte("¶")...)
 	copy(new_buf, data)
 	o.buf <- new_buf
 	if Settings.outputTCPStats {

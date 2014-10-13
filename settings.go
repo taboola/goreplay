@@ -20,8 +20,8 @@ type AppSettings struct {
 	inputDummy  MultiOption
 	outputDummy MultiOption
 
-	inputTCP  MultiOption
-	outputTCP MultiOption
+	inputTCP       MultiOption
+	outputTCP      MultiOption
 	outputTCPStats bool
 
 	inputFile  MultiOption
@@ -29,7 +29,7 @@ type AppSettings struct {
 
 	inputRAW MultiOption
 
-	inputHTTP MultiOption
+	inputHTTP                   MultiOption
 	outputHTTP                  MultiOption
 	outputHTTPHeaders           HTTPHeaders
 	outputHTTPMethods           HTTPMethods

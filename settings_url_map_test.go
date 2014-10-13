@@ -5,7 +5,7 @@ import (
 )
 
 func TestUrlRewriteMap(t *testing.T) {
-    var url string;
+	var url string
 
 	rewrites := UrlRewriteMap{}
 
@@ -16,12 +16,12 @@ func TestUrlRewriteMap(t *testing.T) {
 
 	url = "/abc"
 
-    if(rewrites.Rewrite(url) == url) {
-        t.Error("Request url should have been rewritten, wasn't")
-    }
+	if rewrites.Rewrite(url) == url {
+		t.Error("Request url should have been rewritten, wasn't")
+	}
 
-    url = "/wibble"
-    if(rewrites.Rewrite(url) != url) {
-        t.Error("Request url should not have been rewritten, was")
-    }
+	url = "/wibble"
+	if rewrites.Rewrite(url) != url {
+		t.Error("Request url should not have been rewritten, was")
+	}
 }

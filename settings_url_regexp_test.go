@@ -1,9 +1,9 @@
 package main
 
 import (
-	"testing"
 	"net/http"
 	"net/url"
+	"testing"
 )
 
 func TestHTTPUrlRegexp(t *testing.T) {
@@ -15,12 +15,12 @@ func TestHTTPUrlRegexp(t *testing.T) {
 	req.Host = "www.google.com"
 	var err error
 	req.URL, err = url.Parse("/admin/testpage1")
-	if(!filter.Good(&req) || err != nil) {
+	if !filter.Good(&req) || err != nil {
 		t.Error("Request should pass filters")
 	}
 
 	req.URL, err = url.Parse("/user/testpage2")
-	if(filter.Good(&req) || err != nil) {
+	if filter.Good(&req) || err != nil {
 		t.Error("Request should not pass filters")
 	}
 }

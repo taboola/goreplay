@@ -61,7 +61,7 @@ func (i *TCPInput) handleConnection(conn net.Conn) {
 	reader := bufio.NewReader(conn)
 
 	for {
-		buf,err := reader.ReadBytes('¶')
+		buf, err := reader.ReadBytes('¶')
 		buf_len := len(buf)
 		if buf_len > 0 {
 			new_buf_len := len(buf) - 2

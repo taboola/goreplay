@@ -2,15 +2,15 @@ package main
 
 import (
 	"bufio"
-	"bytes"	
+	"bytes"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 	"sync/atomic"
+	"time"
 )
 
 type RedirectNotAllowed struct{}
@@ -37,7 +37,6 @@ func ParseRequest(data []byte) (request *http.Request, err error) {
 	return
 }
 
-
 const InitialDynamicWorkers = 10
 
 type HTTPOutput struct {
@@ -46,12 +45,12 @@ type HTTPOutput struct {
 	queue   chan []byte
 
 	activeWorkers int64
-	needWorker chan int
+	needWorker    chan int
 
-	urlRegexp             HTTPUrlRegexp
-	headerFilters         HTTPHeaderFilters
-	headerHashFilters     HTTPHeaderHashFilters
-  outputHTTPUrlRewrite  UrlRewriteMap
+	urlRegexp            HTTPUrlRegexp
+	headerFilters        HTTPHeaderFilters
+	headerHashFilters    HTTPHeaderHashFilters
+	outputHTTPUrlRewrite UrlRewriteMap
 
 	headers HTTPHeaders
 	methods HTTPMethods
@@ -85,15 +84,15 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 	if Settings.outputHTTPStats {
 		o.queueStats = NewGorStat("output_http")
 	}
-	
-	o.needWorker = make(chan int, 1)	
 
-	// Initial workers count 
+	o.needWorker = make(chan int, 1)
+
+	// Initial workers count
 	if Settings.outputHTTPWorkers == -1 {
 		o.needWorker <- InitialDynamicWorkers
 	} else {
 		o.needWorker <- Settings.outputHTTPWorkers
-	}	
+	}
 
 	if elasticSearchAddr != "" {
 		o.elasticSearch = new(ESPlugin)
@@ -113,7 +112,7 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 	}
 }
 
-func (o *HTTPOutput) WorkerMaster() {	
+func (o *HTTPOutput) WorkerMaster() {
 	for {
 		new_workers := <-o.needWorker
 		for i := 0; i < new_workers; i++ {
@@ -138,26 +137,26 @@ func (o *HTTPOutput) Worker() {
 
 	for {
 		select {
-			case data := <-o.queue:
-				o.sendRequest(client, data)
-				death_count = 0
-			case <-time.After(time.Millisecond * 100):
-				// When dynamic scaling enabled workers die after 2s of inactivity
-				if Settings.outputHTTPWorkers == -1 {
-					death_count += 1
-				} else {
-					continue
-				}
+		case data := <-o.queue:
+			o.sendRequest(client, data)
+			death_count = 0
+		case <-time.After(time.Millisecond * 100):
+			// When dynamic scaling enabled workers die after 2s of inactivity
+			if Settings.outputHTTPWorkers == -1 {
+				death_count += 1
+			} else {
+				continue
+			}
 
-				if death_count > 20 {					
-					workersCount := atomic.LoadInt64(&o.activeWorkers)
-					
-					// At least 1 worker should be alive
-					if workersCount != 1 {
-						atomic.AddInt64(&o.activeWorkers, -1)
-						return
-					}
+			if death_count > 20 {
+				workersCount := atomic.LoadInt64(&o.activeWorkers)
+
+				// At least 1 worker should be alive
+				if workersCount != 1 {
+					atomic.AddInt64(&o.activeWorkers, -1)
+					return
 				}
+			}
 		}
 	}
 }
@@ -199,8 +198,8 @@ func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 		return
 	}
 
-  // Rewrite the path as necessary
-  request.URL.Path = o.outputHTTPUrlRewrite.Rewrite(request.URL.Path)
+	// Rewrite the path as necessary
+	request.URL.Path = o.outputHTTPUrlRewrite.Rewrite(request.URL.Path)
 
 	// Change HOST of original request
 	URL := o.address + request.URL.Path + "?" + request.URL.RawQuery

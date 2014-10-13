@@ -1,8 +1,8 @@
 package main
 
 import (
-	"testing"
 	"net/http"
+	"testing"
 )
 
 func TestHTTPHeaderFilters(t *testing.T) {
@@ -29,7 +29,7 @@ func TestHTTPHeaderFilters(t *testing.T) {
 	req.Header.Add("Header2", ":")
 	req.Header.Add("Header3", "Irrelevant")
 
-	if(!filters.Good(&req)) {
+	if !filters.Good(&req) {
 		t.Error("Request should pass filters")
 	}
 }

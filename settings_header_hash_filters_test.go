@@ -1,8 +1,8 @@
 package main
 
 import (
-	"testing"
 	"net/http"
+	"testing"
 )
 
 func TestHTTPHeaderHashFilters(t *testing.T) {
@@ -27,17 +27,17 @@ func TestHTTPHeaderHashFilters(t *testing.T) {
 	req.Header = make(map[string][]string)
 	req.Header.Add("Header1", "test3414")
 
-	if(filters.Good(&req)) {
+	if filters.Good(&req) {
 		t.Error("Request should not pass filters, Header2 does not exist")
 	}
 
 	req.Header.Add("Header2", "test2")
-	if(filters.Good(&req)) {
+	if filters.Good(&req) {
 		t.Error("Request should not pass filters, Header2 hash too high")
 	}
 
 	req.Header.Set("Header2", "test3414")
-	if(!filters.Good(&req)) {
+	if !filters.Good(&req) {
 		t.Error("Request should pass filters")
 	}
 }

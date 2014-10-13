@@ -27,10 +27,10 @@ func (r *UrlRewriteMap) Set(value string) error {
 }
 
 func (r *UrlRewriteMap) Rewrite(path string) string {
-        for _, f := range *r {
-                if f.src == path {
-                        return f.target
-                }
-        }
-        return path
+	for _, f := range *r {
+		if f.src == path {
+			return f.target
+		}
+	}
+	return path
 }
