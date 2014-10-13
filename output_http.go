@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"sync/atomic"
 )
 
 type RedirectNotAllowed struct{}
@@ -36,23 +37,28 @@ func ParseRequest(data []byte) (request *http.Request, err error) {
 	return
 }
 
+
+const InitialDynamicWorkers = 10
+
 type HTTPOutput struct {
 	address string
 	limit   int
-	buf     chan []byte
+	queue   chan []byte
+
+	activeWorkers int64
 	needWorker chan int
 
 	urlRegexp             HTTPUrlRegexp
 	headerFilters         HTTPHeaderFilters
 	headerHashFilters     HTTPHeaderHashFilters
-    outputHTTPUrlRewrite  UrlRewriteMap
+  outputHTTPUrlRewrite  UrlRewriteMap
 
 	headers HTTPHeaders
 	methods HTTPMethods
 
 	elasticSearch *ESPlugin
 
-	bufStats *GorStat
+	queueStats *GorStat
 }
 
 func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, urlRegexp HTTPUrlRegexp, headerFilters HTTPHeaderFilters, headerHashFilters HTTPHeaderHashFilters, elasticSearchAddr string, outputHTTPUrlRewrite UrlRewriteMap) io.Writer {
@@ -75,13 +81,19 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 	o.headerHashFilters = headerHashFilters
 	o.outputHTTPUrlRewrite = outputHTTPUrlRewrite
 
-	o.buf = make(chan []byte, 100)
+	o.queue = make(chan []byte, 100)
 	if Settings.outputHTTPStats {
-		o.bufStats = NewGorStat("output_http")
+		o.queueStats = NewGorStat("output_http")
 	}
+	
+	o.needWorker = make(chan int, 1)	
+
+	// Initial workers count 
 	if Settings.outputHTTPWorkers == -1 {
-		o.needWorker = make(chan int)
-	}
+		o.needWorker <- InitialDynamicWorkers
+	} else {
+		o.needWorker <- Settings.outputHTTPWorkers
+	}	
 
 	if elasticSearchAddr != "" {
 		o.elasticSearch = new(ESPlugin)
@@ -92,7 +104,7 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 		o.limit, _ = strconv.Atoi(optionsArr[1])
 	}
 
-	go o.WorkerMaster(Settings.outputHTTPWorkers)
+	go o.WorkerMaster()
 
 	if o.limit > 0 {
 		return NewLimiter(o, o.limit)
@@ -101,17 +113,16 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 	}
 }
 
-func (o *HTTPOutput) WorkerMaster(n int) {
-	for i := 0; i < n; i++ {
-		go o.Worker()
-	}
+func (o *HTTPOutput) WorkerMaster() {	
+	for {
+		new_workers := <-o.needWorker
+		for i := 0; i < new_workers; i++ {
+			go o.Worker()
+		}
 
-	if Settings.outputHTTPWorkers == -1 {
-		for {
-			new_workers := <-o.needWorker
-			for i := 0; i < new_workers; i++ {
-				go o.Worker()
-			}
+		// Disable dynamic scaling if workers poll fixed size
+		if Settings.outputHTTPWorkers != -1 {
+			return
 		}
 	}
 }
@@ -120,44 +131,55 @@ func (o *HTTPOutput) Worker() {
 	client := &http.Client{
 		CheckRedirect: customCheckRedirect,
 	}
+
 	death_count := 0
-	Loop:
-		for {
-			select {
-				case data := <-o.buf:
+
+	atomic.AddInt64(&o.activeWorkers, 1)
+
+	for {
+		select {
+			case data := <-o.queue:
 				o.sendRequest(client, data)
 				death_count = 0
-			default:
+			case <-time.After(time.Millisecond * 100):
+				// When dynamic scaling enabled workers die after 2s of inactivity
 				if Settings.outputHTTPWorkers == -1 {
 					death_count += 1
-				}
-				if death_count > 20 {
-					break Loop
 				} else {
-					time.Sleep(time.Millisecond * 100)
+					continue
 				}
 
-			}
+				if death_count > 20 {					
+					workersCount := atomic.LoadInt64(&o.activeWorkers)
+					
+					// At least 1 worker should be alive
+					if workersCount != 1 {
+						atomic.AddInt64(&o.activeWorkers, -1)
+						return
+					}
+				}
 		}
+	}
 }
 
 func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 	buf := make([]byte, len(data))
 	copy(buf, data)
 
-	o.buf <- buf
-	buf_len := len(o.buf)
+	o.queue <- buf
+
 	if Settings.outputHTTPStats {
-		o.bufStats.Write(len(o.buf))
+		o.queueStats.Write(len(o.queue))
 	}
 
 	if Settings.outputHTTPWorkers == -1 {
-		if buf_len > 10 {
-			if len(o.needWorker) == 0 {
-				o.needWorker <- buf_len
-			}
+		workersCount := atomic.LoadInt64(&o.activeWorkers)
+
+		if len(o.queue) > int(workersCount) {
+			o.needWorker <- len(o.queue)
 		}
 	}
+
 	return len(data), nil
 }
 
@@ -177,8 +199,8 @@ func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 		return
 	}
 
-    // Rewrite the path as necessary
-    request.URL.Path = o.outputHTTPUrlRewrite.Rewrite(request.URL.Path)
+  // Rewrite the path as necessary
+  request.URL.Path = o.outputHTTPUrlRewrite.Rewrite(request.URL.Path)
 
 	// Change HOST of original request
 	URL := o.address + request.URL.Path + "?" + request.URL.RawQuery
@@ -213,7 +235,6 @@ func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 }
 
 func SetHeader(request *http.Request, name string, value string) {
-
 	// Need to check here for the Host header as it needs to be set on the request and not as a separate header
 	// http.ReadRequest sets it by default to the URL Host of the request being read
 	if name == "Host" {
