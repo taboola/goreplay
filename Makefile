@@ -17,6 +17,7 @@ dtest:
 dbench:
 	docker run -v `pwd`:/gopath/src/gor -t -i gor go test -v -run NOT_EXISTING -bench HTTP
 
+# Used mainly for debugging, because docker container do not have access to parent machine ports
 drun:
 	docker run -v `pwd`:/gopath/src/gor -t -i gor go run $(SOURCE) --input-dummy=0 --input-http=:9000 --output-http="http://localhost:9000"  --verbose
 
