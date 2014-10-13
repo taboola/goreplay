@@ -59,14 +59,14 @@ func (t *TCPMessage) Timeout() {
     select {
         // In some cases Timeout can be called multiple times (do not know how yet)
         // Ensure that we did not close channel 2 times
-        case _, ok := <- t.c_packets:
+        case packet, ok := <- t.c_packets:
             if ok {
                 t.AddPacket(packet)
             } else {
                 return
             }
         default:
-            close(packet)
+            close(t.c_packets)
             t.c_del_message <- t // Notify RAWListener that message is ready to be send to replay server
     }
 }
