@@ -56,8 +56,19 @@ func (t *TCPMessage) listen() {
 
 // Timeout notifies message to stop listening, close channel and message ready to be sent
 func (t *TCPMessage) Timeout() {
-    close(t.c_packets)   // Notify to stop listen loop and close channel
-    t.c_del_message <- t // Notify RAWListener that message is ready to be send to replay server
+    select {
+        // In some cases Timeout can be called multiple times (do not know how yet)
+        // Ensure that we did not close channel 2 times
+        case _, ok := <- t.c_packets:
+            if ok {
+                t.AddPacket(packet)
+            } else {
+                return
+            }
+        default:
+            close(packet)
+            t.c_del_message <- t // Notify RAWListener that message is ready to be send to replay server
+    }
 }
 
 // Bytes sorts packets in right orders and return message content
