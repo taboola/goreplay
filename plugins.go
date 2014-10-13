@@ -40,6 +40,10 @@ func InitPlugins() {
 		Plugins.Outputs = append(Plugins.Outputs, NewFileOutput(options))
 	}
 
+	for _, options := range Settings.inputHTTP {
+		Plugins.Inputs = append(Plugins.Inputs, NewHTTPInput(options))
+	}
+
 	for _, options := range Settings.outputHTTP {
 		Plugins.Outputs = append(Plugins.Outputs, NewHTTPOutput(options, Settings.outputHTTPHeaders, Settings.outputHTTPMethods, Settings.outputHTTPUrlRegexp, Settings.outputHTTPHeaderFilters, Settings.outputHTTPHeaderHashFilters, Settings.outputHTTPElasticSearch, Settings.outputHTTPUrlRewrite))
 	}
