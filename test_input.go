@@ -1,5 +1,10 @@
 package main
 
+import (
+    "encoding/base64"
+    "crypto/rand"
+)
+
 type TestInput struct {
 	data chan []byte
 }
@@ -24,6 +29,16 @@ func (i *TestInput) EmitGET() {
 
 func (i *TestInput) EmitPOST() {
 	i.data <- []byte("POST /pub/WWW/ HTTP/1.1\nHost: www.w3.org\r\n\r\na=1&b=2\r\n\r\n")
+}
+
+func (i *TestInput) EmitFile() {
+	size := 1024*1024 // 1 MB
+	rb := make([]byte,size)
+   	rand.Read(rb)
+
+   	rs := base64.URLEncoding.EncodeToString(rb)
+
+	i.data <- []byte("POST /pub/WWW/ HTTP/1.1\nHost: www.w3.org\r\n\r\n------WebKitFormBoundaryePkpFF7tjBAqx29L\nContent-Disposition: form-data; name=\"uploadedfile\"; filename=\"hello.o\"\nContent-Type: application/x-object\n" + rs + "\r\n\r\n")
 }
 
 func (i *TestInput) EmitOPTIONS() {
