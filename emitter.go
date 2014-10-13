@@ -21,7 +21,7 @@ func Start(stop chan int) {
 
 // Copy from 1 reader to multiple writers
 func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
-	buf := make([]byte, 32*1024)
+	buf := make([]byte, 5*1024*1024)
 	wIndex := 0
 
 	for {
