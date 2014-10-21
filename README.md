@@ -364,4 +364,6 @@ To achieve the top most performance you should tune the source server system lim
 * [GOV.UK](https://www.gov.uk) ([Government Digital Service](http://digital.cabinetoffice.gov.uk/))
 * [theguardian.com](http://theguardian.com)
 * [TomTom](http://www.tomtom.com/)
+* [3SCALE](http://www.3scale.net/)
+* [Optionlab](http://www.opinionlab.com)
 * To add your company drop me a line to github.com/buger or leonsbox@gmail.com
