@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"reflect"
+	"strings"
 )
 
 type InOutPlugins struct {
@@ -14,26 +15,50 @@ type ReaderOrWriter interface{}
 
 var Plugins *InOutPlugins = new(InOutPlugins)
 
+func extractLimitOptions(options string) (string, string) {
+	split := strings.Split(options, "|")
+
+	if len(split) > 1 {
+		return split[0], split[1]
+	} else {
+		return split[0], ""
+	}
+}
+
 // Automatically detects type of plugin and initialize it
-// 
+//
 // See this article if curious about relfect stuff below: http://blog.burntsushi.net/type-parametric-functions-golang
 func registerPlugin(constructor interface{}, options ...interface{}) {
 	vc := reflect.ValueOf(constructor)
 
+	// Pre-processing options to make it work with reflect
 	vo := []reflect.Value{}
-	for _, i := range options {
-		vo = append(vo, reflect.ValueOf(i))
+	for _, oi := range options {
+		vo = append(vo, reflect.ValueOf(oi))
 	}
 
-	// Here we calling our constructor with list of passed options
+	// Removing limit options from path
+	path, limit := extractLimitOptions(vo[0].String())
+
+	// Writing value back without limiter "|" options
+	vo[0] = reflect.ValueOf(path)
+
+	// Calling our constructor with list of given options
 	plugin := vc.Call(vo)[0].Interface()
+	plugin_wrapper := plugin
 
-	if p, ok := plugin.(io.Reader); ok {
-		Plugins.Inputs = append(Plugins.Inputs, p)
+	if limit != "" {
+		plugin_wrapper = NewLimiter(plugin, limit)
+	} else {
+		plugin_wrapper = plugin
 	}
 
-	if p, ok := plugin.(io.Writer); ok {
-		Plugins.Outputs = append(Plugins.Outputs, p)
+	if _, ok := plugin.(io.Reader); ok {
+		Plugins.Inputs = append(Plugins.Inputs, plugin_wrapper.(io.Reader))
+	}
+
+	if _, ok := plugin.(io.Writer); ok {
+		Plugins.Outputs = append(Plugins.Outputs, plugin_wrapper.(io.Writer))
 	}
 }
 

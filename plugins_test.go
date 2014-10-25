@@ -11,12 +11,13 @@ func TestPluginsRegistration(t *testing.T) {
 
 	Settings.inputDummy = MultiOption{"[]"}
 	Settings.outputDummy = MultiOption{"[]"}
+	Settings.outputHTTP = MultiOption{"www.example.com|10"}
 	Settings.inputFile = MultiOption{"/dev/null"}
 
 	InitPlugins()
 
 	if len(Plugins.Inputs) != 2 {
-		t.Errorf("Should be 2 inputs")
+		t.Errorf("Should be 2 inputs %d", len(Plugins.Inputs))
 	}
 
 	if _, ok := Plugins.Inputs[0].(*DummyInput); !ok {
@@ -27,11 +28,20 @@ func TestPluginsRegistration(t *testing.T) {
 		t.Errorf("Second input should be FileInput")
 	}
 
-	if len(Plugins.Outputs) != 1 {
-		t.Errorf("Should be 1 output")
+	if len(Plugins.Outputs) != 2 {
+		t.Errorf("Should be 2 output %d", len(Plugins.Outputs))
 	}
 
 	if _, ok := Plugins.Outputs[0].(*DummyOutput); !ok {
-		t.Errorf("Output should be DummyOutput")
+		t.Errorf("First output should be DummyOutput")
 	}
+
+	if l, ok := Plugins.Outputs[1].(*Limiter); ok {
+		if _, ok := l.plugin.(*HTTPOutput); !ok {
+			t.Errorf("HTTPOutput should be wrapped in limiter")
+		}
+	} else {
+		t.Errorf("Second output should be Limiter")
+	}
+
 }

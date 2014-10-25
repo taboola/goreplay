@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -60,12 +59,9 @@ type HTTPOutput struct {
 	queueStats *GorStat
 }
 
-func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, urlRegexp HTTPUrlRegexp, headerFilters HTTPHeaderFilters, headerHashFilters HTTPHeaderHashFilters, elasticSearchAddr string, outputHTTPUrlRewrite UrlRewriteMap) io.Writer {
+func NewHTTPOutput(address string, headers HTTPHeaders, methods HTTPMethods, urlRegexp HTTPUrlRegexp, headerFilters HTTPHeaderFilters, headerHashFilters HTTPHeaderHashFilters, elasticSearchAddr string, outputHTTPUrlRewrite UrlRewriteMap) io.Writer {
 
 	o := new(HTTPOutput)
-
-	optionsArr := strings.Split(options, "|")
-	address := optionsArr[0]
 
 	if !strings.HasPrefix(address, "http") {
 		address = "http://" + address
@@ -99,17 +95,9 @@ func NewHTTPOutput(options string, headers HTTPHeaders, methods HTTPMethods, url
 		o.elasticSearch.Init(elasticSearchAddr)
 	}
 
-	if len(optionsArr) > 1 {
-		o.limit, _ = strconv.Atoi(optionsArr[1])
-	}
-
 	go o.WorkerMaster()
 
-	if o.limit > 0 {
-		return NewLimiter(o, o.limit)
-	} else {
-		return o
-	}
+	return o
 }
 
 func (o *HTTPOutput) WorkerMaster() {

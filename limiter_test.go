@@ -13,7 +13,7 @@ func TestLimiter(t *testing.T) {
 	input := NewTestInput()
 	output := NewLimiter(NewTestOutput(func(data []byte) {
 		wg.Done()
-	}), 10)
+	}), "10")
 	wg.Add(10)
 
 	Plugins.Inputs = []io.Reader{input}
