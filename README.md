@@ -235,7 +235,7 @@ https://github.com/buger/gor/releases
 Project contains Docker environment.
 
 1. Build container: `make dbuild`
-2. Run tests: `make dtest`
+2. Run all tests: `make dtest`. Run specific test: `make dtest ARGS=-test.run=**regexp**`
 3. Bash access to container: `make dbash`. Inside container you have python to run simple web server `python -m SimpleHTTPServer 8080` and `curl` to make http requests. 
 
 
