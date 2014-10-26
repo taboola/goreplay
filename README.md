@@ -47,26 +47,33 @@ Then in your application you should send copy (e.g. like reverse proxy) all inco
 ## Advanced use
 
 ### Rate limiting
-Both replay and listener support rate limiting. It can be useful if you want
+Every input and output support rate limiting. It can be useful if you want
 forward only part of production traffic and not overload your staging
 environment. 
-Current throttling works like this: If for current second it reached specified requests limit - disregard the rest, on next second counter reseted.
 
-You can specify your desired requests per second using the
+There are 2 limiting algorithms: absolute or percentage based. 
+
+Absolute: If for current second it reached specified requests limit - disregard the rest, on next second counter reseted.
+
+Percentage: It use random generator to decided if request pass or not based on weight you specified. 
+
+You can specify your desired limit using the
 "|" operator after the server address:
 
-#### Limiting replay
+#### Limiting replay using absolute number
 ```
 # staging.server will not get more than 10 requests per second
 gor --input-tcp :28020 --output-http "http://staging.com|10"
 ```
 
-#### Limiting listener
+#### Limiting listener using percentage based limiter
 ```
-# replay server will not get more than 10 requests per second
+# replay server will not get more than 10% of requests 
 # useful for high-load environments
-gor --input-raw :80 --output-tcp "replay.local:28020|10"
+gor --input-raw :80 --output-tcp "replay.local:28020|10%"
 ```
+
+### Filtering 
 
 #### Match on regexp of url
 ```
