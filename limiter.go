@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 	"io"
+	"math/rand"
 	"strconv"
 	"strings"
 	"time"
-	"math/rand"
 )
 
 type Limiter struct {
@@ -40,21 +40,21 @@ func NewLimiter(plugin interface{}, options string) io.ReadWriter {
 }
 
 func (l *Limiter) isLimited() bool {
-	if (l.isPercent) {
+	if l.isPercent {
 		return l.limit <= rand.Intn(100)
 	}
 
 	if (time.Now().UnixNano() - l.currentTime) > time.Second.Nanoseconds() {
 		l.currentTime = time.Now().UnixNano()
 		l.currentRPS = 0
-	}	
+	}
 
 	if l.currentRPS >= l.limit {
 		return true
 	}
 
 	l.currentRPS++
-	
+
 	return false
 }
 

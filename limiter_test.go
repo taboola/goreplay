@@ -54,7 +54,6 @@ func TestInputLimiter(t *testing.T) {
 	close(quit)
 }
 
-
 // Should limit all requests
 func TestPercentLimiter1(t *testing.T) {
 	wg := new(sync.WaitGroup)
