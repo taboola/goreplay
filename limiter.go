@@ -38,25 +38,39 @@ func NewLimiter(plugin interface{}, options string) io.ReadWriter {
 	return l
 }
 
-func (l *Limiter) Write(data []byte) (n int, err error) {
+func (l *Limiter) isLimited() bool {
 	if (time.Now().UnixNano() - l.currentTime) > time.Second.Nanoseconds() {
 		l.currentTime = time.Now().UnixNano()
 		l.currentRPS = 0
-	}
+	}	
 
 	if l.currentRPS >= l.limit {
+		return true
+	}
+
+	l.currentRPS++
+	
+	return false
+}
+
+func (l *Limiter) Write(data []byte) (n int, err error) {
+	if l.isLimited() {
 		return 0, nil
 	}
 
 	n, err = l.plugin.(io.Writer).Write(data)
 
-	l.currentRPS++
-
 	return
 }
 
-func (l *Limiter) Read(data []byte) (int, error) {
-	return 0, nil
+func (l *Limiter) Read(data []byte) (n int, err error) {
+	if l.isLimited() {
+		return 0, nil
+	}
+
+	n, err = l.plugin.(io.Reader).Read(data)
+
+	return
 }
 
 func (l *Limiter) String() string {

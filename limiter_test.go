@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestLimiter(t *testing.T) {
+func TestOutputLimiter(t *testing.T) {
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
@@ -23,6 +23,30 @@ func TestLimiter(t *testing.T) {
 
 	for i := 0; i < 100; i++ {
 		input.EmitGET()
+	}
+
+	wg.Wait()
+
+	close(quit)
+}
+
+func TestInputLimiter(t *testing.T) {
+	wg := new(sync.WaitGroup)
+	quit := make(chan int)
+
+	input := NewLimiter(NewTestInput(), "10")
+	output := NewTestOutput(func(data []byte) {
+		wg.Done()
+	})
+	wg.Add(10)
+
+	Plugins.Inputs = []io.Reader{input}
+	Plugins.Outputs = []io.Writer{output}
+
+	go Start(quit)
+
+	for i := 0; i < 100; i++ {
+		input.(*Limiter).plugin.(*TestInput).EmitGET()
 	}
 
 	wg.Wait()
