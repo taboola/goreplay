@@ -46,7 +46,7 @@ func NewLimiter(plugin interface{}, options string) io.ReadWriter {
 
 func (l *Limiter) isLimited() bool {
 	// File input have its own limiting algorithm
-	if _, ok := l.plugin.(*FileInput); ok {
+	if _, ok := l.plugin.(*FileInput); ok && l.isPercent {
 		return false
 	}
 
