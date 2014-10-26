@@ -55,7 +55,7 @@ There are 2 limiting algorithms: absolute or percentage based.
 
 Absolute: If for current second it reached specified requests limit - disregard the rest, on next second counter reseted.
 
-Percentage: It use random generator to decided if request pass or not based on weight you specified. 
+Percentage: For input-file it will slowdown or speedup request execution, for the rest it will use random generator to decide if request pass or not based on weight you specified. 
 
 You can specify your desired limit using the
 "|" operator after the server address:
@@ -72,6 +72,16 @@ gor --input-tcp :28020 --output-http "http://staging.com|10"
 # useful for high-load environments
 gor --input-raw :80 --output-tcp "replay.local:28020|10%"
 ```
+
+### Load testing
+
+Currently it supported only by `input-file` and only when using percentage based limiter. Unlike default limiter for `input-file` instead of dropping requests it will slowdown or speedup request emitting.
+
+```
+# Replay from file on 2x speed 
+gor --input-file "requests.gor|200%" --output-http "staging.com"
+```
+
 
 ### Filtering 
 
