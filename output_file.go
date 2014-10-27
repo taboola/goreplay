@@ -5,8 +5,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -21,25 +19,12 @@ type FileOutput struct {
 	file    *os.File
 }
 
-func NewFileOutput(options string) io.Writer {
-	var limit int
-
-	optionsArr := strings.Split(options, "|")
-	path := optionsArr[0]
-
-	if len(optionsArr) > 1 {
-		limit, _ = strconv.Atoi(optionsArr[1])
-	}
-
+func NewFileOutput(path string) io.Writer {
 	o := new(FileOutput)
 	o.path = path
 	o.Init(path)
 
-	if limit > 0 {
-		return NewLimiter(o, limit)
-	} else {
-		return o
-	}
+	return o
 }
 
 func (o *FileOutput) Init(path string) {

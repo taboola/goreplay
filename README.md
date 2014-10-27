@@ -47,26 +47,43 @@ Then in your application you should send copy (e.g. like reverse proxy) all inco
 ## Advanced use
 
 ### Rate limiting
-Both replay and listener support rate limiting. It can be useful if you want
+Every input and output support rate limiting. It can be useful if you want
 forward only part of production traffic and not overload your staging
 environment. 
-Current throttling works like this: If for current second it reached specified requests limit - disregard the rest, on next second counter reseted.
 
-You can specify your desired requests per second using the
+There are 2 limiting algorithms: absolute or percentage based. 
+
+Absolute: If for current second it reached specified requests limit - disregard the rest, on next second counter reseted.
+
+Percentage: For input-file it will slowdown or speedup request execution, for the rest it will use random generator to decide if request pass or not based on weight you specified. 
+
+You can specify your desired limit using the
 "|" operator after the server address:
 
-#### Limiting replay
+#### Limiting replay using absolute number
 ```
 # staging.server will not get more than 10 requests per second
 gor --input-tcp :28020 --output-http "http://staging.com|10"
 ```
 
-#### Limiting listener
+#### Limiting listener using percentage based limiter
 ```
-# replay server will not get more than 10 requests per second
+# replay server will not get more than 10% of requests 
 # useful for high-load environments
-gor --input-raw :80 --output-tcp "replay.local:28020|10"
+gor --input-raw :80 --output-tcp "replay.local:28020|10%"
 ```
+
+### Load testing
+
+Currently it supported only by `input-file` and only when using percentage based limiter. Unlike default limiter for `input-file` instead of dropping requests it will slowdown or speedup request emitting.
+
+```
+# Replay from file on 2x speed 
+gor --input-file "requests.gor|200%" --output-http "staging.com"
+```
+
+
+### Filtering 
 
 #### Match on regexp of url
 ```
@@ -235,7 +252,7 @@ https://github.com/buger/gor/releases
 Project contains Docker environment.
 
 1. Build container: `make dbuild`
-2. Run tests: `make dtest`
+2. Run all tests: `make dtest`. Run specific test: `make dtest ARGS=-test.run=**regexp**`
 3. Bash access to container: `make dbash`. Inside container you have python to run simple web server `python -m SimpleHTTPServer 8080` and `curl` to make http requests. 
 
 

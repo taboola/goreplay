@@ -12,7 +12,10 @@ dbuild:
 	docker build -t gor .
 
 dtest:
-	docker run -v `pwd`:/gopath/src/gor -t -i --env GORACE="halt_on_error=1" gor go test -race -v
+	docker run -v `pwd`:/gopath/src/gor -t -i --env GORACE="halt_on_error=1" gor go test $(ARGS) -race -v
+
+dfmt:
+	docker run -v `pwd`:/gopath/src/gor -t -i gor go fmt
 
 dbench:
 	docker run -v `pwd`:/gopath/src/gor -t -i gor go test -v -run NOT_EXISTING -bench HTTP

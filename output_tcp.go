@@ -5,8 +5,6 @@ import (
 	"io"
 	"log"
 	"net"
-	"strconv"
-	"strings"
 )
 
 type TCPOutput struct {
@@ -16,30 +14,21 @@ type TCPOutput struct {
 	bufStats *GorStat
 }
 
-func NewTCPOutput(options string) io.Writer {
+func NewTCPOutput(address string) io.Writer {
 	o := new(TCPOutput)
 
-	optionsArr := strings.Split(options, "|")
-	o.address = optionsArr[0]
+	o.address = address
 
 	o.buf = make(chan []byte, 100)
 	if Settings.outputTCPStats {
 		o.bufStats = NewGorStat("output_tcp")
 	}
 
-	if len(optionsArr) > 1 {
-		o.limit, _ = strconv.Atoi(optionsArr[1])
-	}
-
 	for i := 0; i < 10; i++ {
 		go o.worker()
 	}
 
-	if o.limit > 0 {
-		return NewLimiter(o, o.limit)
-	} else {
-		return o
-	}
+	return o
 }
 
 func (o *TCPOutput) worker() {

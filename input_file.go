@@ -8,15 +8,17 @@ import (
 )
 
 type FileInput struct {
-	data    chan []byte
-	path    string
-	decoder *gob.Decoder
+	data        chan []byte
+	path        string
+	decoder     *gob.Decoder
+	speedFactor float64
 }
 
 func NewFileInput(path string) (i *FileInput) {
 	i = new(FileInput)
 	i.data = make(chan []byte)
 	i.path = path
+	i.speedFactor = 1
 	i.Init(path)
 
 	go i.emit()
@@ -57,8 +59,16 @@ func (i *FileInput) emit() {
 		}
 
 		if lastTime != 0 {
-			time.Sleep(time.Duration(raw.Timestamp - lastTime))
+			timeDiff := raw.Timestamp - lastTime
+
+			// We can speedup or slowdown execution based on speedFactor
+			if i.speedFactor != 1 {
+				timeDiff = int64(float64(raw.Timestamp-lastTime) / i.speedFactor)
+			}
+
+			time.Sleep(time.Duration(timeDiff))
 		}
+
 		lastTime = raw.Timestamp
 
 		i.data <- raw.Request
