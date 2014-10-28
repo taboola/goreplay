@@ -30,17 +30,17 @@ func TestUrlRewriteMap_2(t *testing.T) {
 
 	rewrites := UrlRewriteMap{}
 
-	err := rewrites.Set("/abc?\\d{4}5$:/123")
+	err := rewrites.Set("/v1/user/([^\\/]+)/ping:/v2/user/$1/ping")
 	if err != nil {
-		t.Error("Should not error on /abc?\\d{4}:/123")
+		t.Error("Should not error on /v1/user/([^\\/]+)/ping:/v2/user/$1/ping")
 	}
 
-	url = "/ab12345"
+	url = "/v1/user/joe/ping"
 	if rewrites.Rewrite(url) == url {
 		t.Error("Request url should have been rewritten, wasn't")
 	}
 
-	url = "/ab"
+	url = "/v1/user/ping"
 	if rewrites.Rewrite(url) != url {
 		t.Error("Request url should not have been rewritten, was")
 	}
