@@ -40,6 +40,11 @@ func TestUrlRewriteMap_2(t *testing.T) {
 		t.Error("Request url should have been rewritten, wasn't")
 	}
 
+	url = "/v1/user/joe/ping"
+	if rewrites.Rewrite(url) != "/v2/user/joe/ping" {
+		t.Error("Request url should have been rewritten, wasn't")
+	}
+
 	url = "/v1/user/ping"
 	if rewrites.Rewrite(url) != url {
 		t.Error("Request url should not have been rewritten, was")
