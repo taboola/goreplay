@@ -3,11 +3,12 @@ package main
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
 type urlRewrite struct {
-	src    string
+	src    *regexp.Regexp
 	target string
 }
 
@@ -22,14 +23,18 @@ func (r *UrlRewriteMap) Set(value string) error {
 	if len(valArr) < 2 {
 		return errors.New("need both src and target, colon-delimited (ex. /a:/b).")
 	}
-	*r = append(*r, urlRewrite{src: valArr[0], target: valArr[1]})
+	regexp, err := regexp.Compile(valArr[0])
+	if err != nil {
+		return err
+	}
+	*r = append(*r, urlRewrite{src: regexp, target: valArr[1]})
 	return nil
 }
 
 func (r *UrlRewriteMap) Rewrite(path string) string {
 	for _, f := range *r {
-		if f.src == path {
-			return f.target
+		if f.src.MatchString(path) {
+			return f.src.ReplaceAllString(path, f.target)
 		}
 	}
 	return path
