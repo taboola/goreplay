@@ -34,7 +34,7 @@ func (r *UrlRewriteMap) Set(value string) error {
 func (r *UrlRewriteMap) Rewrite(path string) string {
 	for _, f := range *r {
 		if f.src.MatchString(path) {
-			return f.src.ReplaceAllString(path, f.target)
+			path = f.src.ReplaceAllString(path, f.target)
 		}
 	}
 	return path
