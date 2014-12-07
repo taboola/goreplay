@@ -34,7 +34,7 @@ It's recommended to use separate server for replaying traffic, but if you have e
 sudo gor --input-raw :80 --output-http "http://staging.com"
 ```
 
-### Guarante of replay and HTTP input
+### Guarantee of replay and HTTP input
 Due to how traffic interception works, there is chance of missing requests. If you want guarantee that requests will be replayed you can use http input, but it will require changes in your app as well. 
 
 ```
