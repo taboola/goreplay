@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+	"io/ioutil"
 )
 
 type RedirectNotAllowed struct{}
@@ -32,6 +33,13 @@ func ParseRequest(data []byte) (request *http.Request, err error) {
 	reader := bufio.NewReader(buf)
 
 	request, err = http.ReadRequest(reader)
+
+	if request.Method == "POST" {
+		body, _ := ioutil.ReadAll(reader)
+		bodyBuf := bytes.NewBuffer(body)
+		request.Body = ioutil.NopCloser(bodyBuf)
+		request.ContentLength = int64(bodyBuf.Len())
+	}
 
 	return
 }
