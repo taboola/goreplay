@@ -7,11 +7,14 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"io/ioutil"
+	"net/http/httputil"
+	_ "strings"
 )
 
 func startHTTP(cb func(*http.Request)) net.Listener {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		go cb(r)
+		cb(r)
 	})
 
 	listener, _ := net.Listen("tcp", ":0")
@@ -58,6 +61,16 @@ func TestHTTPOutput(t *testing.T) {
 
 		if req.Method == "OPTIONS" {
 			t.Error("Wrong method")
+		}
+
+		if req.Method == "POST" {
+			defer req.Body.Close()
+			body, _ := ioutil.ReadAll(req.Body)
+
+			if string(body) != "a=1&b=2\r\n\r\n" {
+				buf, _ := httputil.DumpRequest(req, true)
+				t.Error("Wrong POST body:", string(buf))
+			}
 		}
 
 		wg.Done()
