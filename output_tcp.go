@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"time"
 )
 
 type TCPOutput struct {
@@ -32,11 +33,20 @@ func NewTCPOutput(address string) io.Writer {
 }
 
 func (o *TCPOutput) worker() {
-	conn, _ := o.connect(o.address)
+	conn, err := o.connect(o.address)
+	for ; err != nil; conn, err = o.connect(o.address) {
+		time.Sleep(2 * time.Second)
+	}
+
 	defer conn.Close()
 
 	for {
-		conn.Write(<-o.buf)
+		_, err := conn.Write(<-o.buf)
+		if err != nil {
+			log.Println("Worker failed on write, exitings and starting new worker")
+			go o.worker()
+			break
+		}
 	}
 }
 
