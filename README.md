@@ -43,6 +43,13 @@ sudo gor --input-http :28019 --output-http "http://staging.com"
 
 Then in your application you should send copy (e.g. like reverse proxy) all incoming requests to Gor http input. 
 
+### Following redirects
+If you have a scenario where following redirects is usefull you can do it like with:
+
+```
+gor --input-tcp replay.local:28020 --output-http http://staging.com --output-http-redirects 10
+```
+The given example will follow up to 10 redirects per request.
 
 ## Advanced use
 
@@ -186,59 +193,49 @@ https://github.com/buger/gor/releases
 `gor -h` output:
 ```
   -cpuprofile="": write cpu profile to file
-  -memprofile="": write memory profile to this file
-  
   -input-dummy=[]: Used for testing outputs. Emits 'Get /' request every 1s
-
   -input-file=[]: Read requests from file: 
-    gor --input-file ./requests.gor --output-http staging.com
-
+	gor --input-file ./requests.gor --output-http staging.com
+  -input-http=[]: Read requests from HTTP, should be explicitly sent from your application:
+	# Listen for http on 9000
+	gor --input-http :9000 --output-http staging.com
   -input-raw=[]: Capture traffic from given port (use RAW sockets and require *sudo* access):
-    # Capture traffic from 8080 port
-    gor --input-raw :8080 --output-http staging.com
-
+	# Capture traffic from 8080 port
+	gor --input-raw :8080 --output-http staging.com
   -input-tcp=[]: Used for internal communication between Gor instances. Example: 
-    # Receive requests from other Gor instances on 28020 port, and redirect output to staging
-    gor --input-tcp :28020 --output-http staging.com
-
+	# Receive requests from other Gor instances on 28020 port, and redirect output to staging
+	gor --input-tcp :28020 --output-http staging.com
+  -memprofile="": write memory profile to this file
   -output-dummy=[]: Used for testing inputs. Just prints data coming from inputs.
-
   -output-file=[]: Write incoming requests to file: 
-    gor --input-raw :80 --output-file ./requests.gor
-
+	gor --input-raw :80 --output-file ./requests.gor
   -output-http=[]: Forwards incoming requests to given http address.
-    # Redirect all incoming requests to staging.com address 
-    gor --input-raw :80 --output-http http://staging.com
-
+	# Redirect all incoming requests to staging.com address 
+	gor --input-raw :80 --output-http http://staging.com
   -output-http-elasticsearch="": Send request and response stats to ElasticSearch:
-    gor --input-raw :8080 --output-http staging.com --output-http-elasticsearch 'es_host:api_port/index_name'
-
+	gor --input-raw :8080 --output-http staging.com --output-http-elasticsearch 'es_host:api_port/index_name'
   -output-http-header=[]: Inject additional headers to http reqest:
-    gor --input-raw :8080 --output-http staging.com --output-http-header 'User-Agent: Gor'
-
+	gor --input-raw :8080 --output-http staging.com --output-http-header 'User-Agent: Gor'
   -output-http-header-filter=[]: A regexp to match a specific header against. Requests with non-matching headers will be dropped:
-    gor --input-raw :8080 --output-http staging.com --output-http-header-filter api-version:^v1
-
+	 gor --input-raw :8080 --output-http staging.com --output-http-header-filter api-version:^v1
   -output-http-header-hash-filter=[]: Takes a fraction of requests, consistently taking or rejecting a request based on the FNV32-1A hash of a specific header. The fraction must have a denominator that is a power of two:
-    gor --input-raw :8080 --output-http staging.com --output-http-header-hash-filter user-id:1/4
-
+	 gor --input-raw :8080 --output-http staging.com --output-http-header-hash-filter user-id:1/4
+  -output-http-method=[]: Whitelist of HTTP methods to replay. Anything else will be dropped:
+	gor --input-raw :8080 --output-http staging.com --output-http-method GET --output-http-method OPTIONS
+  -output-http-redirects=0: Enable how often redirects should be followed.
+  -output-http-rewrite-url=[]: Rewrite the requst url based on a mapping:
+	gor --input-raw :8080 --output-http staging.com --output-http-rewrite-url /xml_test/interface.php:/api/service.do
+  -output-http-stats=false: Report http output queue stats to console every 5 seconds.
   -output-http-url-regexp=: A regexp to match requests against. Anything else will be dropped:
-    gor --input-raw :8080 --output-http staging.com --output-http-url-regexp ^www.
-    
-  -output-http-workers=-1: Number of http output workers desired. Use default -1 for dynamic worker scaling.  Gor will add http workers if its work queue starts getting too full and kill them .
-    
-  -output-http-stats=false: If set to `true` it gives out queuing stats for the HTTP output every 5 seconds in the form latest,mean,max,count,count/second.
-    
+	 gor --input-raw :8080 --output-http staging.com --output-http-url-regexp ^www.
+  -output-http-workers=-1: Gor uses dynamic worker scaling by default.  Enter a number to run a set number of workers.
   -output-tcp=[]: Used for internal communication between Gor instances. Example: 
-    # Listen for requests on 80 port and forward them to other Gor instance on 28020 port
-    gor --input-raw :80 --output-tcp replay.local:28020
-    
-  -output-tcp-stats=false: If set to `true` it gives out queuing stats for the TCP output every 5 seconds in the form latest,mean,max,count,count/second.
-    
+	# Listen for requests on 80 port and forward them to other Gor instance on 28020 port
+	gor --input-raw :80 --output-tcp replay.local:28020
+  -output-tcp-stats=false: Report TCP output queue stats to console every 5 seconds.
   -split-output=false: By default each output gets same traffic. If set to `true` it splits traffic equally among all outputs.
-
-  -output-http-rewrite-url=[]: Rewrites the url in the request based on a mapping
-    gor --input-raw :8080 --output-http staging.com --output-http-rewrite-url /xml_test/interface.php:/api/service.do
+  -stats=false: Turn on queue stats output
+  -verbose=false: Turn on verbose/debug output
 ```
 
 ## Building from source

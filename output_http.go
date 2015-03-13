@@ -4,13 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync/atomic"
 	"time"
-	"io/ioutil"
 )
 
 type RedirectNotAllowed struct{}
@@ -20,8 +20,8 @@ func (e *RedirectNotAllowed) Error() string {
 }
 
 // customCheckRedirect disables redirects https://github.com/buger/gor/pull/15
-func customCheckRedirect(req *http.Request, via []*http.Request) error {
-	if len(via) >= 0 {
+func (o *HTTPOutput) customCheckRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= o.redirectLimit {
 		return new(RedirectNotAllowed)
 	}
 	return nil
@@ -34,7 +34,7 @@ func ParseRequest(data []byte) (request *http.Request, err error) {
 
 	request, err = http.ReadRequest(reader)
 
-	if (err != nil) {
+	if err != nil {
 		return
 	}
 
@@ -55,6 +55,8 @@ type HTTPOutput struct {
 	limit   int
 	queue   chan []byte
 
+	redirectLimit int
+
 	activeWorkers int64
 	needWorker    chan int
 
@@ -71,7 +73,7 @@ type HTTPOutput struct {
 	queueStats *GorStat
 }
 
-func NewHTTPOutput(address string, headers HTTPHeaders, methods HTTPMethods, urlRegexp HTTPUrlRegexp, headerFilters HTTPHeaderFilters, headerHashFilters HTTPHeaderHashFilters, elasticSearchAddr string, outputHTTPUrlRewrite UrlRewriteMap) io.Writer {
+func NewHTTPOutput(address string, headers HTTPHeaders, methods HTTPMethods, urlRegexp HTTPUrlRegexp, headerFilters HTTPHeaderFilters, headerHashFilters HTTPHeaderHashFilters, elasticSearchAddr string, outputHTTPUrlRewrite UrlRewriteMap, outputHTTPRedirects int) io.Writer {
 
 	o := new(HTTPOutput)
 
@@ -82,6 +84,8 @@ func NewHTTPOutput(address string, headers HTTPHeaders, methods HTTPMethods, url
 	o.address = address
 	o.headers = headers
 	o.methods = methods
+
+	o.redirectLimit = Settings.outputHTTPRedirects
 
 	o.urlRegexp = urlRegexp
 	o.headerFilters = headerFilters
@@ -128,7 +132,7 @@ func (o *HTTPOutput) WorkerMaster() {
 
 func (o *HTTPOutput) Worker() {
 	client := &http.Client{
-		CheckRedirect: customCheckRedirect,
+		CheckRedirect: o.customCheckRedirect,
 	}
 
 	death_count := 0
