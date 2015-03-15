@@ -2,14 +2,14 @@ package main
 
 import (
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	_ "strings"
 	"sync"
 	"testing"
 	"time"
-	"io/ioutil"
-	"net/http/httputil"
-	_ "strings"
 )
 
 func startHTTP(cb func(*http.Request)) net.Listener {
@@ -76,7 +76,7 @@ func TestHTTPOutput(t *testing.T) {
 		wg.Done()
 	})
 
-	output := NewHTTPOutput(listener.Addr().String(), headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{})
+	output := NewHTTPOutput(listener.Addr().String(), headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{}, 0)
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
@@ -109,7 +109,7 @@ func BenchmarkHTTPOutput(b *testing.B) {
 		wg.Done()
 	})
 
-	output := NewHTTPOutput(listener.Addr().String(), headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{})
+	output := NewHTTPOutput(listener.Addr().String(), headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{}, 0)
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
