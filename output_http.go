@@ -51,13 +51,17 @@ func ParseRequest(data []byte) (request *http.Request, err error) {
 const InitialDynamicWorkers = 10
 
 type HTTPOutput struct {
+	// Keep this as first element of struct because it guarantees 64bit
+	// alignment. atomic.* functions crash on 32bit machines if operand is not
+	// aligned at 64bit. See https://github.com/golang/go/issues/599
+	activeWorkers int64
+
 	address string
 	limit   int
 	queue   chan []byte
 
 	redirectLimit int
 
-	activeWorkers int64
 	needWorker    chan int
 
 	urlRegexp            HTTPUrlRegexp
