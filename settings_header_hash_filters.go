@@ -39,7 +39,7 @@ func (h *HTTPHeaderHashFilters) Set(value string) error {
 		panic("need positive numerators and denominators, with the former less than the latter.")
 	}
 
-	if den & (den - 1) != 0 {
+	if den&(den-1) != 0 {
 		return errors.New("must have a denominator which is a power of two.")
 	}
 
