@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 	"io/ioutil"
+	"net/http/httputil"
 )
 
 type RedirectNotAllowed struct{}
@@ -29,14 +30,27 @@ func customCheckRedirect(req *http.Request, via []*http.Request) error {
 
 // ParseRequest in []byte returns a http request or an error
 func ParseRequest(data []byte) (request *http.Request, err error) {
+	var body []byte
+
+	// Test if request have Transfer-Encoding: chunked
+	isChunked := bytes.Contains(data, []byte(": chunked\r\n"));
+
 	buf := bytes.NewBuffer(data)
 	reader := bufio.NewReader(buf)
 
+	// ReadRequest does not read POST bodies, we have to do it by ourseves
 	request, err = http.ReadRequest(reader)
 
 	if request.Method == "POST" {
-		body, _ := ioutil.ReadAll(reader)
+		// This works, because ReadRequest method modify buffer and strips all headers, leaving only body
+		if isChunked {
+			body, _ = ioutil.ReadAll(httputil.NewChunkedReader(reader))
+		} else {
+			body, _ = ioutil.ReadAll(reader)
+		}
+
 		bodyBuf := bytes.NewBuffer(body)
+
 		request.Body = ioutil.NopCloser(bodyBuf)
 		request.ContentLength = int64(bodyBuf.Len())
 	}
