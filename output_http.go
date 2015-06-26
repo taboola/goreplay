@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"bytes"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"strings"
 	"sync/atomic"
@@ -19,8 +21,8 @@ func (e *RedirectNotAllowed) Error() string {
 }
 
 // customCheckRedirect disables redirects https://github.com/buger/gor/pull/15
-func customCheckRedirect(req *http.Request, via []*http.Request) error {
-	if len(via) >= 0 {
+func (o *HTTPOutput) customCheckRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= o.redirectLimit {
 		return new(RedirectNotAllowed)
 	}
 	return nil
@@ -28,10 +30,34 @@ func customCheckRedirect(req *http.Request, via []*http.Request) error {
 
 // ParseRequest in []byte returns a http request or an error
 func ParseRequest(data []byte) (request *http.Request, err error) {
+	var body []byte
+
+	// Test if request have Transfer-Encoding: chunked
+	isChunked := bytes.Contains(data, []byte(": chunked\r\n"))
+
 	buf := bytes.NewBuffer(data)
 	reader := bufio.NewReader(buf)
 
+	// ReadRequest does not read POST bodies, we have to do it by ourseves
 	request, err = http.ReadRequest(reader)
+
+	if err != nil {
+		return
+	}
+
+	if request.Method == "POST" {
+		// This works, because ReadRequest method modify buffer and strips all headers, leaving only body
+		if isChunked {
+			body, _ = ioutil.ReadAll(httputil.NewChunkedReader(reader))
+		} else {
+			body, _ = ioutil.ReadAll(reader)
+		}
+
+		bodyBuf := bytes.NewBuffer(body)
+
+		request.Body = ioutil.NopCloser(bodyBuf)
+		request.ContentLength = int64(bodyBuf.Len())
+	}
 
 	return
 }
@@ -39,12 +65,18 @@ func ParseRequest(data []byte) (request *http.Request, err error) {
 const InitialDynamicWorkers = 10
 
 type HTTPOutput struct {
+	// Keep this as first element of struct because it guarantees 64bit
+	// alignment. atomic.* functions crash on 32bit machines if operand is not
+	// aligned at 64bit. See https://github.com/golang/go/issues/599
+	activeWorkers int64
+
 	address string
 	limit   int
 	queue   chan []byte
 
-	activeWorkers int64
-	needWorker    chan int
+	redirectLimit int
+
+	needWorker chan int
 
 	urlRegexp            HTTPUrlRegexp
 	headerFilters        HTTPHeaderFilters
@@ -59,7 +91,7 @@ type HTTPOutput struct {
 	queueStats *GorStat
 }
 
-func NewHTTPOutput(address string, headers HTTPHeaders, methods HTTPMethods, urlRegexp HTTPUrlRegexp, headerFilters HTTPHeaderFilters, headerHashFilters HTTPHeaderHashFilters, elasticSearchAddr string, outputHTTPUrlRewrite UrlRewriteMap) io.Writer {
+func NewHTTPOutput(address string, headers HTTPHeaders, methods HTTPMethods, urlRegexp HTTPUrlRegexp, headerFilters HTTPHeaderFilters, headerHashFilters HTTPHeaderHashFilters, elasticSearchAddr string, outputHTTPUrlRewrite UrlRewriteMap, outputHTTPRedirects int) io.Writer {
 
 	o := new(HTTPOutput)
 
@@ -70,6 +102,8 @@ func NewHTTPOutput(address string, headers HTTPHeaders, methods HTTPMethods, url
 	o.address = address
 	o.headers = headers
 	o.methods = methods
+
+	o.redirectLimit = Settings.outputHTTPRedirects
 
 	o.urlRegexp = urlRegexp
 	o.headerFilters = headerFilters
@@ -116,7 +150,7 @@ func (o *HTTPOutput) WorkerMaster() {
 
 func (o *HTTPOutput) Worker() {
 	client := &http.Client{
-		CheckRedirect: customCheckRedirect,
+		CheckRedirect: o.customCheckRedirect,
 	}
 
 	death_count := 0

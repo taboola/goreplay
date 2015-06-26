@@ -2,8 +2,11 @@ package main
 
 import (
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	_ "strings"
 	"sync"
 	"testing"
 	"time"
@@ -11,7 +14,7 @@ import (
 
 func startHTTP(cb func(*http.Request)) net.Listener {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		go cb(r)
+		cb(r)
 	})
 
 	listener, _ := net.Listen("tcp", ":0")
@@ -60,10 +63,20 @@ func TestHTTPOutput(t *testing.T) {
 			t.Error("Wrong method")
 		}
 
+		if req.Method == "POST" {
+			defer req.Body.Close()
+			body, _ := ioutil.ReadAll(req.Body)
+
+			if string(body) != "a=1&b=2" {
+				buf, _ := httputil.DumpRequest(req, true)
+				t.Error("Wrong POST body:", string(buf))
+			}
+		}
+
 		wg.Done()
 	})
 
-	output := NewHTTPOutput(listener.Addr().String(), headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{})
+	output := NewHTTPOutput(listener.Addr().String(), headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{}, 0)
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
@@ -76,6 +89,42 @@ func TestHTTPOutput(t *testing.T) {
 		input.EmitOPTIONS()
 		input.EmitGET()
 	}
+
+	wg.Wait()
+
+	close(quit)
+}
+
+func TestHTTPOutputChunkedEncoding(t *testing.T) {
+	wg := new(sync.WaitGroup)
+	quit := make(chan int)
+
+	input := NewTestInput()
+
+	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
+	methods := HTTPMethods{"GET", "PUT", "POST"}
+
+	listener := startHTTP(func(req *http.Request) {
+		defer req.Body.Close()
+		body, _ := ioutil.ReadAll(req.Body)
+
+		if string(body) != "Wikipedia in\r\n\r\nchunks." {
+			buf, _ := httputil.DumpRequest(req, true)
+			t.Error("Wrong POST body:", buf, body, []byte("Wikipedia in\r\n\r\nchunks."))
+		}
+
+		wg.Done()
+	})
+
+	output := NewHTTPOutput(listener.Addr().String(), headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{}, 0)
+
+	Plugins.Inputs = []io.Reader{input}
+	Plugins.Outputs = []io.Writer{output}
+
+	go Start(quit)
+
+	wg.Add(1)
+	input.EmitChunkedPOST()
 
 	wg.Wait()
 
@@ -96,7 +145,7 @@ func BenchmarkHTTPOutput(b *testing.B) {
 		wg.Done()
 	})
 
-	output := NewHTTPOutput(listener.Addr().String(), headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{})
+	output := NewHTTPOutput(listener.Addr().String(), headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{}, 0)
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}

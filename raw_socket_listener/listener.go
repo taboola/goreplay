@@ -61,11 +61,12 @@ func (t *Listener) listen() {
 
 func (t *Listener) readRAWSocket() {
     conn, e := net.ListenPacket("ip4:tcp", t.addr)
-    defer conn.Close()
 
     if e != nil {
         log.Fatal(e)
     }
+
+    defer conn.Close()
 
     buf := make([]byte, 4096*2)
 
