@@ -30,7 +30,7 @@ func (i *DummyInput) emit() {
 	for {
 		select {
 		case <-ticker.C:
-			i.data <- []byte("GET / HTTP/1.1\r\n\r\n")
+			i.data <- []byte("POST /pub/WWW/å HTTP/1.1\nHost: www.w3.org\r\n\r\na=1&b=2")
 		}
 	}
 }
