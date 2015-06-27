@@ -22,7 +22,7 @@ dbench:
 
 # Used mainly for debugging, because docker container do not have access to parent machine ports
 drun:
-	docker run -v `pwd`:/gopath/src/gor -t -i gor go run $(SOURCE) --input-modifier="./examples/echo_modifier.sh" --input-dummy=0 --output-http="http://localhost:9000"  --verbose
+	docker run -v `pwd`:/gopath/src/gor -t -i gor go run $(SOURCE) --input-modifier="bash ./examples/echo_modifier.sh" --input-dummy=0 --output-http="http://localhost:9000"  --verbose
 
 dbash:
 	docker run -v `pwd`:/gopath/src/gor -t -i gor /bin/bash

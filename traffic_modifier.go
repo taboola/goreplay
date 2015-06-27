@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+    "strings"
 )
 
 type TrafficModifier struct {
@@ -26,7 +27,8 @@ func NewTrafficModifier(plugin interface{}, command string) io.Reader {
 	m.command = command
 	m.data = make(chan []byte)
 
-	cmd := exec.Command(command)
+    commands := strings.Split(command, " ")
+	cmd := exec.Command(commands[0], commands[1:]...)
 
 	m.Stdout, _ = cmd.StdoutPipe()
 	m.Stdin, _ = cmd.StdinPipe()
