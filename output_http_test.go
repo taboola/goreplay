@@ -12,9 +12,9 @@ import (
 	"time"
 )
 
-func startHTTP(cb func(*http.Request)) net.Listener {
+func startHTTP(cb func(http.ResponseWriter, *http.Request)) net.Listener {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cb(r)
+		cb(w, r)
 	})
 
 	listener, _ := net.Listen("tcp", ":0")
@@ -54,7 +54,7 @@ func TestHTTPOutput(t *testing.T) {
 	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
 	methods := HTTPMethods{"GET", "PUT", "POST"}
 
-	listener := startHTTP(func(req *http.Request) {
+	listener := startHTTP(func(w http.ResponseWriter, req *http.Request) {
 		if req.Header.Get("User-Agent") != "Gor" {
 			t.Error("Wrong header")
 		}
@@ -104,7 +104,7 @@ func TestHTTPOutputChunkedEncoding(t *testing.T) {
 	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
 	methods := HTTPMethods{"GET", "PUT", "POST"}
 
-	listener := startHTTP(func(req *http.Request) {
+	listener := startHTTP(func(w http.ResponseWriter, req *http.Request) {
 		defer req.Body.Close()
 		body, _ := ioutil.ReadAll(req.Body)
 
@@ -140,7 +140,7 @@ func BenchmarkHTTPOutput(b *testing.B) {
 	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
 	methods := HTTPMethods{"GET", "PUT", "POST"}
 
-	listener := startHTTP(func(req *http.Request) {
+	listener := startHTTP(func(w http.ResponseWriter, req *http.Request) {
 		time.Sleep(50 * time.Millisecond)
 		wg.Done()
 	})

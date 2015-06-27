@@ -13,7 +13,7 @@ func TestRAWInput(t *testing.T) {
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
-	listener := startHTTP(func(req *http.Request) {})
+	listener := startHTTP(func(w http.ResponseWriter, req *http.Request) {})
 
 	input := NewRAWInput(listener.Addr().String())
 	output := NewTestOutput(func(data []byte) {

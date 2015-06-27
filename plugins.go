@@ -62,7 +62,6 @@ func registerPlugin(constructor interface{}, options ...interface{}) {
 		Plugins.Inputs = append(Plugins.Inputs, plugin_wrapper.(io.Reader))
 	}
 
-
 	if _, ok := plugin.(io.Writer); ok {
 		Plugins.Outputs = append(Plugins.Outputs, plugin_wrapper.(io.Writer))
 	}
