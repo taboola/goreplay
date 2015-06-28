@@ -32,6 +32,8 @@ func (i *RAWInput) Read(data []byte) (int, error) {
 func (i *RAWInput) listen(address string) {
 	address = strings.Replace(address, "[::]", "127.0.0.1", -1)
 
+	Debug("Listening for traffic on: " + address)
+
 	host, port, err := net.SplitHostPort(address)
 
 	if err != nil {

@@ -73,6 +73,7 @@ type HTTPOutput struct {
 	address string
 	limit   int
 	queue   chan []byte
+	responses   chan []byte
 
 	redirectLimit int
 
@@ -91,7 +92,7 @@ type HTTPOutput struct {
 	queueStats *GorStat
 }
 
-func NewHTTPOutput(address string, headers HTTPHeaders, methods HTTPMethods, urlRegexp HTTPUrlRegexp, headerFilters HTTPHeaderFilters, headerHashFilters HTTPHeaderHashFilters, elasticSearchAddr string, outputHTTPUrlRewrite UrlRewriteMap, outputHTTPRedirects int) io.Writer {
+func NewHTTPOutput(address string, headers HTTPHeaders, methods HTTPMethods, urlRegexp HTTPUrlRegexp, headerFilters HTTPHeaderFilters, headerHashFilters HTTPHeaderHashFilters, elasticSearchAddr string, outputHTTPUrlRewrite UrlRewriteMap, outputHTTPRedirects int) io.ReadWriter {
 
 	o := new(HTTPOutput)
 
