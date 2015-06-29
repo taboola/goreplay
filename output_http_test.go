@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
-	_ "strings"
 	"sync"
 	"testing"
 	"time"
@@ -51,9 +50,6 @@ func TestHTTPOutput(t *testing.T) {
 
 	input := NewTestInput()
 
-	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
-	methods := HTTPMethods{"GET", "PUT", "POST"}
-
 	listener := startHTTP(func(req *http.Request) {
 		if req.Header.Get("User-Agent") != "Gor" {
 			t.Error("Wrong header")
@@ -76,6 +72,9 @@ func TestHTTPOutput(t *testing.T) {
 		wg.Done()
 	})
 
+	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
+	methods := HTTPMethods{"GET", "PUT", "POST"}
+
 	output := NewHTTPOutput(listener.Addr().String(), headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{}, 0)
 
 	Plugins.Inputs = []io.Reader{input}
@@ -89,42 +88,6 @@ func TestHTTPOutput(t *testing.T) {
 		input.EmitOPTIONS()
 		input.EmitGET()
 	}
-
-	wg.Wait()
-
-	close(quit)
-}
-
-func TestHTTPOutputChunkedEncoding(t *testing.T) {
-	wg := new(sync.WaitGroup)
-	quit := make(chan int)
-
-	input := NewTestInput()
-
-	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
-	methods := HTTPMethods{"GET", "PUT", "POST"}
-
-	listener := startHTTP(func(req *http.Request) {
-		defer req.Body.Close()
-		body, _ := ioutil.ReadAll(req.Body)
-
-		if string(body) != "Wikipedia in\r\n\r\nchunks." {
-			buf, _ := httputil.DumpRequest(req, true)
-			t.Error("Wrong POST body:", buf, body, []byte("Wikipedia in\r\n\r\nchunks."))
-		}
-
-		wg.Done()
-	})
-
-	output := NewHTTPOutput(listener.Addr().String(), headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{}, 0)
-
-	Plugins.Inputs = []io.Reader{input}
-	Plugins.Outputs = []io.Writer{output}
-
-	go Start(quit)
-
-	wg.Add(1)
-	input.EmitChunkedPOST()
 
 	wg.Wait()
 

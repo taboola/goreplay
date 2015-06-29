@@ -17,6 +17,9 @@ dtest:
 dfmt:
 	docker run -v `pwd`:/gopath/src/gor -t -i gor go fmt
 
+dvet:
+	docker run -v `pwd`:/gopath/src/gor -t -i gor go vet
+
 dbench:
 	docker run -v `pwd`:/gopath/src/gor -t -i gor go test -v -run NOT_EXISTING -bench HTTP
 

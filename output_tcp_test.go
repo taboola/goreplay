@@ -44,6 +44,7 @@ func startTCP(cb func([]byte)) net.Listener {
 	go func() {
 		for {
 			conn, _ := listener.Accept()
+			defer conn.Close()
 
 			go func() {
 				reader := bufio.NewReader(conn)
@@ -59,7 +60,6 @@ func startTCP(cb func([]byte)) net.Listener {
 					}
 					cb(new_buf)
 				}
-				conn.Close()
 			}()
 		}
 	}()

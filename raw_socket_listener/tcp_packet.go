@@ -89,6 +89,7 @@ func (t *TCPPacket) String() string {
         "Window size:" + strconv.Itoa(int(t.Window)),
         "Checksum:" + strconv.Itoa(int(t.Checksum)),
 
+        "Data size:" + strconv.Itoa(len(t.Data)),
         "Data:" + string(t.Data),
     }, "\n")
 }
