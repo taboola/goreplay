@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"strings"
 	"sync/atomic"
@@ -32,9 +31,6 @@ func (o *HTTPOutput) customCheckRedirect(req *http.Request, via []*http.Request)
 func ParseRequest(data []byte) (request *http.Request, err error) {
 	var body []byte
 
-	// Test if request have Transfer-Encoding: chunked
-	isChunked := bytes.Contains(data, []byte(": chunked\r\n"))
-
 	buf := bytes.NewBuffer(data)
 	reader := bufio.NewReader(buf)
 
@@ -46,12 +42,7 @@ func ParseRequest(data []byte) (request *http.Request, err error) {
 	}
 
 	if request.Method == "POST" {
-		// This works, because ReadRequest method modify buffer and strips all headers, leaving only body
-		if isChunked {
-			body, _ = ioutil.ReadAll(httputil.NewChunkedReader(reader))
-		} else {
-			body, _ = ioutil.ReadAll(reader)
-		}
+		body, _ = ioutil.ReadAll(reader)
 
 		bodyBuf := bytes.NewBuffer(body)
 

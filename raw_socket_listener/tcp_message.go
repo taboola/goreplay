@@ -4,6 +4,10 @@ import (
     "log"
     "sort"
     "time"
+    "bytes"
+    "net/http/httputil"
+    "bufio"
+    "io/ioutil"
 )
 
 const MSG_EXPIRE = 2000 * time.Millisecond
@@ -71,6 +75,30 @@ func (t *TCPMessage) Timeout() {
     }
 }
 
+var bTransferEncodingChunked = []byte("Transfer-Encoding: chunked\r\n")
+var b2xCRLF = []byte("\r\n\r\n")
+
+// Norimalize requests with `Transfer-Encoding: chunked` header, because they have special body format
+func fixChunkedEncoding(data []byte) []byte {
+    if bytes.Equal(data[0:4], bPOST) {
+        body_idx := bytes.Index(data, b2xCRLF)
+        chunked_header_idx := bytes.Index(data[:body_idx], bTransferEncodingChunked)
+
+        if chunked_header_idx != -1 {
+            buf := bytes.NewBuffer(data[body_idx+4:])
+            // Adding 4 bytes to skip 2xCLRF
+            bodyReader := bufio.NewReader(buf)
+            body, _ := ioutil.ReadAll(httputil.NewChunkedReader(bodyReader))
+
+            // Exclude Transfer-Encoding header and append new body
+            return append(append(append(data[:chunked_header_idx],
+                          data[chunked_header_idx+len(bTransferEncodingChunked):body_idx]...), b2xCRLF...), body...)
+        }
+    }
+
+    return data
+}
+
 // Bytes sorts packets in right orders and return message content
 func (t *TCPMessage) Bytes() (output []byte) {
     sort.Sort(BySeq(t.packets))
@@ -79,7 +107,7 @@ func (t *TCPMessage) Bytes() (output []byte) {
         output = append(output, v.Data...)
     }
 
-    return
+    return fixChunkedEncoding(output)
 }
 
 // AddPacket to the message and ensure packet uniqueness
