@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"net/http/httputil"
 	"net/http/httptest"
+	_ "net/http/httputil"
 	"sync"
 	"testing"
 	"time"
@@ -65,8 +65,7 @@ func TestHTTPOutput(t *testing.T) {
 			body, _ := ioutil.ReadAll(req.Body)
 
 			if string(body) != "a=1&b=2" {
-				buf, _ := httputil.DumpRequest(req, true)
-				t.Error("Wrong POST body:", string(buf))
+				t.Error("Wrong POST body:", string(body))
 			}
 		}
 
@@ -94,7 +93,6 @@ func TestHTTPOutput(t *testing.T) {
 
 	close(quit)
 }
-
 
 func TestOutputHTTPSSL(t *testing.T) {
 	wg := new(sync.WaitGroup)

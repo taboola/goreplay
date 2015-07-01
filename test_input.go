@@ -28,7 +28,7 @@ func (i *TestInput) EmitGET() {
 }
 
 func (i *TestInput) EmitPOST() {
-	i.data <- []byte("POST /pub/WWW/ HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2\r\n\r\n")
+	i.data <- []byte("POST /pub/WWW/ HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 }
 
 func (i *TestInput) EmitChunkedPOST() {

@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto/tls"
 	"io"
 	"io/ioutil"
 	"log"
@@ -11,7 +12,6 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
-	"crypto/tls"
 )
 
 type RedirectNotAllowed struct{}
@@ -142,11 +142,11 @@ func (o *HTTPOutput) WorkerMaster() {
 
 func (o *HTTPOutput) Worker() {
 	tr := &http.Transport{
-        TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-    }
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
 
 	client := &http.Client{
-		Transport: tr,
+		Transport:     tr,
 		CheckRedirect: o.customCheckRedirect,
 	}
 
