@@ -122,8 +122,8 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 
 	// We will use it to get content of raw HTTP request
 	test_output := NewTestOutput(func(data []byte) {
-		if strings.Contains(string(data), "Expect: 100-continue") {
-			t.Error("Should not contain 100-continue header")
+		if strings.Contains(string(data), "Transfer-Encoding: chunked") {
+			t.Error("Should not contain chunked header")
 		}
 		wg.Done()
 	})

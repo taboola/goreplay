@@ -28,11 +28,11 @@ func (i *TestInput) EmitGET() {
 }
 
 func (i *TestInput) EmitPOST() {
-	i.data <- []byte("POST /pub/WWW/ HTTP/1.1\nHost: www.w3.org\r\n\r\na=1&b=2")
+	i.data <- []byte("POST /pub/WWW/ HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2\r\n\r\n")
 }
 
 func (i *TestInput) EmitChunkedPOST() {
-	i.data <- []byte("POST /pub/WWW/ HTTP/1.1\nHost: www.w3.org\nTransfer-Encoding: chunked\r\n\r\n4\r\nWiki\r\n5\r\npedia\r\ne\r\n in\r\n\r\nchunks.\r\n0\r\n\r\n")
+	i.data <- []byte("POST /pub/WWW/ HTTP/1.1\r\nHost: www.w3.org\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nWiki\r\n5\r\npedia\r\ne\r\n in\r\n\r\nchunks.\r\n0\r\n\r\n")
 }
 
 func (i *TestInput) EmitFile() {

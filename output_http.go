@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+	"crypto/tls"
 )
 
 type RedirectNotAllowed struct{}
@@ -140,7 +141,12 @@ func (o *HTTPOutput) WorkerMaster() {
 }
 
 func (o *HTTPOutput) Worker() {
+	tr := &http.Transport{
+        TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+    }
+
 	client := &http.Client{
+		Transport: tr,
 		CheckRedirect: o.customCheckRedirect,
 	}
 

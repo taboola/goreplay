@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"net/http/httptest"
 	"sync"
 	"testing"
 	"time"
@@ -91,6 +92,37 @@ func TestHTTPOutput(t *testing.T) {
 
 	wg.Wait()
 
+	close(quit)
+}
+
+
+func TestOutputHTTPSSL(t *testing.T) {
+	wg := new(sync.WaitGroup)
+	quit := make(chan int)
+
+	// Origing and Replay server initialization
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		wg.Done()
+	}))
+
+	input := NewTestInput()
+
+	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
+	methods := HTTPMethods{"GET", "PUT", "POST"}
+
+	http_output := NewHTTPOutput(server.URL, headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{}, 0)
+
+	Plugins.Inputs = []io.Reader{input}
+	Plugins.Outputs = []io.Writer{http_output}
+
+	go Start(quit)
+
+	wg.Add(2)
+
+	input.EmitPOST()
+	input.EmitGET()
+
+	wg.Wait()
 	close(quit)
 }
 

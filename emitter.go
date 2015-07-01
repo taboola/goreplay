@@ -27,8 +27,6 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 	for {
 		nr, er := src.Read(buf)
 		if nr > 0 && len(buf) > nr {
-			Debug("Sending", src, ": ", string(buf[0:nr]))
-
 			if Settings.splitOutput {
 				// Simple round robin
 				writers[wIndex].Write(buf[0:nr])
