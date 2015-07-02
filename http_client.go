@@ -7,6 +7,9 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"bytes"
+	"bufio"
+	"errors"
 )
 
 var defaultPorts = map[string]string{
@@ -14,13 +17,20 @@ var defaultPorts = map[string]string{
 	"https": "443",
 }
 
+type HTTPClientConfig struct {
+	FollowRedirects int
+	Debug bool
+}
+
 type HTTPClient struct {
 	baseURL *url.URL
 	conn    net.Conn
 	respBuf []byte
+	config *HTTPClientConfig
+	redirectsCount int
 }
 
-func NewHTTPClient(baseURL string) *HTTPClient {
+func NewHTTPClient(baseURL string, config *HTTPClientConfig) *HTTPClient {
 	if !strings.HasPrefix(baseURL, "http") {
 		baseURL = "http://" + baseURL
 	}
@@ -28,6 +38,7 @@ func NewHTTPClient(baseURL string) *HTTPClient {
 	client := new(HTTPClient)
 	client.baseURL, _ = url.Parse(baseURL)
 	client.respBuf = make([]byte, 4096*10)
+	client.config = config
 
 	if !strings.Contains(client.baseURL.Host, ":") {
 		client.baseURL.Host += ":" + defaultPorts[client.baseURL.Scheme]
@@ -74,6 +85,26 @@ func (c *HTTPClient) isAlive() bool {
 	return true
 }
 
+func header(payload []byte, name []byte) ([]byte, error) {
+	buf := bytes.NewBuffer(payload)
+	reader := bufio.NewReader(buf)
+
+	// Skip status line
+	reader.ReadLine()
+
+	for {
+		line, _, err := reader.ReadLine()
+
+		if err != nil {
+			return nil, errors.New("Header not found")
+		}
+
+		if bytes.HasPrefix(line, name) {
+			return bytes.Split(line, []byte(": "))[1], nil
+		}
+	}
+}
+
 func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 	if c.conn == nil || !c.isAlive() {
 		Debug("Connecting:", c.baseURL)
@@ -83,6 +114,11 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 	timeout := time.Now().Add(5 * time.Second)
 
 	c.conn.SetWriteDeadline(timeout)
+
+	if c.config.Debug {
+		Debug("Sending:", string(data))
+	}
+
 	if _, err = c.conn.Write(data); err != nil {
 		Debug("Write error:", err, c.baseURL)
 		return
@@ -95,6 +131,30 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 		Debug("READ ERRORR!", err, c.conn)
 		return
 	}
+
+	if c.config.Debug {
+		Debug("Received:", string(c.respBuf[:n]))
+	}
+
+	if c.config.FollowRedirects > 0 && c.redirectsCount < c.config.FollowRedirects {
+		status := c.respBuf[9:12]
+
+		// 3xx requests
+		if status[0] == '3' {
+			c.redirectsCount += 1
+
+			location, _ := header(c.respBuf[:n], []byte("Location:"))
+			redirectPayload := []byte("GET " + string(location) + " HTTP/1.1\r\n\r\n")
+
+			if c.config.Debug {
+				Debug("Redirecting to: " + string(location))
+			}
+
+			return c.Send(redirectPayload)
+		}
+	}
+
+	c.redirectsCount = 0
 
 	return c.respBuf[:n], err
 }
