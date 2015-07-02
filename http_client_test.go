@@ -2,11 +2,13 @@ package main
 
 import (
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
 	"sync"
 	"testing"
+	_ "time"
 )
 
 func TestHTTPClientURLPort(t *testing.T) {
@@ -23,6 +25,11 @@ func TestHTTPClientURLPort(t *testing.T) {
 	c3 := NewHTTPClient("https://example.com:1")
 	if c3.baseURL.String() != "https://example.com:1" {
 		t.Error("Sould use specified port:", c3.baseURL.String())
+	}
+
+	c4 := NewHTTPClient("example.com")
+	if c4.baseURL.String() != "http://example.com:80" {
+		t.Error("Sould add default protocol:", c4.baseURL.String())
 	}
 }
 
@@ -108,6 +115,69 @@ func TestHTTPClientHTTPSSend(t *testing.T) {
 	client.Send(POST_payload)
 	client.Send(POST_CHUNKED_payload)
 	client.Send(POST_payload)
+
+	wg.Wait()
+}
+
+func TestHTTPClientServerInstantDisconnect(t *testing.T) {
+	wg := new(sync.WaitGroup)
+
+	GET_payload := []byte("GET / HTTP/1.1\r\n\r\n")
+
+	ln, _ := net.Listen("tcp", ":0")
+
+	go func() {
+		for {
+			conn, _ := ln.Accept()
+			conn.Close()
+
+			wg.Done()
+		}
+	}()
+
+	client := NewHTTPClient(ln.Addr().String())
+
+	wg.Add(2)
+	client.Send(GET_payload)
+	client.Send(GET_payload)
+
+	wg.Wait()
+}
+
+func TestHTTPClientServerNoKeepAlive(t *testing.T) {
+	wg := new(sync.WaitGroup)
+
+	GET_payload := []byte("GET / HTTP/1.1\r\n\r\n")
+
+	ln, _ := net.Listen("tcp", ":0")
+
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				// handle error
+			}
+
+			buf := make([]byte, 4096)
+			reqLen, err := conn.Read(buf)
+			if err != nil {
+				t.Error("Error reading:", err.Error())
+			}
+			Debug("Received: ", string(buf[0:reqLen]))
+			conn.Write([]byte("OK"))
+
+			// No keep-alive connections
+			conn.Close()
+
+			wg.Done()
+		}
+	}()
+
+	client := NewHTTPClient(ln.Addr().String())
+
+	wg.Add(2)
+	client.Send(GET_payload)
+	client.Send(GET_payload)
 
 	wg.Wait()
 }
