@@ -75,7 +75,7 @@ func TestHTTPOutput(t *testing.T) {
 	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
 	methods := HTTPMethods{"GET", "PUT", "POST"}
 
-	output := NewHTTPOutput(listener.Addr().String(), headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{}, 0)
+	output := NewHTTPOutput(listener.Addr().String(), &HTTPOutputConfig{headers: headers, methods: methods})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
@@ -104,11 +104,7 @@ func TestOutputHTTPSSL(t *testing.T) {
 	}))
 
 	input := NewTestInput()
-
-	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
-	methods := HTTPMethods{"GET", "PUT", "POST"}
-
-	http_output := NewHTTPOutput(server.URL, headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{}, 0)
+	http_output := NewHTTPOutput(server.URL, &HTTPOutputConfig{})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{http_output}
@@ -128,17 +124,13 @@ func BenchmarkHTTPOutput(b *testing.B) {
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
-	input := NewTestInput()
-
-	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
-	methods := HTTPMethods{"GET", "PUT", "POST"}
-
 	listener := startHTTP(func(req *http.Request) {
 		time.Sleep(50 * time.Millisecond)
 		wg.Done()
 	})
 
-	output := NewHTTPOutput(listener.Addr().String(), headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{}, 0)
+	input := NewTestInput()
+	output := NewHTTPOutput(listener.Addr().String(), &HTTPOutputConfig{})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}

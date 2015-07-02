@@ -22,7 +22,7 @@ func (e *RedirectNotAllowed) Error() string {
 
 // customCheckRedirect disables redirects https://github.com/buger/gor/pull/15
 func (o *HTTPOutput) customCheckRedirect(req *http.Request, via []*http.Request) error {
-	if len(via) >= o.redirectLimit {
+	if len(via) >= o.config.redirectLimit {
 		return new(RedirectNotAllowed)
 	}
 	return nil
@@ -56,6 +56,23 @@ func ParseRequest(data []byte) (request *http.Request, err error) {
 
 const InitialDynamicWorkers = 10
 
+type HTTPOutputConfig struct {
+	redirectLimit int
+
+	urlRegexp            HTTPUrlRegexp
+	urlRewrite           UrlRewriteMap
+	headerFilters        HTTPHeaderFilters
+	headerHashFilters    HTTPHeaderHashFilters
+
+	stats bool
+	workers int
+
+	headers HTTPHeaders
+	methods HTTPMethods
+
+	elasticSearch string
+}
+
 type HTTPOutput struct {
 	// Keep this as first element of struct because it guarantees 64bit
 	// alignment. atomic.* functions crash on 32bit machines if operand is not
@@ -66,24 +83,16 @@ type HTTPOutput struct {
 	limit   int
 	queue   chan []byte
 
-	redirectLimit int
-
 	needWorker chan int
 
-	urlRegexp            HTTPUrlRegexp
-	headerFilters        HTTPHeaderFilters
-	headerHashFilters    HTTPHeaderHashFilters
-	outputHTTPUrlRewrite UrlRewriteMap
-
-	headers HTTPHeaders
-	methods HTTPMethods
-
-	elasticSearch *ESPlugin
+	config *HTTPOutputConfig
 
 	queueStats *GorStat
+
+	elasticSearch *ESPlugin
 }
 
-func NewHTTPOutput(address string, headers HTTPHeaders, methods HTTPMethods, urlRegexp HTTPUrlRegexp, headerFilters HTTPHeaderFilters, headerHashFilters HTTPHeaderHashFilters, elasticSearchAddr string, outputHTTPUrlRewrite UrlRewriteMap, outputHTTPRedirects int) io.Writer {
+func NewHTTPOutput(address string, config *HTTPOutputConfig) io.Writer {
 
 	o := new(HTTPOutput)
 
@@ -92,33 +101,25 @@ func NewHTTPOutput(address string, headers HTTPHeaders, methods HTTPMethods, url
 	}
 
 	o.address = address
-	o.headers = headers
-	o.methods = methods
+	o.config = config
 
-	o.redirectLimit = Settings.outputHTTPRedirects
-
-	o.urlRegexp = urlRegexp
-	o.headerFilters = headerFilters
-	o.headerHashFilters = headerHashFilters
-	o.outputHTTPUrlRewrite = outputHTTPUrlRewrite
-
-	o.queue = make(chan []byte, 100)
-	if Settings.outputHTTPStats {
+	if o.config.stats {
 		o.queueStats = NewGorStat("output_http")
 	}
 
+	o.queue = make(chan []byte, 100)
 	o.needWorker = make(chan int, 1)
 
 	// Initial workers count
-	if Settings.outputHTTPWorkers == -1 {
+	if o.config.workers == 0 {
 		o.needWorker <- InitialDynamicWorkers
 	} else {
-		o.needWorker <- Settings.outputHTTPWorkers
+		o.needWorker <- o.config.workers
 	}
 
-	if elasticSearchAddr != "" {
+	if o.config.elasticSearch != "" {
 		o.elasticSearch = new(ESPlugin)
-		o.elasticSearch.Init(elasticSearchAddr)
+		o.elasticSearch.Init(o.config.elasticSearch)
 	}
 
 	go o.WorkerMaster()
@@ -134,7 +135,7 @@ func (o *HTTPOutput) WorkerMaster() {
 		}
 
 		// Disable dynamic scaling if workers poll fixed size
-		if Settings.outputHTTPWorkers != -1 {
+		if o.config.workers != 0 {
 			return
 		}
 	}
@@ -161,7 +162,7 @@ func (o *HTTPOutput) Worker() {
 			death_count = 0
 		case <-time.After(time.Millisecond * 100):
 			// When dynamic scaling enabled workers die after 2s of inactivity
-			if Settings.outputHTTPWorkers == -1 {
+			if o.config.workers == 0 {
 				death_count += 1
 			} else {
 				continue
@@ -186,11 +187,11 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 
 	o.queue <- buf
 
-	if Settings.outputHTTPStats {
+	if o.config.stats {
 		o.queueStats.Write(len(o.queue))
 	}
 
-	if Settings.outputHTTPWorkers == -1 {
+	if o.config.workers == 0 {
 		workersCount := atomic.LoadInt64(&o.activeWorkers)
 
 		if len(o.queue) > int(workersCount) {
@@ -209,16 +210,16 @@ func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 		return
 	}
 
-	if len(o.methods) > 0 && !o.methods.Contains(request.Method) {
+	if len(o.config.methods) > 0 && !o.config.methods.Contains(request.Method) {
 		return
 	}
 
-	if !(o.urlRegexp.Good(request) && o.headerFilters.Good(request) && o.headerHashFilters.Good(request)) {
+	if !(o.config.urlRegexp.Good(request) && o.config.headerFilters.Good(request) && o.config.headerHashFilters.Good(request)) {
 		return
 	}
 
 	// Rewrite the path as necessary
-	request.URL.Path = o.outputHTTPUrlRewrite.Rewrite(request.URL.Path)
+	request.URL.Path = o.config.urlRewrite.Rewrite(request.URL.Path)
 
 	// Change HOST of original request
 	URL := o.address + request.URL.Path + "?" + request.URL.RawQuery
@@ -226,7 +227,7 @@ func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 	request.RequestURI = ""
 	request.URL, _ = url.ParseRequestURI(URL)
 
-	for _, header := range o.headers {
+	for _, header := range o.config.headers {
 		SetHeader(request, header.Name, header.Value)
 	}
 

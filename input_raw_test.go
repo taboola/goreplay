@@ -82,9 +82,7 @@ func TestInputRAW100Expect(t *testing.T) {
 	})
 	replay_address := listener.Addr().String()
 
-	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
-	methods := HTTPMethods{"GET", "PUT", "POST"}
-	http_output := NewHTTPOutput(replay_address, headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{}, 0)
+	http_output := NewHTTPOutput(replay_address, &HTTPOutputConfig{})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{test_output, http_output}
@@ -141,9 +139,7 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 	})
 	replay_address := listener.Addr().String()
 
-	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
-	methods := HTTPMethods{"GET", "PUT", "POST"}
-	http_output := NewHTTPOutput(replay_address, headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{}, 0)
+	http_output := NewHTTPOutput(replay_address, &HTTPOutputConfig{})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{test_output, http_output}
