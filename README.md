@@ -27,6 +27,8 @@ sudo gor --input-raw :80 --output-tcp replay.local:28020
 gor --input-tcp replay.local:28020 --output-http http://staging.com
 ```
 
+Since Gor use raw sockets to capture traffic it require `sudo` access. Alternatively you can allow access to raw sockets like this: `sudo setcap CAP_NET_RAW=ep gor`
+
 ### Using 1 Gor instance for both listening and replaying
 It's recommended to use separate server for replaying traffic, but if you have enough CPU resources you can use single Gor instance.
 
