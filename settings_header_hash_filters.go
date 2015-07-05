@@ -3,14 +3,12 @@ package main
 import (
 	"errors"
 	"fmt"
-	"hash/fnv"
-	"net/http"
 	"strconv"
 	"strings"
 )
 
 type headerHashFilter struct {
-	name    string
+	name    []byte
 	maxHash uint32
 }
 
@@ -44,23 +42,9 @@ func (h *HTTPHeaderHashFilters) Set(value string) error {
 	}
 
 	var f headerHashFilter
-	f.name = valArr[0]
+	f.name = []byte(valArr[0])
 	f.maxHash = (uint32)(num * (((uint64)(2 << 31)) / den))
 	*h = append(*h, f)
 
 	return nil
-}
-
-func (h *HTTPHeaderHashFilters) Good(req *http.Request) bool {
-	for _, f := range *h {
-		if req.Header.Get(f.name) == "" {
-			return false
-		}
-		hasher := fnv.New32a()
-		hasher.Write([]byte(req.Header.Get(f.name)))
-		if hasher.Sum32() > f.maxHash {
-			return false
-		}
-	}
-	return true
 }

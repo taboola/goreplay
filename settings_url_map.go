@@ -9,7 +9,7 @@ import (
 
 type urlRewrite struct {
 	src    *regexp.Regexp
-	target string
+	target []byte
 }
 
 type UrlRewriteMap []urlRewrite
@@ -27,15 +27,6 @@ func (r *UrlRewriteMap) Set(value string) error {
 	if err != nil {
 		return err
 	}
-	*r = append(*r, urlRewrite{src: regexp, target: valArr[1]})
+	*r = append(*r, urlRewrite{src: regexp, target: []byte(valArr[1]) })
 	return nil
-}
-
-func (r *UrlRewriteMap) Rewrite(path string) string {
-	for _, f := range *r {
-		if f.src.MatchString(path) {
-			path = f.src.ReplaceAllString(path, f.target)
-		}
-	}
-	return path
 }

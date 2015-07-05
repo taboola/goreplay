@@ -3,13 +3,12 @@ package main
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"regexp"
 	"strings"
 )
 
 type headerFilter struct {
-	name   string
+	name   []byte
 	regexp *regexp.Regexp
 }
 
@@ -29,16 +28,7 @@ func (h *HTTPHeaderFilters) Set(value string) error {
 		return err
 	}
 
-	*h = append(*h, headerFilter{name: valArr[0], regexp: r})
+	*h = append(*h, headerFilter{name: []byte(valArr[0]), regexp: r})
 
 	return nil
-}
-
-func (h *HTTPHeaderFilters) Good(req *http.Request) bool {
-	for _, f := range *h {
-		if !f.regexp.MatchString(req.Header.Get(f.name)) {
-			return false
-		}
-	}
-	return true
 }

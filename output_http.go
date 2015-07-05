@@ -62,8 +62,6 @@ type HTTPOutputConfig struct {
 	stats bool
 	workers int
 
-	modifier HTTPModifierConfig
-
 	elasticSearch string
 }
 
@@ -204,26 +202,11 @@ func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 		return
 	}
 
-	if len(o.config.modifier.methods) > 0 && !o.config.modifier.methods.Contains(request.Method) {
-		return
-	}
-
-	if !(o.config.modifier.urlRegexp.Good(request) && o.config.modifier.headerFilters.Good(request) && o.config.modifier.headerHashFilters.Good(request)) {
-		return
-	}
-
-	// Rewrite the path as necessary
-	request.URL.Path = o.config.modifier.urlRewrite.Rewrite(request.URL.Path)
-
 	// Change HOST of original request
 	URL := o.address + request.URL.Path + "?" + request.URL.RawQuery
 
 	request.RequestURI = ""
 	request.URL, _ = url.ParseRequestURI(URL)
-
-	for _, header := range o.config.modifier.headers {
-		SetHeader(request, header.Name, header.Value)
-	}
 
 	start := time.Now()
 	resp, err := client.Do(request)

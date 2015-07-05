@@ -79,3 +79,9 @@ func SetPath(payload, path []byte) []byte {
 
     return byteutils.Replace(payload, start, start+end, path)
 }
+
+func Method(payload []byte) []byte {
+    end := bytes.IndexByte(payload, ' ')
+
+    return payload[:end]
+}

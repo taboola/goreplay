@@ -24,27 +24,6 @@ func startHTTP(cb func(*http.Request)) net.Listener {
 	return listener
 }
 
-func TestSetHeader(t *testing.T) {
-
-	req := &http.Request{
-		Header: make(map[string][]string),
-	}
-	req.Host = "test.com"
-
-	SetHeader(req, "Host", "test2.com")
-
-	if req.Host != "test2.com" {
-		t.Error("Expected test2.com - got ", req.Host)
-	}
-
-	SetHeader(req, "test_header", "test_value")
-
-	if req.Header.Get("test_header") != "test_value" {
-		t.Error("Wrong header value found")
-	}
-
-}
-
 func TestHTTPOutput(t *testing.T) {
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
@@ -73,10 +52,10 @@ func TestHTTPOutput(t *testing.T) {
 	})
 
 	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
-	methods := HTTPMethods{"GET", "PUT", "POST"}
-	modifierConfig := HTTPModifierConfig{headers: headers, methods: methods}
+	methods := HTTPMethods{[]byte("GET"), []byte("PUT"), []byte("POST")}
+	Settings.modifierConfig = HTTPModifierConfig{headers: headers, methods: methods}
 
-	output := NewHTTPOutput(listener.Addr().String(), &HTTPOutputConfig{modifier: modifierConfig})
+	output := NewHTTPOutput(listener.Addr().String(), &HTTPOutputConfig{})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
@@ -84,7 +63,7 @@ func TestHTTPOutput(t *testing.T) {
 	go Start(quit)
 
 	for i := 0; i < 100; i++ {
-		wg.Add(2)
+		wg.Add(2) // OPTIONS should be ignored
 		input.EmitPOST()
 		input.EmitOPTIONS()
 		input.EmitGET()
@@ -93,6 +72,8 @@ func TestHTTPOutput(t *testing.T) {
 	wg.Wait()
 
 	close(quit)
+
+	Settings.modifierConfig = HTTPModifierConfig{}
 }
 
 func TestOutputHTTPSSL(t *testing.T) {
