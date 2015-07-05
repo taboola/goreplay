@@ -59,16 +59,10 @@ const InitialDynamicWorkers = 10
 type HTTPOutputConfig struct {
 	redirectLimit int
 
-	urlRegexp            HTTPUrlRegexp
-	urlRewrite           UrlRewriteMap
-	headerFilters        HTTPHeaderFilters
-	headerHashFilters    HTTPHeaderHashFilters
-
 	stats bool
 	workers int
 
-	headers HTTPHeaders
-	methods HTTPMethods
+	modifier HTTPModifierConfig
 
 	elasticSearch string
 }
@@ -210,16 +204,16 @@ func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 		return
 	}
 
-	if len(o.config.methods) > 0 && !o.config.methods.Contains(request.Method) {
+	if len(o.config.modifier.methods) > 0 && !o.config.modifier.methods.Contains(request.Method) {
 		return
 	}
 
-	if !(o.config.urlRegexp.Good(request) && o.config.headerFilters.Good(request) && o.config.headerHashFilters.Good(request)) {
+	if !(o.config.modifier.urlRegexp.Good(request) && o.config.modifier.headerFilters.Good(request) && o.config.modifier.headerHashFilters.Good(request)) {
 		return
 	}
 
 	// Rewrite the path as necessary
-	request.URL.Path = o.config.urlRewrite.Rewrite(request.URL.Path)
+	request.URL.Path = o.config.modifier.urlRewrite.Rewrite(request.URL.Path)
 
 	// Change HOST of original request
 	URL := o.address + request.URL.Path + "?" + request.URL.RawQuery
@@ -227,7 +221,7 @@ func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
 	request.RequestURI = ""
 	request.URL, _ = url.ParseRequestURI(URL)
 
-	for _, header := range o.config.headers {
+	for _, header := range o.config.modifier.headers {
 		SetHeader(request, header.Name, header.Value)
 	}
 
