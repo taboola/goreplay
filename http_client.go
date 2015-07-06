@@ -2,12 +2,12 @@ package main
 
 import (
 	"crypto/tls"
+	"github.com/buger/gor/proto"
 	"io"
 	"net"
 	"net/url"
 	"strings"
 	"time"
-	"github.com/buger/gor/proto"
 )
 
 var defaultPorts = map[string]string{
@@ -17,14 +17,14 @@ var defaultPorts = map[string]string{
 
 type HTTPClientConfig struct {
 	FollowRedirects int
-	Debug bool
+	Debug           bool
 }
 
 type HTTPClient struct {
-	baseURL *url.URL
-	conn    net.Conn
-	respBuf []byte
-	config *HTTPClientConfig
+	baseURL        *url.URL
+	conn           net.Conn
+	respBuf        []byte
+	config         *HTTPClientConfig
 	redirectsCount int
 }
 

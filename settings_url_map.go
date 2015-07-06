@@ -27,6 +27,6 @@ func (r *UrlRewriteMap) Set(value string) error {
 	if err != nil {
 		return err
 	}
-	*r = append(*r, urlRewrite{src: regexp, target: []byte(valArr[1]) })
+	*r = append(*r, urlRewrite{src: regexp, target: []byte(valArr[1])})
 	return nil
 }

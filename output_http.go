@@ -12,7 +12,7 @@ const InitialDynamicWorkers = 10
 type HTTPOutputConfig struct {
 	redirectLimit int
 
-	stats bool
+	stats   bool
 	workers int
 
 	elasticSearch string
@@ -87,7 +87,7 @@ func (o *HTTPOutput) WorkerMaster() {
 func (o *HTTPOutput) Worker() {
 	client := NewHTTPClient(o.address, &HTTPClientConfig{
 		FollowRedirects: o.config.redirectLimit,
-		Debug: o.config.Debug,
+		Debug:           o.config.Debug,
 	})
 
 	death_count := 0
@@ -151,7 +151,7 @@ func (o *HTTPOutput) sendRequest(client *HTTPClient, request []byte) {
 	}
 
 	if o.elasticSearch != nil {
-	 	o.elasticSearch.ResponseAnalyze(request, resp, start, stop)
+		o.elasticSearch.ResponseAnalyze(request, resp, start, stop)
 	}
 }
 

@@ -26,27 +26,27 @@ type ESPlugin struct {
 }
 
 type ESRequestResponse struct {
-	ReqUrl               []byte         `json:"Req_URL"`
-	ReqMethod            []byte         `json:"Req_Method"`
-	ReqUserAgent         []byte         `json:"Req_User-Agent"`
-	ReqAcceptLanguage    []byte         `json:"Req_Accept-Language,omitempty"`
-	ReqAccept            []byte         `json:"Req_Accept,omitempty"`
-	ReqAcceptEncoding    []byte         `json:"Req_Accept-Encoding,omitempty"`
-	ReqIfModifiedSince   []byte         `json:"Req_If-Modified-Since,omitempty"`
-	ReqConnection        []byte         `json:"Req_Connection,omitempty"`
-	ReqCookies           []byte         `json:"Req_Cookies,omitempty"`
-	RespStatus           []byte         `json:"Resp_Status"`
-	RespStatusCode       []byte          `json:"Resp_Status-Code"`
-	RespProto            []byte         `json:"Resp_Proto,omitempty"`
-	RespContentLength    []byte         `json:"Resp_Content-Length,omitempty"`
-	RespContentType      []byte         `json:"Resp_Content-Type,omitempty"`
-	RespTransferEncoding []byte         `json:"Resp_Transfer-Encoding,omitempty"`
-	RespContentEncoding  []byte         `json:"Resp_Content-Encoding,omitempty"`
-	RespExpires          []byte         `json:"Resp_Expires,omitempty"`
-	RespCacheControl     []byte         `json:"Resp_Cache-Control,omitempty"`
-	RespVary             []byte         `json:"Resp_Vary,omitempty"`
-	RespSetCookie        []byte         `json:"Resp_Set-Cookie,omitempty"`
-	Rtt                  int64          `json:"RTT"`
+	ReqUrl               []byte `json:"Req_URL"`
+	ReqMethod            []byte `json:"Req_Method"`
+	ReqUserAgent         []byte `json:"Req_User-Agent"`
+	ReqAcceptLanguage    []byte `json:"Req_Accept-Language,omitempty"`
+	ReqAccept            []byte `json:"Req_Accept,omitempty"`
+	ReqAcceptEncoding    []byte `json:"Req_Accept-Encoding,omitempty"`
+	ReqIfModifiedSince   []byte `json:"Req_If-Modified-Since,omitempty"`
+	ReqConnection        []byte `json:"Req_Connection,omitempty"`
+	ReqCookies           []byte `json:"Req_Cookies,omitempty"`
+	RespStatus           []byte `json:"Resp_Status"`
+	RespStatusCode       []byte `json:"Resp_Status-Code"`
+	RespProto            []byte `json:"Resp_Proto,omitempty"`
+	RespContentLength    []byte `json:"Resp_Content-Length,omitempty"`
+	RespContentType      []byte `json:"Resp_Content-Type,omitempty"`
+	RespTransferEncoding []byte `json:"Resp_Transfer-Encoding,omitempty"`
+	RespContentEncoding  []byte `json:"Resp_Content-Encoding,omitempty"`
+	RespExpires          []byte `json:"Resp_Expires,omitempty"`
+	RespCacheControl     []byte `json:"Resp_Cache-Control,omitempty"`
+	RespVary             []byte `json:"Resp_Vary,omitempty"`
+	RespSetCookie        []byte `json:"Resp_Set-Cookie,omitempty"`
+	Rtt                  int64  `json:"RTT"`
 	Timestamp            time.Time
 }
 

@@ -29,11 +29,11 @@ type AppSettings struct {
 
 	inputRAW MultiOption
 
-	inputHTTP                   MultiOption
-	outputHTTP                  MultiOption
+	inputHTTP  MultiOption
+	outputHTTP MultiOption
 
 	outputHTTPConfig HTTPOutputConfig
-	modifierConfig HTTPModifierConfig
+	modifierConfig   HTTPModifierConfig
 }
 
 var Settings AppSettings = AppSettings{}

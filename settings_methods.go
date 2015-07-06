@@ -1,9 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
-	"bytes"
 )
 
 type HTTPMethods [][]byte
