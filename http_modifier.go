@@ -68,7 +68,8 @@ func (m *HTTPModifier) Rewrite(payload []byte) (response []byte) {
 
             hasher := fnv.New32a()
             hasher.Write(value)
-            if hasher.Sum32() > f.maxHash {
+
+            if (hasher.Sum32() % 100) >= f.percent {
                 return
             }
         }

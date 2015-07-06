@@ -9,7 +9,7 @@ import (
 
 type headerHashFilter struct {
 	name    []byte
-	maxHash uint32
+	percent uint32
 }
 
 type HTTPHeaderHashFilters []headerHashFilter
@@ -33,17 +33,9 @@ func (h *HTTPHeaderHashFilters) Set(value string) error {
 	num, _ = strconv.ParseUint(fracArr[0], 10, 64)
 	den, _ = strconv.ParseUint(fracArr[1], 10, 64)
 
-	if num < 1 || den < 1 || num > den {
-		panic("need positive numerators and denominators, with the former less than the latter.")
-	}
-
-	if den&(den-1) != 0 {
-		return errors.New("must have a denominator which is a power of two.")
-	}
-
 	var f headerHashFilter
 	f.name = []byte(valArr[0])
-	f.maxHash = (uint32)(num * (((uint64)(2 << 31)) / den))
+	f.percent = uint32((float64(num) / float64(den)) * 100)
 	*h = append(*h, f)
 
 	return nil
