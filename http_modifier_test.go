@@ -40,7 +40,7 @@ func TestHTTPModifierHeaderFilters(t *testing.T) {
 }
 
 
-func TestHTTPModifierURLRegexp(t *testing.T) {
+func TestHTTPModifierURLRewrite(t *testing.T) {
     var url, new_url []byte
 
     rewrites := UrlRewriteMap{}
@@ -91,5 +91,22 @@ func TestHTTPModifierHeaderHashFilters(t *testing.T) {
 
     if p := modifier.Rewrite(payload([]byte("Header2: 1\r\n"))); len(p) == 0 {
         t.Error("Request should pass filters")
+    }
+}
+
+func TestHTTPModifierHeaders(t *testing.T) {
+    headers := HTTPHeaders{}
+    headers.Set("Header1:1")
+    headers.Set("Host:localhost")
+
+    modifier := NewHTTPModifier(&HTTPModifierConfig{
+        headers: headers,
+    })
+
+    payload := []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+    new_payload := []byte("POST /post HTTP/1.1\r\nHeader1: 1\r\nContent-Length: 7\r\nHost: localhost\r\n\r\na=1&b=2")
+
+    if payload = modifier.Rewrite(payload); !bytes.Equal(payload, new_payload) {
+        t.Error("Should update request headers", string(payload))
     }
 }
