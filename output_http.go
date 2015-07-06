@@ -1,58 +1,11 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
-	"crypto/tls"
 	"io"
-	"io/ioutil"
 	"log"
-	"net/http"
-	"net/url"
-	"strings"
 	"sync/atomic"
 	"time"
 )
-
-type RedirectNotAllowed struct{}
-
-func (e *RedirectNotAllowed) Error() string {
-	return "Redirects not allowed"
-}
-
-// customCheckRedirect disables redirects https://github.com/buger/gor/pull/15
-func (o *HTTPOutput) customCheckRedirect(req *http.Request, via []*http.Request) error {
-	if len(via) >= o.config.redirectLimit {
-		return new(RedirectNotAllowed)
-	}
-	return nil
-}
-
-// ParseRequest in []byte returns a http request or an error
-func ParseRequest(data []byte) (request *http.Request, err error) {
-	var body []byte
-
-	buf := bytes.NewBuffer(data)
-	reader := bufio.NewReader(buf)
-
-	// ReadRequest does not read POST bodies, we have to do it by ourseves
-	request, err = http.ReadRequest(reader)
-
-	if err != nil {
-		return
-	}
-
-	if request.Method == "POST" {
-		body, _ = ioutil.ReadAll(reader)
-
-		bodyBuf := bytes.NewBuffer(body)
-
-		request.Body = ioutil.NopCloser(bodyBuf)
-		request.ContentLength = int64(bodyBuf.Len())
-	}
-
-	return
-}
 
 const InitialDynamicWorkers = 10
 
@@ -63,6 +16,8 @@ type HTTPOutputConfig struct {
 	workers int
 
 	elasticSearch string
+
+	Debug bool
 }
 
 type HTTPOutput struct {
@@ -87,10 +42,6 @@ type HTTPOutput struct {
 func NewHTTPOutput(address string, config *HTTPOutputConfig) io.Writer {
 
 	o := new(HTTPOutput)
-
-	if !strings.HasPrefix(address, "http") {
-		address = "http://" + address
-	}
 
 	o.address = address
 	o.config = config
@@ -134,14 +85,10 @@ func (o *HTTPOutput) WorkerMaster() {
 }
 
 func (o *HTTPOutput) Worker() {
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-
-	client := &http.Client{
-		Transport:     tr,
-		CheckRedirect: o.customCheckRedirect,
-	}
+	client := NewHTTPClient(o.address, &HTTPClientConfig{
+		FollowRedirects: o.config.redirectLimit,
+		Debug: o.config.Debug,
+	})
 
 	death_count := 0
 
@@ -194,53 +141,18 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 	return len(data), nil
 }
 
-func (o *HTTPOutput) sendRequest(client *http.Client, data []byte) {
-	request, err := ParseRequest(data)
-
-	if err != nil {
-		log.Println("Cannot parse request", string(data), err)
-		return
-	}
-
-	// Change HOST of original request
-	URL := o.address + request.URL.Path + "?" + request.URL.RawQuery
-
-	request.RequestURI = ""
-	request.URL, _ = url.ParseRequestURI(URL)
-
+func (o *HTTPOutput) sendRequest(client *HTTPClient, request []byte) {
 	start := time.Now()
-	resp, err := client.Do(request)
+	resp, err := client.Send(request)
 	stop := time.Now()
 
-	// We should not count Redirect as errors
-	if urlErr, ok := err.(*url.Error); ok {
-		if _, ok := urlErr.Err.(*RedirectNotAllowed); ok {
-			err = nil
-		}
-	}
-
-	if err == nil {
-		defer resp.Body.Close()
-	} else {
+	if err != nil {
 		log.Println("Request error:", err)
 	}
 
 	if o.elasticSearch != nil {
-		o.elasticSearch.ResponseAnalyze(request, resp, start, stop)
+	 	o.elasticSearch.ResponseAnalyze(request, resp, start, stop)
 	}
-}
-
-func SetHeader(request *http.Request, name string, value string) {
-	// Need to check here for the Host header as it needs to be set on the request and not as a separate header
-	// http.ReadRequest sets it by default to the URL Host of the request being read
-	if name == "Host" {
-		request.Host = value
-	} else {
-		request.Header.Set(name, value)
-	}
-
-	return
-
 }
 
 func (o *HTTPOutput) String() string {

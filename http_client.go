@@ -93,6 +93,8 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 
 	c.conn.SetWriteDeadline(timeout)
 
+	data = proto.SetHeader(data, []byte("Host"), []byte(c.baseURL.Host))
+
 	if c.config.Debug {
 		Debug("Sending:", string(data))
 	}

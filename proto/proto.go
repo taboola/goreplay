@@ -39,6 +39,12 @@ func Header(payload []byte, name []byte) (value []byte, headerStart, valueStart,
     return
 }
 
+func GetHeader(payload []byte, name string) []byte {
+    val, _, _, _ := Header(payload, []byte(name))
+
+    return val
+}
+
 func SetHeader(payload, name, value []byte) []byte {
     _, hs, vs, he := Header(payload, name)
 
@@ -84,4 +90,9 @@ func Method(payload []byte) []byte {
     end := bytes.IndexByte(payload, ' ')
 
     return payload[:end]
+}
+
+// Status in response have same position as Path in request
+func Status(payload []byte) []byte {
+    return Path(payload)
 }

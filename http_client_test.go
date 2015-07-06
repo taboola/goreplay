@@ -36,13 +36,18 @@ func TestHTTPClientURLPort(t *testing.T) {
 func TestHTTPClientSend(t *testing.T) {
 	wg := new(sync.WaitGroup)
 
-	GET_payload := []byte("GET / HTTP/1.1\r\n\r\n")
+	payload := func(reqType string) []byte {
+		switch reqType {
+		case "GET":
+			return []byte("GET / HTTP/1.1\r\n\r\n")
+		case "POST":
+			return []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+		case "POST_CHUNKED":
+			return []byte("POST / HTTP/1.1\r\nHost: www.w3.org\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nWiki\r\n5\r\npedia\r\ne\r\n in\r\n\r\nchunks.\r\n0\r\n\r\n")
+		}
 
-	// Post request terminates by reading Content-Length without double CRLF
-	POST_payload := []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
-
-	// Chunked requests terminated with double CRLF
-	POST_CHUNKED_payload := []byte("POST / HTTP/1.1\r\nHost: www.w3.org\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nWiki\r\n5\r\npedia\r\ne\r\n in\r\n\r\nchunks.\r\n0\r\n\r\n")
+		return []byte("")
+	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -65,13 +70,13 @@ func TestHTTPClientSend(t *testing.T) {
 		wg.Done()
 	}))
 
-	client := NewHTTPClient(server.URL, &HTTPClientConfig{})
+	client := NewHTTPClient(server.URL, &HTTPClientConfig{Debug: false})
 
 	wg.Add(4)
-	client.Send(POST_payload)
-	client.Send(GET_payload)
-	client.Send(POST_CHUNKED_payload)
-	client.Send(POST_payload)
+	client.Send(payload("POST"))
+	client.Send(payload("GET"))
+	client.Send(payload("POST_CHUNKED"))
+	client.Send(payload("POST"))
 
 	wg.Wait()
 }
@@ -79,13 +84,18 @@ func TestHTTPClientSend(t *testing.T) {
 func TestHTTPClientHTTPSSend(t *testing.T) {
 	wg := new(sync.WaitGroup)
 
-	GET_payload := []byte("GET / HTTP/1.1\r\n\r\n")
+	payload := func(reqType string) []byte {
+		switch reqType {
+		case "GET":
+			return []byte("GET / HTTP/1.1\r\n\r\n")
+		case "POST":
+			return []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+		case "POST_CHUNKED":
+			return []byte("POST / HTTP/1.1\r\nHost: www.w3.org\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nWiki\r\n5\r\npedia\r\ne\r\n in\r\n\r\nchunks.\r\n0\r\n\r\n")
+		}
 
-	// Post request terminates by reading Content-Length without double CRLF
-	POST_payload := []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
-
-	// Chunked requests terminated with double CRLF
-	POST_CHUNKED_payload := []byte("POST / HTTP/1.1\r\nHost: www.w3.org\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nWiki\r\n5\r\npedia\r\ne\r\n in\r\n\r\nchunks.\r\n0\r\n\r\n")
+		return []byte("")
+	}
 
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -111,10 +121,10 @@ func TestHTTPClientHTTPSSend(t *testing.T) {
 	client := NewHTTPClient(server.URL, &HTTPClientConfig{})
 
 	wg.Add(4)
-	client.Send(GET_payload)
-	client.Send(POST_payload)
-	client.Send(POST_CHUNKED_payload)
-	client.Send(POST_payload)
+	client.Send(payload("POST"))
+	client.Send(payload("GET"))
+	client.Send(payload("POST_CHUNKED"))
+	client.Send(payload("POST"))
 
 	wg.Wait()
 }
