@@ -5,7 +5,8 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"net/http/httputil"
+	"net/http/httptest"
+	_ "net/http/httputil"
 	"sync"
 	"testing"
 	"time"
@@ -21,27 +22,6 @@ func startHTTP(cb func(*http.Request)) net.Listener {
 	go http.Serve(listener, handler)
 
 	return listener
-}
-
-func TestSetHeader(t *testing.T) {
-
-	req := &http.Request{
-		Header: make(map[string][]string),
-	}
-	req.Host = "test.com"
-
-	SetHeader(req, "Host", "test2.com")
-
-	if req.Host != "test2.com" {
-		t.Error("Expected test2.com - got ", req.Host)
-	}
-
-	SetHeader(req, "test_header", "test_value")
-
-	if req.Header.Get("test_header") != "test_value" {
-		t.Error("Wrong header value found")
-	}
-
 }
 
 func TestHTTPOutput(t *testing.T) {
@@ -64,8 +44,7 @@ func TestHTTPOutput(t *testing.T) {
 			body, _ := ioutil.ReadAll(req.Body)
 
 			if string(body) != "a=1&b=2" {
-				buf, _ := httputil.DumpRequest(req, true)
-				t.Error("Wrong POST body:", string(buf))
+				t.Error("Wrong POST body:", string(body))
 			}
 		}
 
@@ -73,9 +52,10 @@ func TestHTTPOutput(t *testing.T) {
 	})
 
 	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
-	methods := HTTPMethods{"GET", "PUT", "POST"}
+	methods := HTTPMethods{[]byte("GET"), []byte("PUT"), []byte("POST")}
+	Settings.modifierConfig = HTTPModifierConfig{headers: headers, methods: methods}
 
-	output := NewHTTPOutput(listener.Addr().String(), headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{}, 0)
+	output := NewHTTPOutput(listener.Addr().String(), &HTTPOutputConfig{})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
@@ -83,7 +63,7 @@ func TestHTTPOutput(t *testing.T) {
 	go Start(quit)
 
 	for i := 0; i < 100; i++ {
-		wg.Add(2)
+		wg.Add(2) // OPTIONS should be ignored
 		input.EmitPOST()
 		input.EmitOPTIONS()
 		input.EmitGET()
@@ -92,23 +72,47 @@ func TestHTTPOutput(t *testing.T) {
 	wg.Wait()
 
 	close(quit)
+
+	Settings.modifierConfig = HTTPModifierConfig{}
+}
+
+func TestOutputHTTPSSL(t *testing.T) {
+	wg := new(sync.WaitGroup)
+	quit := make(chan int)
+
+	// Origing and Replay server initialization
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		wg.Done()
+	}))
+
+	input := NewTestInput()
+	http_output := NewHTTPOutput(server.URL, &HTTPOutputConfig{})
+
+	Plugins.Inputs = []io.Reader{input}
+	Plugins.Outputs = []io.Writer{http_output}
+
+	go Start(quit)
+
+	wg.Add(2)
+
+	input.EmitPOST()
+	input.EmitGET()
+
+	wg.Wait()
+	close(quit)
 }
 
 func BenchmarkHTTPOutput(b *testing.B) {
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
-	input := NewTestInput()
-
-	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
-	methods := HTTPMethods{"GET", "PUT", "POST"}
-
 	listener := startHTTP(func(req *http.Request) {
 		time.Sleep(50 * time.Millisecond)
 		wg.Done()
 	})
 
-	output := NewHTTPOutput(listener.Addr().String(), headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{}, 0)
+	input := NewTestInput()
+	output := NewHTTPOutput(listener.Addr().String(), &HTTPOutputConfig{})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}

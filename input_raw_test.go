@@ -82,9 +82,7 @@ func TestInputRAW100Expect(t *testing.T) {
 	})
 	replay_address := listener.Addr().String()
 
-	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
-	methods := HTTPMethods{"GET", "PUT", "POST"}
-	http_output := NewHTTPOutput(replay_address, headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{}, 0)
+	http_output := NewHTTPOutput(replay_address, &HTTPOutputConfig{})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{test_output, http_output}
@@ -120,14 +118,6 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 
 	input := NewRAWInput(origin_address)
 
-	// We will use it to get content of raw HTTP request
-	test_output := NewTestOutput(func(data []byte) {
-		if strings.Contains(string(data), "Expect: 100-continue") {
-			t.Error("Should not contain 100-continue header")
-		}
-		wg.Done()
-	})
-
 	listener := startHTTP(func(req *http.Request) {
 		defer req.Body.Close()
 		body, _ := ioutil.ReadAll(req.Body)
@@ -141,16 +131,14 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 	})
 	replay_address := listener.Addr().String()
 
-	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
-	methods := HTTPMethods{"GET", "PUT", "POST"}
-	http_output := NewHTTPOutput(replay_address, headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{}, 0)
+	http_output := NewHTTPOutput(replay_address, &HTTPOutputConfig{Debug: true})
 
 	Plugins.Inputs = []io.Reader{input}
-	Plugins.Outputs = []io.Writer{test_output, http_output}
+	Plugins.Outputs = []io.Writer{http_output}
 
 	go Start(quit)
 
-	wg.Add(3)
+	wg.Add(2)
 
 	curl := exec.Command("curl", "http://"+origin_address, "--header", "Transfer-Encoding: chunked", "--data-binary", "@README.md")
 	err := curl.Run()

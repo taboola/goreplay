@@ -3,15 +3,13 @@ package main
 import (
 	"errors"
 	"fmt"
-	"hash/fnv"
-	"net/http"
 	"strconv"
 	"strings"
 )
 
 type headerHashFilter struct {
-	name    string
-	maxHash uint32
+	name    []byte
+	percent uint32
 }
 
 type HTTPHeaderHashFilters []headerHashFilter
@@ -35,32 +33,10 @@ func (h *HTTPHeaderHashFilters) Set(value string) error {
 	num, _ = strconv.ParseUint(fracArr[0], 10, 64)
 	den, _ = strconv.ParseUint(fracArr[1], 10, 64)
 
-	if num < 1 || den < 1 || num > den {
-		panic("need positive numerators and denominators, with the former less than the latter.")
-	}
-
-	if den&(den-1) != 0 {
-		return errors.New("must have a denominator which is a power of two.")
-	}
-
 	var f headerHashFilter
-	f.name = valArr[0]
-	f.maxHash = (uint32)(num * (((uint64)(2 << 31)) / den))
+	f.name = []byte(valArr[0])
+	f.percent = uint32((float64(num) / float64(den)) * 100)
 	*h = append(*h, f)
 
 	return nil
-}
-
-func (h *HTTPHeaderHashFilters) Good(req *http.Request) bool {
-	for _, f := range *h {
-		if req.Header.Get(f.name) == "" {
-			return false
-		}
-		hasher := fnv.New32a()
-		hasher.Write([]byte(req.Header.Get(f.name)))
-		if hasher.Sum32() > f.maxHash {
-			return false
-		}
-	}
-	return true
 }
