@@ -6,7 +6,7 @@ release: release-x86 release-x64
 
 release-x64:
 	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=amd64 --env CGO_ENABLED=0 -i gor go build && tar -czf gor_x64.tar.gz gor && rm gor
-	
+
 release-x86:
 	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=386 --env CGO_ENABLED=0 -i gor go build && tar -czf gor_x86.tar.gz gor && rm gor
 
@@ -15,6 +15,10 @@ dbuild:
 
 dtest:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i --env GORACE="halt_on_error=1" gor go test ./... $(ARGS) -race -v -timeout 15s
+
+dcover:
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i --env GORACE="halt_on_error=1" gor go test $(ARGS) -race -v -timeout 15s -coverprofile=coverage.out
+	go tool cover -html=coverage.out
 
 dfmt:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go fmt
