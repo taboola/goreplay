@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"time"
+	"encoding/hex"
 )
 
 type TCPOutput struct {
@@ -51,10 +52,11 @@ func (o *TCPOutput) worker() {
 }
 
 func (o *TCPOutput) Write(data []byte) (n int, err error) {
-	new_buf := make([]byte, len(data)+2)
-	data = append(data, []byte("¶")...)
-	copy(new_buf, data)
-	o.buf <- new_buf
+	// Hex encoding always 2x number of bytes
+	encoded := make([]byte, len(data)*2 + 1)
+	hex.Encode(encoded, data)
+	o.buf <- append(encoded, '\n')
+
 	if Settings.outputTCPStats {
 		o.bufStats.Write(len(o.buf))
 	}
