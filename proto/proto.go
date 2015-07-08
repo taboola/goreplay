@@ -86,6 +86,24 @@ func SetPath(payload, path []byte) []byte {
     return byteutils.Replace(payload, start, start+end, path)
 }
 
+func SetHost(payload, url, host []byte) []byte {
+    // If this is HTTP 1.0 traffic or proxy traffic it may include host right into path variable, so instead of setting Host header we rewrite Path
+    // Fix for https://github.com/buger/gor/issues/156
+    if path := Path(payload); bytes.HasPrefix(path, []byte("http")) {
+        hostStart := bytes.IndexByte(path, ':') // : position "https?:"
+        hostStart += 3 // Skip 1 ':' and 2 '\'
+        hostEnd := hostStart + bytes.IndexByte(path[hostStart:], '/')
+
+        newPath := make([]byte, len(path))
+        copy(newPath, path)
+        newPath = byteutils.Replace(newPath, 0, hostEnd, url)
+
+        return SetPath(payload, newPath)
+    } else {
+        return SetHeader(payload, []byte("Host"), host)
+    }
+}
+
 func Method(payload []byte) []byte {
     end := bytes.IndexByte(payload, ' ')
 

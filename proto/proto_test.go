@@ -88,3 +88,14 @@ func TestSetPath(t *testing.T) {
         t.Error("Should replace path", string(payload))
     }
 }
+
+func TestSetHostHTTP10(t *testing.T) {
+    var payload, payload_after []byte
+
+    payload = []byte("POST http://example.com/post HTTP/1.0\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+    payload_after = []byte("POST http://new.com/post HTTP/1.0\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+
+    if payload = SetHost(payload, []byte("http://new.com"), []byte("new.com")); !bytes.Equal(payload, payload_after) {
+        t.Error("Should replace host", string(payload))
+    }
+}
