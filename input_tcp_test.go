@@ -6,6 +6,7 @@ import (
 	"net"
 	"sync"
 	"testing"
+	"encoding/hex"
 )
 
 func TestTCPInput(t *testing.T) {
@@ -38,10 +39,10 @@ func TestTCPInput(t *testing.T) {
 
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
-		new_buf := make([]byte, len(msg)+2)
-		msg = append(msg, []byte("¶")...)
-		copy(new_buf, msg)
-		conn.Write(new_buf)
+
+		encoded := make([]byte, len(msg)*2 + 1)
+		hex.Encode(encoded, msg)
+		conn.Write(append(encoded, '\n'))
 	}
 
 	wg.Wait()
