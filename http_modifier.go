@@ -5,16 +5,6 @@ import (
 	"hash/fnv"
 )
 
-type HTTPModifierConfig struct {
-	urlRegexp         HTTPUrlRegexp
-	urlRewrite        UrlRewriteMap
-	headerFilters     HTTPHeaderFilters
-	headerHashFilters HTTPHeaderHashFilters
-
-	headers HTTPHeaders
-	methods HTTPMethods
-}
-
 type HTTPModifier struct {
 	config *HTTPModifierConfig
 }
@@ -43,6 +33,15 @@ func (m *HTTPModifier) Rewrite(payload []byte) (response []byte) {
 		fullPath := append(host, proto.Path(payload)...)
 
 		if !m.config.urlRegexp.regexp.Match(fullPath) {
+			return
+		}
+	}
+
+	if m.config.urlNegativeRegexp.regexp != nil {
+		host, _, _, _ := proto.Header(payload, []byte("Host"))
+		fullPath := append(host, proto.Path(payload)...)
+
+		if m.config.urlNegativeRegexp.regexp.Match(fullPath) {
 			return
 		}
 	}

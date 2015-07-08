@@ -95,8 +95,10 @@ func init() {
 	flag.Var(&Settings.modifierConfig.methods, "output-http-method", "WARNING: `--output-http-method` DEPRECATED, use `--http-allow-method` instead")
 
 
-	flag.Var(&Settings.modifierConfig.urlRegexp, "http-allow-url", "A regexp to match requests against. Filter get matched agains full url with domain. Anything else will be dropped:\n\t gor --input-raw :8080 --output-http staging.com --http-filter-url ^www.")
+	flag.Var(&Settings.modifierConfig.urlRegexp, "http-allow-url", "A regexp to match requests against. Filter get matched agains full url with domain. Anything else will be dropped:\n\t gor --input-raw :8080 --output-http staging.com --http-allow-url ^www.")
 	flag.Var(&Settings.modifierConfig.urlRegexp, "output-http-url-regexp", "WARNING: `--output-http-url-regexp` DEPRECATED, use `--http-allow-url` instead")
+
+	flag.Var(&Settings.modifierConfig.urlNegativeRegexp, "http-diallow-url", "A regexp to match requests against. Filter get matched agains full url with domain. Anything else will be dropped:\n\t gor --input-raw :8080 --output-http staging.com --http-disallow-url ^www.")
 
 
 	flag.Var(&Settings.modifierConfig.urlRewrite, "http-rewrite-url", "Rewrite the requst url based on a mapping:\n\tgor --input-raw :8080 --output-http staging.com --http-rewrite-url /v1/user/([^\\/]+)/ping:/v2/user/$1/ping")

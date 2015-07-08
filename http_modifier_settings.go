@@ -9,6 +9,17 @@ import (
     "bytes"
 )
 
+type HTTPModifierConfig struct {
+    urlNegativeRegexp         HTTPUrlRegexp
+    urlRegexp         HTTPUrlRegexp
+    urlRewrite        UrlRewriteMap
+    headerFilters     HTTPHeaderFilters
+    headerHashFilters HTTPHeaderHashFilters
+
+    headers HTTPHeaders
+    methods HTTPMethods
+}
+
 //
 // Handling of --http-allow-header options
 //
