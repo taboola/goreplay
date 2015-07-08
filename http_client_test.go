@@ -13,23 +13,23 @@ import (
 
 func TestHTTPClientURLPort(t *testing.T) {
 	c1 := NewHTTPClient("http://example.com", &HTTPClientConfig{})
-	if c1.baseURL.String() != "http://example.com:80" {
-		t.Error("Sould add 80 port for http:", c1.baseURL.String())
+	if c1.baseURL != "http://example.com:80" {
+		t.Error("Sould add 80 port for http:", c1.baseURL)
 	}
 
 	c2 := NewHTTPClient("https://example.com", &HTTPClientConfig{})
-	if c2.baseURL.String() != "https://example.com:443" {
-		t.Error("Sould add 443 port for https:", c2.baseURL.String())
+	if c2.baseURL != "https://example.com:443" {
+		t.Error("Sould add 443 port for https:", c2.baseURL)
 	}
 
 	c3 := NewHTTPClient("https://example.com:1", &HTTPClientConfig{})
-	if c3.baseURL.String() != "https://example.com:1" {
-		t.Error("Sould use specified port:", c3.baseURL.String())
+	if c3.baseURL != "https://example.com:1" {
+		t.Error("Sould use specified port:", c3.baseURL)
 	}
 
 	c4 := NewHTTPClient("example.com", &HTTPClientConfig{})
-	if c4.baseURL.String() != "http://example.com:80" {
-		t.Error("Sould add default protocol:", c4.baseURL.String())
+	if c4.baseURL != "http://example.com:80" {
+		t.Error("Sould add default protocol:", c4.baseURL)
 	}
 }
 
@@ -70,7 +70,7 @@ func TestHTTPClientSend(t *testing.T) {
 		wg.Done()
 	}))
 
-	client := NewHTTPClient(server.URL, &HTTPClientConfig{Debug: false})
+	client := NewHTTPClient(server.URL, &HTTPClientConfig{Debug: true})
 
 	wg.Add(4)
 	client.Send(payload("POST"))
@@ -241,6 +241,28 @@ func TestHTTPClientRedirectLimit(t *testing.T) {
 
 	// Have 3 redirects + 1 GET, but should do only 2 redirects + GET
 	wg.Add(3)
+	client.Send(GET_payload)
+
+	wg.Wait()
+}
+
+func TestHTTPClientHandleHTTP10(t *testing.T) {
+	wg := new(sync.WaitGroup)
+
+	GET_payload := []byte("GET http://foobar.com/path HTTP/1.0\r\n\r\n")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		if r.URL.Path != "/path" {
+			t.Error("Path not match:", r.URL.Path)
+		}
+
+		wg.Done()
+	}))
+
+	client := NewHTTPClient(server.URL, &HTTPClientConfig{Debug: true})
+
+	wg.Add(1)
 	client.Send(GET_payload)
 
 	wg.Wait()

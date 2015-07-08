@@ -21,7 +21,9 @@ type HTTPClientConfig struct {
 }
 
 type HTTPClient struct {
-	baseURL        *url.URL
+	baseURL        string
+	scheme         string
+	host           string
 	conn           net.Conn
 	respBuf        []byte
 	config         *HTTPClientConfig
@@ -33,14 +35,18 @@ func NewHTTPClient(baseURL string, config *HTTPClientConfig) *HTTPClient {
 		baseURL = "http://" + baseURL
 	}
 
+	u, _ := url.Parse(baseURL)
+	if !strings.Contains(u.Host, ":") {
+		u.Host += ":" + defaultPorts[u.Scheme]
+	}
+
+
 	client := new(HTTPClient)
-	client.baseURL, _ = url.Parse(baseURL)
+	client.baseURL = u.String()
+	client.host = u.Host
+	client.scheme = u.Scheme
 	client.respBuf = make([]byte, 4096*10)
 	client.config = config
-
-	if !strings.Contains(client.baseURL.Host, ":") {
-		client.baseURL.Host += ":" + defaultPorts[client.baseURL.Scheme]
-	}
 
 	return client
 }
@@ -48,9 +54,9 @@ func NewHTTPClient(baseURL string, config *HTTPClientConfig) *HTTPClient {
 func (c *HTTPClient) Connect() (err error) {
 	c.Disconnect()
 
-	c.conn, err = net.Dial("tcp", c.baseURL.Host)
+	c.conn, err = net.Dial("tcp", c.host)
 
-	if c.baseURL.Scheme == "https" {
+	if c.scheme == "https" {
 		tlsConn := tls.Client(c.conn, &tls.Config{InsecureSkipVerify: true})
 
 		if err = tlsConn.Handshake(); err != nil {
@@ -93,7 +99,7 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 
 	c.conn.SetWriteDeadline(timeout)
 
-	data = proto.SetHeader(data, []byte("Host"), []byte(c.baseURL.Host))
+	data = proto.SetHost(data, []byte(c.baseURL), []byte(c.host))
 
 	if c.config.Debug {
 		Debug("Sending:", string(data))
