@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"regexp"
@@ -17,6 +16,7 @@ type HTTPModifierConfig struct {
 	headerHashFilters HTTPHashFilters
 	paramHashFilters  HTTPHashFilters
 
+	params  HTTPParams
 	headers HTTPHeaders
 	methods HTTPMethods
 }
@@ -122,6 +122,34 @@ func (h *HTTPHeaders) Set(value string) error {
 }
 
 //
+// Handling of --http-set-param option
+//
+type HTTPParams []HTTPParam
+type HTTPParam struct {
+	Name  []byte
+	Value []byte
+}
+
+func (h *HTTPParams) String() string {
+	return fmt.Sprint(*h)
+}
+
+func (h *HTTPParams) Set(value string) error {
+	v := strings.SplitN(value, "=", 2)
+	if len(v) != 2 {
+		return errors.New("Expected `Key=Value`")
+	}
+
+	param := HTTPParam{
+		[]byte(strings.TrimSpace(v[0])),
+		[]byte(strings.TrimSpace(v[1])),
+	}
+
+	*h = append(*h, param)
+	return nil
+}
+
+//
 // Handling of --http-allow-method option
 //
 type HTTPMethods [][]byte
@@ -133,15 +161,6 @@ func (h *HTTPMethods) String() string {
 func (h *HTTPMethods) Set(value string) error {
 	*h = append(*h, []byte(value))
 	return nil
-}
-
-func (h *HTTPMethods) Contains(value []byte) bool {
-	for _, method := range *h {
-		if bytes.Equal(value, method) {
-			return true
-		}
-	}
-	return false
 }
 
 //

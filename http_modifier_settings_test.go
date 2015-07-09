@@ -51,21 +51,6 @@ func TestHTTPHashFilters(t *testing.T) {
 	}
 }
 
-func TestHTTPMethods(t *testing.T) {
-	methods := HTTPMethods{}
-
-	methods.Set("GET")
-	methods.Set("POST")
-
-	if !methods.Contains([]byte("GET")) {
-		t.Error("Does not contain GET")
-	}
-
-	if !methods.Contains([]byte("POST")) {
-		t.Error("Does not contain POST")
-	}
-}
-
 func TestUrlRewriteMap(t *testing.T) {
 	var err error
 	rewrites := UrlRewriteMap{}
