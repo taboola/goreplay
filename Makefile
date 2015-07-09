@@ -1,4 +1,4 @@
-SOURCE = emitter.go gor.go gor_stat.go input_dummy.go input_file.go input_raw.go input_tcp.go limiter.go output_dummy.go output_file.go input_http.go output_http.go output_tcp.go plugins.go settings.go settings_header_filters.go settings_header_hash_filters.go settings_headers.go settings_methods.go settings_option.go settings_url_regexp.go test_input.go elasticsearch.go settings_url_map.go http_modifier.go
+SOURCE = emitter.go gor.go gor_stat.go input_dummy.go input_file.go input_raw.go input_tcp.go limiter.go output_dummy.go output_file.go input_http.go output_http.go output_tcp.go plugins.go settings.go test_input.go elasticsearch.go http_modifier.go http_modifier_settings.go http_client.go
 
 SOURCE_PATH = /gopath/src/github.com/buger/gor/
 
@@ -31,7 +31,7 @@ dbench:
 
 # Used mainly for debugging, because docker container do not have access to parent machine ports
 drun:
-	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-dummy=0 --output-http="http://localhost:9000"  --verbose
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-dummy=0 --output-http="http://localhost:9000"  --verbose -h
 
 dbash: 
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor /bin/bash
