@@ -67,21 +67,27 @@ func (h *HTTPHashFilters) String() string {
 func (h *HTTPHashFilters) Set(value string) error {
     valArr := strings.SplitN(value, ":", 2)
     if len(valArr) < 2 {
-        return errors.New("need both header and value, colon-delimited (ex. user_id:1/2).")
+        return errors.New("need both header and value, colon-delimited (ex. user_id:50%).")
     }
 
-    fracArr := strings.Split(valArr[1], "/")
-    if len(fracArr) < 2 {
-        return errors.New("need both a numerator and denominator specified, slash-delimited (ex. user_id:1/4).")
+    f := hashFilter{ name: []byte(valArr[0]) }
+
+    if strings.Contains(valArr[1], "%") {
+      p, _ := strconv.ParseInt(valArr[1][:len(valArr[1])-1], 0, 0)
+      f.percent = uint32(p)
+    } else if strings.Contains(valArr[1], "/") {
+        // DEPRECATED format
+        var num, den uint64
+
+        fracArr := strings.Split(valArr[1], "/")
+        num, _ = strconv.ParseUint(fracArr[0], 10, 64)
+        den, _ = strconv.ParseUint(fracArr[1], 10, 64)
+
+        f.percent = uint32((float64(num) / float64(den)) * 100)
+    } else {
+        return errors.New("Value should be percent and contain '%'")
     }
 
-    var num, den uint64
-    num, _ = strconv.ParseUint(fracArr[0], 10, 64)
-    den, _ = strconv.ParseUint(fracArr[1], 10, 64)
-
-    var f hashFilter
-    f.name = []byte(valArr[0])
-    f.percent = uint32((float64(num) / float64(den)) * 100)
     *h = append(*h, f)
 
     return nil

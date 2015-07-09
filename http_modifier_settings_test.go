@@ -29,12 +29,25 @@ func TestHTTPHashFilters(t *testing.T) {
 
     err := filters.Set("Header1:1/2")
     if err != nil {
-        t.Error("Should not error on Header1:^$")
+        t.Error("Should support old syntax")
+    }
+
+    if filters[0].percent != 50 {
+        t.Error("Wrong percentage", filters[0].percent)
     }
 
     err = filters.Set("Header2:1")
     if err == nil {
-        t.Error("Should error on Header2:^:$")
+        t.Error("Should error on Header2 because no % symbol")
+    }
+
+    err = filters.Set("Header2:10%")
+    if err != nil {
+        t.Error("Should pass")
+    }
+
+    if filters[1].percent != 10 {
+        t.Error("Wrong percentage", filters[1].percent)
     }
 }
 
