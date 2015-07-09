@@ -11,7 +11,7 @@ import (
     "strings"
 )
 
-type TrafficModifier struct {
+type Middleware struct {
 	plugin  interface{}
 	command string
 
@@ -21,8 +21,8 @@ type TrafficModifier struct {
 	Stdout io.Reader
 }
 
-func NewTrafficModifier(plugin interface{}, command string) io.Reader {
-	m := new(TrafficModifier)
+func NewMiddleware(plugin interface{}, command string) io.Reader {
+	m := new(Middleware)
 	m.plugin = plugin
 	m.command = command
 	m.data = make(chan []byte)
@@ -50,7 +50,7 @@ func NewTrafficModifier(plugin interface{}, command string) io.Reader {
 	return m
 }
 
-func (m *TrafficModifier) copy(to io.Writer, from io.Reader) {
+func (m *Middleware) copy(to io.Writer, from io.Reader) {
 	buf := make([]byte, 5*1024*1024)
 	dst := make([]byte, len(buf)*2)
 
@@ -64,7 +64,7 @@ func (m *TrafficModifier) copy(to io.Writer, from io.Reader) {
 	}
 }
 
-func (m *TrafficModifier) read(from io.Reader) {
+func (m *Middleware) read(from io.Reader) {
 	buf := make([]byte, 5*1024*1024)
 
 	scanner := bufio.NewScanner(from)
@@ -85,7 +85,7 @@ func (m *TrafficModifier) read(from io.Reader) {
 	return
 }
 
-func (m *TrafficModifier) Read(data []byte) (int, error) {
+func (m *Middleware) Read(data []byte) (int, error) {
 	Debug("Trying to read channel!")
 	buf := <-m.data
 	copy(data, buf)
@@ -93,6 +93,6 @@ func (m *TrafficModifier) Read(data []byte) (int, error) {
 	return len(buf), nil
 }
 
-func (m *TrafficModifier) String() string {
+func (m *Middleware) String() string {
 	return fmt.Sprintf("Modifying traffic for %s using '%s' command", m.plugin, m.command)
 }

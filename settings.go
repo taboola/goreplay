@@ -41,7 +41,7 @@ type AppSettings struct {
 
 	inputRAW MultiOption
 
-	inputModifier MultiOption
+	middleware MultiOption
 
 	inputHTTP  MultiOption
 	outputHTTP MultiOption
@@ -78,7 +78,7 @@ func init() {
 
 	flag.Var(&Settings.inputRAW, "input-raw", "Capture traffic from given port (use RAW sockets and require *sudo* access):\n\t# Capture traffic from 8080 port\n\tgor --input-raw :8080 --output-http staging.com")
 
-	flag.Var(&Settings.inputModifier, "input-modifier", "Used for modifying input traffic using external command")
+	flag.Var(&Settings.middleware, "middleware", "Used for modifying input traffic using external command")
 
 	flag.Var(&Settings.inputHTTP, "input-http", "Read requests from HTTP, should be explicitly sent from your application:\n\t# Listen for http on 9000\n\tgor --input-http :9000 --output-http staging.com")
 

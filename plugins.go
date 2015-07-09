@@ -10,7 +10,7 @@ type InOutPlugins struct {
 	Inputs  []io.Reader
 	Outputs []io.Writer
 
-	Modifiers []TrafficModifier
+	Middleware []Middleware
 }
 
 type ReaderOrWriter interface{}
@@ -56,8 +56,8 @@ func registerPlugin(constructor interface{}, options ...interface{}) {
 	}
 
 	if _, ok := plugin.(io.Reader); ok {
-		for _, options := range Settings.inputModifier {
-			plugin_wrapper = NewTrafficModifier(plugin_wrapper, options)
+		for _, options := range Settings.middleware {
+			plugin_wrapper = NewMiddleware(plugin_wrapper, options)
 		}
 		Plugins.Inputs = append(Plugins.Inputs, plugin_wrapper.(io.Reader))
 	}

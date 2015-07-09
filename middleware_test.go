@@ -82,7 +82,7 @@ func TestFakeSecureService(t *testing.T) {
 	wg.Wait()
 }
 
-func TestTrafficModifier(t *testing.T) {
+func TestMiddleware(t *testing.T) {
     var resp *http.Response
 
     wg := new(sync.WaitGroup)
