@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	VERSION = "0.9.4"
+	VERSION = "0.9.6"
 )
 
 // Allows to specify multiple flags with same name and collects all values to array
