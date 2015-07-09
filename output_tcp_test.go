@@ -2,12 +2,12 @@ package main
 
 import (
 	"bufio"
+	"encoding/hex"
 	"io"
 	"log"
 	"net"
 	"sync"
 	"testing"
-	"encoding/hex"
 )
 
 func TestTCPOutput(t *testing.T) {

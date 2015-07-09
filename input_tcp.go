@@ -2,10 +2,10 @@ package main
 
 import (
 	"bufio"
-	"log"
-	"net"
 	"encoding/hex"
 	"fmt"
+	"log"
+	"net"
 	"os"
 )
 

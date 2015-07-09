@@ -11,7 +11,8 @@ type HTTPModifier struct {
 
 func NewHTTPModifier(config *HTTPModifierConfig) *HTTPModifier {
 	// Optimization to skip modifier completely if we do not need it
-	if config.urlRegexp.regexp == nil &&
+	if len(config.urlRegexp) == 0 &&
+		len(config.urlNegativeRegexp) == 0 &&
 		len(config.urlRewrite) == 0 &&
 		len(config.headerFilters) == 0 &&
 		len(config.headerHashFilters) == 0 &&
@@ -29,21 +30,29 @@ func (m *HTTPModifier) Rewrite(payload []byte) (response []byte) {
 		return
 	}
 
-	if m.config.urlRegexp.regexp != nil {
-		host, _, _, _ := proto.Header(payload, []byte("Host"))
-		fullPath := append(host, proto.Path(payload)...)
+	if len(m.config.urlRegexp) > 0 {
+		path := proto.Path(payload)
 
-		if !m.config.urlRegexp.regexp.Match(fullPath) {
+		matched := false
+
+		for _, f := range m.config.urlRegexp {
+			if f.regexp.Match(path) {
+				matched = true
+			}
+		}
+
+		if !matched {
 			return
 		}
 	}
 
-	if m.config.urlNegativeRegexp.regexp != nil {
-		host, _, _, _ := proto.Header(payload, []byte("Host"))
-		fullPath := append(host, proto.Path(payload)...)
+	if len(m.config.urlNegativeRegexp) > 0 {
+		path := proto.Path(payload)
 
-		if m.config.urlNegativeRegexp.regexp.Match(fullPath) {
-			return
+		for _, f := range m.config.urlNegativeRegexp {
+			if f.regexp.Match(path) {
+				return
+			}
 		}
 	}
 

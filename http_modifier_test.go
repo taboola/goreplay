@@ -93,7 +93,6 @@ func TestHTTPModifierHeaderHashFilters(t *testing.T) {
 	}
 }
 
-
 func TestHTTPModifierParamHashFilters(t *testing.T) {
 	filters := HTTPHashFilters{}
 	filters.Set("user_id:1/2")
@@ -133,5 +132,57 @@ func TestHTTPModifierHeaders(t *testing.T) {
 
 	if payload = modifier.Rewrite(payload); !bytes.Equal(payload, new_payload) {
 		t.Error("Should update request headers", string(payload))
+	}
+}
+
+func TestHTTPModifierURLRegexp(t *testing.T) {
+	filters := HTTPUrlRegexp{}
+	filters.Set("/v1/app")
+	filters.Set("/v1/api")
+
+	modifier := NewHTTPModifier(&HTTPModifierConfig{
+		urlRegexp: filters,
+	})
+
+	payload := func(url string) []byte {
+		return []byte("POST " + url + " HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+	}
+
+	if len(modifier.Rewrite(payload("/v1/app/test"))) == 0 {
+		t.Error("Should pass url")
+	}
+
+	if len(modifier.Rewrite(payload("/v1/api/test"))) == 0 {
+		t.Error("Should pass url")
+	}
+
+	if len(modifier.Rewrite(payload("/other"))) > 0 {
+		t.Error("Should not pass url")
+	}
+}
+
+func TestHTTPModifierURLNegativeRegexp(t *testing.T) {
+	filters := HTTPUrlRegexp{}
+	filters.Set("/restricted1")
+	filters.Set("/some/restricted2")
+
+	modifier := NewHTTPModifier(&HTTPModifierConfig{
+		urlNegativeRegexp: filters,
+	})
+
+	payload := func(url string) []byte {
+		return []byte("POST " + url + " HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+	}
+
+	if len(modifier.Rewrite(payload("/v1/app/test"))) == 0 {
+		t.Error("Should pass url")
+	}
+
+	if len(modifier.Rewrite(payload("/restricted1"))) > 0 {
+		t.Error("Should not pass url")
+	}
+
+	if len(modifier.Rewrite(payload("/some/restricted2"))) > 0 {
+		t.Error("Should not pass url")
 	}
 }

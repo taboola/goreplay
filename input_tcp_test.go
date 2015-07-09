@@ -1,12 +1,12 @@
 package main
 
 import (
+	"encoding/hex"
 	"io"
 	"log"
 	"net"
 	"sync"
 	"testing"
-	"encoding/hex"
 )
 
 func TestTCPInput(t *testing.T) {
@@ -40,7 +40,7 @@ func TestTCPInput(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
 
-		encoded := make([]byte, len(msg)*2 + 1)
+		encoded := make([]byte, len(msg)*2+1)
 		hex.Encode(encoded, msg)
 		conn.Write(append(encoded, '\n'))
 	}

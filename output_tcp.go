@@ -1,12 +1,12 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"time"
-	"encoding/hex"
 )
 
 type TCPOutput struct {
@@ -53,7 +53,7 @@ func (o *TCPOutput) worker() {
 
 func (o *TCPOutput) Write(data []byte) (n int, err error) {
 	// Hex encoding always 2x number of bytes
-	encoded := make([]byte, len(data)*2 + 1)
+	encoded := make([]byte, len(data)*2+1)
 	hex.Encode(encoded, data)
 	o.buf <- append(encoded, '\n')
 
