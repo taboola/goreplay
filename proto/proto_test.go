@@ -89,6 +89,57 @@ func TestSetPath(t *testing.T) {
     }
 }
 
+func TestPathParam(t *testing.T) {
+    var payload []byte
+
+    payload = []byte("POST /post?param=test&user_id=1 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+
+    if val, _, _ := PathParam(payload, []byte("param")); !bytes.Equal(val, []byte("test")) {
+        t.Error("Should detect attribute", string(val))
+    }
+
+    if val, _, _ := PathParam(payload, []byte("user_id")); !bytes.Equal(val, []byte("1")) {
+        t.Error("Should detect attribute", string(val))
+    }
+}
+
+
+func TestSetPathParam(t *testing.T) {
+    var payload, payload_after []byte
+
+    payload = []byte("POST /post?param=test&user_id=1 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+    payload_after = []byte("POST /post?param=new&user_id=1 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+
+    if payload = SetPathParam(payload, []byte("param"), []byte("new")); !bytes.Equal(payload, payload_after) {
+        t.Error("Should replace existing value", string(payload))
+    }
+
+    payload = []byte("POST /post?param=test&user_id=1 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+    payload_after = []byte("POST /post?param=test&user_id=2 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+
+    if payload = SetPathParam(payload, []byte("user_id"), []byte("2")); !bytes.Equal(payload, payload_after) {
+        t.Error("Should replace existing value", string(payload))
+    }
+
+
+    payload = []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+    payload_after = []byte("POST /post?param=test HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+
+    if payload = SetPathParam(payload, []byte("param"), []byte("test")); !bytes.Equal(payload, payload_after) {
+        t.Error("Should set param if url have no params", string(payload))
+    }
+
+
+    payload = []byte("POST /post?param=test HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+    payload_after = []byte("POST /post?param=test&user_id=1 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+
+    if payload = SetPathParam(payload, []byte("user_id"), []byte("1")); !bytes.Equal(payload, payload_after) {
+        t.Error("Should set param at the end if url params", string(payload))
+    }
+}
+
+
+
 func TestSetHostHTTP10(t *testing.T) {
     var payload, payload_after []byte
 

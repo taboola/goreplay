@@ -86,6 +86,56 @@ func SetPath(payload, path []byte) []byte {
     return byteutils.Replace(payload, start, start+end, path)
 }
 
+func PathParam(payload, name []byte) (value []byte, valueStart, valueEnd int) {
+    path := Path(payload)
+
+    if paramStart := bytes.Index(path, append(name, '=')); paramStart != -1 {
+        valueStart := paramStart + len(name) + 1
+        paramEnd := bytes.IndexByte(path[valueStart:], '&')
+        if paramEnd == -1 { // It is final param
+            paramEnd = len(path)
+        } else {
+            paramEnd += valueStart
+        }
+
+        return path[valueStart:paramEnd], valueStart, paramEnd
+    } else {
+        return []byte(""), -1, -1
+    }
+}
+
+func SetPathParam(payload, name, value []byte) []byte {
+    path := Path(payload)
+    _, vs, ve := PathParam(payload, name)
+
+    if vs != -1 {
+        newPath := make([]byte, len(path))
+        copy(newPath, path)
+        newPath = byteutils.Replace(newPath, vs, ve, value)
+
+        return SetPath(payload, newPath)
+    } else { // if param not found append to end of url
+        // Adding 2 because of '?' or '&' at start, and '=' in middle
+        newParam := make([]byte, len(name) + len(value) + 2)
+
+        if bytes.IndexByte(path, '?') == -1 {
+            newParam[0] = '?'
+        } else {
+            newParam[0] = '&'
+        }
+
+        copy(newParam[1:], name)
+        newParam[1+len(name)] = '='
+        copy(newParam[2+len(name):], value)
+
+        newPath := make([]byte, len(path) + len(newParam))
+        copy(newPath, path)
+        copy(newPath[len(path):], newParam)
+
+        return SetPath(payload, newPath)
+    }
+}
+
 func SetHost(payload, url, host []byte) []byte {
     // If this is HTTP 1.0 traffic or proxy traffic it may include host right into path variable, so instead of setting Host header we rewrite Path
     // Fix for https://github.com/buger/gor/issues/156

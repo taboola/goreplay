@@ -40,7 +40,6 @@ func NewHTTPClient(baseURL string, config *HTTPClientConfig) *HTTPClient {
 		u.Host += ":" + defaultPorts[u.Scheme]
 	}
 
-
 	client := new(HTTPClient)
 	client.baseURL = u.String()
 	client.host = u.Host

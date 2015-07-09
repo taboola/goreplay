@@ -1,19 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"github.com/buger/gor/proto"
 	"hash/fnv"
 )
-
-type HTTPModifierConfig struct {
-	urlRegexp         HTTPUrlRegexp
-	urlRewrite        UrlRewriteMap
-	headerFilters     HTTPHeaderFilters
-	headerHashFilters HTTPHeaderHashFilters
-
-	headers HTTPHeaders
-	methods HTTPMethods
-}
 
 type HTTPModifier struct {
 	config *HTTPModifierConfig
@@ -21,10 +12,13 @@ type HTTPModifier struct {
 
 func NewHTTPModifier(config *HTTPModifierConfig) *HTTPModifier {
 	// Optimization to skip modifier completely if we do not need it
-	if config.urlRegexp.regexp == nil &&
+	if len(config.urlRegexp) == 0 &&
+		len(config.urlNegativeRegexp) == 0 &&
 		len(config.urlRewrite) == 0 &&
 		len(config.headerFilters) == 0 &&
 		len(config.headerHashFilters) == 0 &&
+		len(config.paramHashFilters) == 0 &&
+		len(config.params) == 0 &&
 		len(config.headers) == 0 &&
 		len(config.methods) == 0 {
 		return nil
@@ -34,16 +28,59 @@ func NewHTTPModifier(config *HTTPModifierConfig) *HTTPModifier {
 }
 
 func (m *HTTPModifier) Rewrite(payload []byte) (response []byte) {
-	if len(m.config.methods) > 0 && !m.config.methods.Contains(proto.Method(payload)) {
-		return
+	if len(m.config.methods) > 0 {
+		method := proto.Method(payload)
+
+		matched := false
+
+		for _, m := range m.config.methods {
+			if bytes.Equal(method, m) {
+				matched = true
+				break
+			}
+		}
+
+		if !matched {
+			return
+		}
 	}
 
-	if m.config.urlRegexp.regexp != nil {
-		host, _, _, _ := proto.Header(payload, []byte("Host"))
-		fullPath := append(host, proto.Path(payload)...)
+	if len(m.config.headers) > 0 {
+		for _, header := range m.config.headers {
+			payload = proto.SetHeader(payload, []byte(header.Name), []byte(header.Value))
+		}
+	}
 
-		if !m.config.urlRegexp.regexp.Match(fullPath) {
+	if len(m.config.params) > 0 {
+		for _, param := range m.config.params {
+			payload = proto.SetPathParam(payload, param.Name, param.Value)
+		}
+	}
+
+	if len(m.config.urlRegexp) > 0 {
+		path := proto.Path(payload)
+
+		matched := false
+
+		for _, f := range m.config.urlRegexp {
+			if f.regexp.Match(path) {
+				matched = true
+				break
+			}
+		}
+
+		if !matched {
 			return
+		}
+	}
+
+	if len(m.config.urlNegativeRegexp) > 0 {
+		path := proto.Path(payload)
+
+		for _, f := range m.config.urlNegativeRegexp {
+			if f.regexp.Match(path) {
+				return
+			}
 		}
 	}
 
@@ -61,15 +98,28 @@ func (m *HTTPModifier) Rewrite(payload []byte) (response []byte) {
 		for _, f := range m.config.headerHashFilters {
 			value, s, _, _ := proto.Header(payload, f.name)
 
-			if s == -1 {
-				return
+			if s != -1 {
+				hasher := fnv.New32a()
+				hasher.Write(value)
+
+				if (hasher.Sum32() % 100) >= f.percent {
+					return
+				}
 			}
+		}
+	}
 
-			hasher := fnv.New32a()
-			hasher.Write(value)
+	if len(m.config.paramHashFilters) > 0 {
+		for _, f := range m.config.paramHashFilters {
+			value, s, _ := proto.PathParam(payload, f.name)
 
-			if (hasher.Sum32() % 100) >= f.percent {
-				return
+			if s != -1 {
+				hasher := fnv.New32a()
+				hasher.Write(value)
+
+				if (hasher.Sum32() % 100) >= f.percent {
+					return
+				}
 			}
 		}
 	}
@@ -84,12 +134,6 @@ func (m *HTTPModifier) Rewrite(payload []byte) (response []byte) {
 
 				break
 			}
-		}
-	}
-
-	if len(m.config.headers) > 0 {
-		for _, header := range m.config.headers {
-			payload = proto.SetHeader(payload, []byte(header.Name), []byte(header.Value))
 		}
 	}
 

@@ -69,7 +69,7 @@ func TestHTTPModifierURLRewrite(t *testing.T) {
 }
 
 func TestHTTPModifierHeaderHashFilters(t *testing.T) {
-	filters := HTTPHeaderHashFilters{}
+	filters := HTTPHashFilters{}
 	filters.Set("Header2:1/2")
 
 	modifier := NewHTTPModifier(&HTTPModifierConfig{
@@ -80,8 +80,8 @@ func TestHTTPModifierHeaderHashFilters(t *testing.T) {
 		return []byte("POST / HTTP/1.1\r\n" + string(header) + "Content-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 	}
 
-	if p := modifier.Rewrite(payload([]byte(""))); len(p) > 0 {
-		t.Error("Request should not pass filters, Header2 does not exist")
+	if p := modifier.Rewrite(payload([]byte(""))); len(p) == 0 {
+		t.Error("Request should pass filters if Header does not exist")
 	}
 
 	if p := modifier.Rewrite(payload([]byte("Header2: 3\r\n"))); len(p) > 0 {
@@ -89,6 +89,31 @@ func TestHTTPModifierHeaderHashFilters(t *testing.T) {
 	}
 
 	if p := modifier.Rewrite(payload([]byte("Header2: 1\r\n"))); len(p) == 0 {
+		t.Error("Request should pass filters")
+	}
+}
+
+func TestHTTPModifierParamHashFilters(t *testing.T) {
+	filters := HTTPHashFilters{}
+	filters.Set("user_id:1/2")
+
+	modifier := NewHTTPModifier(&HTTPModifierConfig{
+		paramHashFilters: filters,
+	})
+
+	payload := func(value []byte) []byte {
+		return []byte("POST /" + string(value) + " HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+	}
+
+	if p := modifier.Rewrite(payload([]byte(""))); len(p) == 0 {
+		t.Error("Request should pass filters if param does not exist")
+	}
+
+	if p := modifier.Rewrite(payload([]byte("?user_id=3"))); len(p) > 0 {
+		t.Error("Request should not pass filters", string(p))
+	}
+
+	if p := modifier.Rewrite(payload([]byte("?user_id=1"))); len(p) == 0 {
 		t.Error("Request should pass filters")
 	}
 }
@@ -107,5 +132,89 @@ func TestHTTPModifierHeaders(t *testing.T) {
 
 	if payload = modifier.Rewrite(payload); !bytes.Equal(payload, new_payload) {
 		t.Error("Should update request headers", string(payload))
+	}
+}
+
+func TestHTTPModifierURLRegexp(t *testing.T) {
+	filters := HTTPUrlRegexp{}
+	filters.Set("/v1/app")
+	filters.Set("/v1/api")
+
+	modifier := NewHTTPModifier(&HTTPModifierConfig{
+		urlRegexp: filters,
+	})
+
+	payload := func(url string) []byte {
+		return []byte("POST " + url + " HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+	}
+
+	if len(modifier.Rewrite(payload("/v1/app/test"))) == 0 {
+		t.Error("Should pass url")
+	}
+
+	if len(modifier.Rewrite(payload("/v1/api/test"))) == 0 {
+		t.Error("Should pass url")
+	}
+
+	if len(modifier.Rewrite(payload("/other"))) > 0 {
+		t.Error("Should not pass url")
+	}
+}
+
+func TestHTTPModifierURLNegativeRegexp(t *testing.T) {
+	filters := HTTPUrlRegexp{}
+	filters.Set("/restricted1")
+	filters.Set("/some/restricted2")
+
+	modifier := NewHTTPModifier(&HTTPModifierConfig{
+		urlNegativeRegexp: filters,
+	})
+
+	payload := func(url string) []byte {
+		return []byte("POST " + url + " HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+	}
+
+	if len(modifier.Rewrite(payload("/v1/app/test"))) == 0 {
+		t.Error("Should pass url")
+	}
+
+	if len(modifier.Rewrite(payload("/restricted1"))) > 0 {
+		t.Error("Should not pass url")
+	}
+
+	if len(modifier.Rewrite(payload("/some/restricted2"))) > 0 {
+		t.Error("Should not pass url")
+	}
+}
+
+func TestHTTPModifierSetHeader(t *testing.T) {
+	filters := HTTPHeaders{}
+	filters.Set("User-Agent:Gor")
+
+	modifier := NewHTTPModifier(&HTTPModifierConfig{
+		headers: filters,
+	})
+
+	payload := []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+	payload_after := []byte("POST /post HTTP/1.1\r\nUser-Agent: Gor\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+
+	if payload = modifier.Rewrite(payload); !bytes.Equal(payload_after, payload) {
+		t.Error("Should add new header", string(payload))
+	}
+}
+
+func TestHTTPModifierSetParam(t *testing.T) {
+	filters := HTTPParams{}
+	filters.Set("api_key=1")
+
+	modifier := NewHTTPModifier(&HTTPModifierConfig{
+		params: filters,
+	})
+
+	payload := []byte("POST /post?api_key=1234 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+	payload_after := []byte("POST /post?api_key=1 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+
+	if payload = modifier.Rewrite(payload); !bytes.Equal(payload_after, payload) {
+		t.Error("Should override param", string(payload))
 	}
 }
