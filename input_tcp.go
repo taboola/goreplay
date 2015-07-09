@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
-	"io"
+	"encoding/hex"
+	"fmt"
 	"log"
 	"net"
+	"os"
 )
 
 // Can be tested using nc tool:
@@ -59,24 +61,18 @@ func (i *TCPInput) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
 	reader := bufio.NewReader(conn)
+	scanner := bufio.NewScanner(reader)
 
-	for {
-		buf, err := reader.ReadBytes('¶')
-		if err == io.EOF {
-			return
-		} else if err != nil {
-			log.Println("Unexpected error in input tcp connection", err)
-			return
-		}
-		buf_len := len(buf)
-		if buf_len > 0 {
-			new_buf_len := len(buf) - 2
-			if new_buf_len > 0 {
-				new_buf := make([]byte, new_buf_len)
-				copy(new_buf, buf[:new_buf_len])
-				i.data <- new_buf
-			}
-		}
+	for scanner.Scan() {
+		encodedPayload := scanner.Bytes()
+		// Hex encoding always 2x number of bytes
+		decoded := make([]byte, len(encodedPayload)/2)
+		hex.Decode(decoded, encodedPayload)
+		i.data <- decoded
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(os.Stderr, "Unexpected error in input tcp connection:", err)
 	}
 }
 

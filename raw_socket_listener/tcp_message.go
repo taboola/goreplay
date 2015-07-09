@@ -79,7 +79,7 @@ func (t *TCPMessage) Bytes() (output []byte) {
         output = append(output, v.Data...)
     }
 
-    return
+    return output
 }
 
 // AddPacket to the message and ensure packet uniqueness

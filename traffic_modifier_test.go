@@ -96,9 +96,7 @@ func TestTrafficModifier(t *testing.T) {
     input := NewRAWInput(from)
 
     // And redirect to another
-    headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
-    methods := HTTPMethods{"GET", "PUT", "POST"}
-    output := NewHTTPOutput(to, headers, methods, HTTPUrlRegexp{}, HTTPHeaderFilters{}, HTTPHeaderHashFilters{}, "", UrlRewriteMap{}, 0)
+    output := NewHTTPOutput(to, &HTTPOutputConfig{})
 
     Plugins.Inputs = []io.Reader{input}
     Plugins.Outputs = []io.Writer{output}

@@ -101,6 +101,6 @@ func InitPlugins() {
 	}
 
 	for _, options := range Settings.outputHTTP {
-		registerPlugin(NewHTTPOutput, options, Settings.outputHTTPHeaders, Settings.outputHTTPMethods, Settings.outputHTTPUrlRegexp, Settings.outputHTTPHeaderFilters, Settings.outputHTTPHeaderHashFilters, Settings.outputHTTPElasticSearch, Settings.outputHTTPUrlRewrite, Settings.outputHTTPRedirects)
+		registerPlugin(NewHTTPOutput, options, &Settings.outputHTTPConfig)
 	}
 }

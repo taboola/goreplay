@@ -23,16 +23,26 @@ func Start(stop chan int) {
 func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 	buf := make([]byte, 5*1024*1024)
 	wIndex := 0
+	modifier := NewHTTPModifier(&Settings.modifierConfig)
 
 	for {
 		nr, er := src.Read(buf)
 
 		if nr > 0 && len(buf) > nr {
-			Debug("Sending", src, ": ", string(buf[0:nr]))
+			payload := buf[0:nr]
+
+			if modifier != nil {
+				payload = modifier.Rewrite(payload)
+
+				// If modifier tells to skip request
+				if len(payload) == 0 {
+					continue
+				}
+			}
 
 			if Settings.splitOutput {
 				// Simple round robin
-				writers[wIndex].Write(buf[0:nr])
+				writers[wIndex].Write(payload)
 
 				wIndex++
 
@@ -41,7 +51,7 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 				}
 			} else {
 				for _, dst := range writers {
-					dst.Write(buf[0:nr])
+					dst.Write(payload)
 				}
 			}
 
