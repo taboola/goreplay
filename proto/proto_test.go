@@ -89,6 +89,21 @@ func TestSetPath(t *testing.T) {
     }
 }
 
+func TestPathParam(t *testing.T) {
+    var payload []byte
+
+    payload = []byte("POST /post?param=test&user_id=1 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+
+    if val, _, _ := PathParam(payload, []byte("param")); !bytes.Equal(val, []byte("test")) {
+        t.Error("Should detect attribute", string(val))
+    }
+
+    if val, _, _ := PathParam(payload, []byte("user_id")); !bytes.Equal(val, []byte("1")) {
+        t.Error("Should detect attribute", string(val))
+    }
+}
+
+
 func TestSetHostHTTP10(t *testing.T) {
     var payload, payload_after []byte
 

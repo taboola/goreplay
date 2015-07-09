@@ -15,6 +15,7 @@ func NewHTTPModifier(config *HTTPModifierConfig) *HTTPModifier {
 		len(config.urlRewrite) == 0 &&
 		len(config.headerFilters) == 0 &&
 		len(config.headerHashFilters) == 0 &&
+		len(config.paramHashFilters) == 0 &&
 		len(config.headers) == 0 &&
 		len(config.methods) == 0 {
 		return nil
@@ -60,15 +61,28 @@ func (m *HTTPModifier) Rewrite(payload []byte) (response []byte) {
 		for _, f := range m.config.headerHashFilters {
 			value, s, _, _ := proto.Header(payload, f.name)
 
-			if s == -1 {
-				return
+			if s != -1 {
+				hasher := fnv.New32a()
+				hasher.Write(value)
+
+				if (hasher.Sum32() % 100) >= f.percent {
+					return
+				}
 			}
+		}
+	}
 
-			hasher := fnv.New32a()
-			hasher.Write(value)
+	if len(m.config.paramHashFilters) > 0 {
+		for _, f := range m.config.paramHashFilters {
+			value, s, _ := proto.PathParam(payload, f.name)
 
-			if (hasher.Sum32() % 100) >= f.percent {
-				return
+			if s != -1 {
+				hasher := fnv.New32a()
+				hasher.Write(value)
+
+				if (hasher.Sum32() % 100) >= f.percent {
+					return
+				}
 			}
 		}
 	}

@@ -24,8 +24,8 @@ func TestHTTPHeaderFilters(t *testing.T) {
     }
 }
 
-func TestHTTPHeaderHashFilters(t *testing.T) {
-    filters := HTTPHeaderHashFilters{}
+func TestHTTPHashFilters(t *testing.T) {
+    filters := HTTPHashFilters{}
 
     err := filters.Set("Header1:1/2")
     if err != nil {

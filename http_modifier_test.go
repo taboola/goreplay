@@ -69,7 +69,7 @@ func TestHTTPModifierURLRewrite(t *testing.T) {
 }
 
 func TestHTTPModifierHeaderHashFilters(t *testing.T) {
-	filters := HTTPHeaderHashFilters{}
+	filters := HTTPHashFilters{}
 	filters.Set("Header2:1/2")
 
 	modifier := NewHTTPModifier(&HTTPModifierConfig{
@@ -80,8 +80,8 @@ func TestHTTPModifierHeaderHashFilters(t *testing.T) {
 		return []byte("POST / HTTP/1.1\r\n" + string(header) + "Content-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 	}
 
-	if p := modifier.Rewrite(payload([]byte(""))); len(p) > 0 {
-		t.Error("Request should not pass filters, Header2 does not exist")
+	if p := modifier.Rewrite(payload([]byte(""))); len(p) == 0 {
+		t.Error("Request should pass filters if Header does not exist")
 	}
 
 	if p := modifier.Rewrite(payload([]byte("Header2: 3\r\n"))); len(p) > 0 {
@@ -89,6 +89,32 @@ func TestHTTPModifierHeaderHashFilters(t *testing.T) {
 	}
 
 	if p := modifier.Rewrite(payload([]byte("Header2: 1\r\n"))); len(p) == 0 {
+		t.Error("Request should pass filters")
+	}
+}
+
+
+func TestHTTPModifierParamHashFilters(t *testing.T) {
+	filters := HTTPHashFilters{}
+	filters.Set("user_id:1/2")
+
+	modifier := NewHTTPModifier(&HTTPModifierConfig{
+		paramHashFilters: filters,
+	})
+
+	payload := func(value []byte) []byte {
+		return []byte("POST /" + string(value) + " HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+	}
+
+	if p := modifier.Rewrite(payload([]byte(""))); len(p) == 0 {
+		t.Error("Request should pass filters if param does not exist")
+	}
+
+	if p := modifier.Rewrite(payload([]byte("?user_id=3"))); len(p) > 0 {
+		t.Error("Request should not pass filters", string(p))
+	}
+
+	if p := modifier.Rewrite(payload([]byte("?user_id=1"))); len(p) == 0 {
 		t.Error("Request should pass filters")
 	}
 }

@@ -110,6 +110,8 @@ func init() {
 
 	flag.Var(&Settings.modifierConfig.headerHashFilters, "http-allow-header-hash", "Takes a fraction of requests, consistently taking or rejecting a request based on the FNV32-1A hash of a specific header:\n\t gor --input-raw :8080 --output-http staging.com --http-allow-header-hash user-id:1/4")
 	flag.Var(&Settings.modifierConfig.headerHashFilters, "output-http-header-hash-filter", "WARNING: `output-http-header-hash-filter` DEPRECATED, use `--http-allow-header-hash` instead")
+
+	flag.Var(&Settings.modifierConfig.paramHashFilters, "http-allow-param-hash", "Takes a fraction of requests, consistently taking or rejecting a request based on the FNV32-1A hash of a specific GET param:\n\t gor --input-raw :8080 --output-http staging.com --http-allow-param-hash user_id:1/4")
 }
 
 func Debug(args ...interface{}) {

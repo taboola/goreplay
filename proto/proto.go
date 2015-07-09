@@ -86,6 +86,24 @@ func SetPath(payload, path []byte) []byte {
     return byteutils.Replace(payload, start, start+end, path)
 }
 
+func PathParam(payload, name []byte) (value []byte, valueStart, valueEnd int) {
+    path := Path(payload)
+
+    if paramStart := bytes.Index(path, append(name, '=')); paramStart != -1 {
+        valueStart := paramStart + len(name) + 1
+        paramEnd := bytes.IndexByte(path[valueStart:], '&')
+        if paramEnd == -1 { // It is final param
+            paramEnd = len(path)
+        } else {
+            paramEnd += valueStart
+        }
+
+        return path[valueStart:paramEnd], valueStart, paramEnd
+    } else {
+        return []byte(""), -1, -1
+    }
+}
+
 func SetHost(payload, url, host []byte) []byte {
     // If this is HTTP 1.0 traffic or proxy traffic it may include host right into path variable, so instead of setting Host header we rewrite Path
     // Fix for https://github.com/buger/gor/issues/156
