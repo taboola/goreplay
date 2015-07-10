@@ -39,6 +39,10 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 				}
 			}
 
+			if Settings.debug {
+				Debug("[EMITTER] Sending paylod:", string(payload))
+			}
+
 			if Settings.splitOutput {
 				// Simple round robin
 				writers[wIndex].Write(payload)

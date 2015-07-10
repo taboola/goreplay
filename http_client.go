@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"runtime/debug"
+	"log"
 )
 
 var defaultPorts = map[string]string{
@@ -89,9 +91,25 @@ func (c *HTTPClient) isAlive() bool {
 }
 
 func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
+	// Don't exit on panic
+	defer func() {
+		if r := recover(); r != nil {
+			Debug("[HTTPClient]", r, string(data))
+
+			if _, ok := r.(error); !ok {
+				log.Println("[HTTPClient] Failed to send request: ", string(data))
+				fmt.Printf("PANIC: pkg: %v %s \n", r, debug.Stack())
+			}
+		}
+	}()
+
+
 	if c.conn == nil || !c.isAlive() {
-		Debug("Connecting:", c.baseURL)
-		c.Connect()
+		Debug("[HTTPClient] Connecting:", c.baseURL)
+		if err = c.Connect(); err != nil {
+			fmt.Printf("[HTTPClient] Connection error: %s\n", r)
+			return
+		}
 	}
 
 	timeout := time.Now().Add(5 * time.Second)
@@ -101,11 +119,11 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 	data = proto.SetHost(data, []byte(c.baseURL), []byte(c.host))
 
 	if c.config.Debug {
-		Debug("Sending:", string(data))
+		Debug("[HTTPClient] Sending:", string(data))
 	}
 
 	if _, err = c.conn.Write(data); err != nil {
-		Debug("Write error:", err, c.baseURL)
+		Debug("[HTTPClient] Write error:", err, c.baseURL)
 		return
 	}
 
@@ -113,14 +131,14 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 	n, err := c.conn.Read(c.respBuf)
 
 	if err != nil {
-		Debug("READ ERRORR!", err, c.conn)
+		Debug("[HTTPClient] Response read error", err, c.conn)
 		return
 	}
 
 	payload := c.respBuf[:n]
 
 	if c.config.Debug {
-		Debug("Received:", string(payload))
+		Debug("[HTTPClient] Received:", string(payload))
 	}
 
 	if c.config.FollowRedirects > 0 && c.redirectsCount < c.config.FollowRedirects {
@@ -134,7 +152,7 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 			redirectPayload := []byte("GET " + string(location) + " HTTP/1.1\r\n\r\n")
 
 			if c.config.Debug {
-				Debug("Redirecting to: " + string(location))
+				Debug("[HTTPClient] Redirecting to: " + string(location))
 			}
 
 			return c.Send(redirectPayload)
