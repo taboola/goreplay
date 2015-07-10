@@ -98,7 +98,7 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 
 			if _, ok := r.(error); !ok {
 				log.Println("[HTTPClient] Failed to send request: ", string(data))
-				fmt.Printf("PANIC: pkg: %v %s \n", r, debug.Stack())
+				log.Println("PANIC: pkg:", r, debug.Stack())
 			}
 		}
 	}()
@@ -107,7 +107,7 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 	if c.conn == nil || !c.isAlive() {
 		Debug("[HTTPClient] Connecting:", c.baseURL)
 		if err = c.Connect(); err != nil {
-			fmt.Printf("[HTTPClient] Connection error: %s\n", r)
+			log.Println("[HTTPClient] Connection error:", err)
 			return
 		}
 	}
