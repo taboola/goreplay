@@ -72,7 +72,7 @@ func (c *HTTPClient) Disconnect() {
 	if c.conn != nil {
 		c.conn.Close()
 		c.conn = nil
-		Debug("Disconnected: ", c.baseURL)
+		Debug("[HTTP] Disconnected: ", c.baseURL)
 	}
 }
 
@@ -90,7 +90,7 @@ func (c *HTTPClient) isAlive() bool {
 
 func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 	if c.conn == nil || !c.isAlive() {
-		Debug("Connecting:", c.baseURL)
+		Debug("[HTTP] Connecting:", c.baseURL)
 		c.Connect()
 	}
 
@@ -101,11 +101,11 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 	data = proto.SetHost(data, []byte(c.baseURL), []byte(c.host))
 
 	if c.config.Debug {
-		Debug("Sending:", string(data))
+		Debug("[HTTP] Sending:", string(data))
 	}
 
 	if _, err = c.conn.Write(data); err != nil {
-		Debug("Write error:", err, c.baseURL)
+		Debug("[HTTP] Write error:", err, c.baseURL)
 		return
 	}
 
@@ -113,14 +113,14 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 	n, err := c.conn.Read(c.respBuf)
 
 	if err != nil {
-		Debug("READ ERRORR!", err, c.conn)
+		Debug("[HTTP] READ ERRORR!", err, c.conn)
 		return
 	}
 
 	payload := c.respBuf[:n]
 
 	if c.config.Debug {
-		Debug("Received:", string(payload))
+		Debug("[HTTP] Received:", string(payload))
 	}
 
 	if c.config.FollowRedirects > 0 && c.redirectsCount < c.config.FollowRedirects {
@@ -134,7 +134,7 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 			redirectPayload := []byte("GET " + string(location) + " HTTP/1.1\r\n\r\n")
 
 			if c.config.Debug {
-				Debug("Redirecting to: " + string(location))
+				Debug("[HTTP] Redirecting to: " + string(location))
 			}
 
 			return c.Send(redirectPayload)
@@ -144,4 +144,10 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 	c.redirectsCount = 0
 
 	return payload, err
+}
+
+func (c *HTTPClient) Get(path string) (response []byte, err error) {
+	payload := "GET " + path + " HTTP/1.1\r\n\r\n"
+
+	return c.Send([]byte(payload))
 }

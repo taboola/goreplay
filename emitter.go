@@ -31,6 +31,8 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 		if nr > 0 && len(buf) > nr {
 			payload := buf[0:nr]
 
+			Debug("[EMITTER] Received payload:", string(payload))
+
 			if modifier != nil {
 				payload = modifier.Rewrite(payload)
 

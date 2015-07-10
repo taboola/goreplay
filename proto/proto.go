@@ -68,6 +68,11 @@ func AddHeader(payload, name, value []byte) []byte {
     return byteutils.Insert(payload, mimeStart, header)
 }
 
+func Body(payload []byte) []byte {
+    // 4 -> len(EMPTY_LINE)
+    return payload[MIMEHeadersEndPos(payload) + 4:]
+}
+
 func Path(payload []byte) []byte {
     start := bytes.IndexByte(payload, ' ')
     start += 1
