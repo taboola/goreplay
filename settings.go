@@ -25,7 +25,7 @@ func (h *MultiOption) Set(value string) error {
 
 type AppSettings struct {
 	verbose bool
-	debug bool
+	debug   bool
 	stats   bool
 
 	splitOutput bool

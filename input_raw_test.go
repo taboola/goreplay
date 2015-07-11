@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/httptest"
 	"net/http/httputil"
 	"os/exec"
 	"strings"
@@ -148,5 +149,63 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 
 	wg.Wait()
 
+	close(quit)
+}
+
+func TestInputRAWLargePayload(t *testing.T) {
+	wg := new(sync.WaitGroup)
+	quit := make(chan int)
+
+	// Generate 100kb file
+	dd := exec.Command("dd", "if=/dev/urandom", "of=/tmp/large", "bs=1KB", "count=100")
+	err := dd.Run()
+	if err != nil {
+		log.Fatal("dd error:", err)
+	}
+
+	// Origing and Replay server initialization
+	origin := startHTTP(func(req *http.Request) {
+		defer req.Body.Close()
+		body, _ := ioutil.ReadAll(req.Body)
+
+		if len(body) != 100*1000 {
+			t.Error("File size should be 1mb:", len(body))
+		}
+
+		wg.Done()
+	})
+	origin_address := strings.Replace(origin.Addr().String(), "[::]", "127.0.0.1", -1)
+
+	input := NewRAWInput(origin_address)
+
+	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		req.Body = http.MaxBytesReader(w, req.Body, 1*1024*1024)
+		buf := make([]byte, 1*1024*1024)
+		n, _ := req.Body.Read(buf)
+		body := buf[0:n]
+
+		if len(body) != 100*1000 {
+			t.Error("File size should be 100000 bytes:", len(body))
+		}
+
+		wg.Done()
+	}))
+	defer replay.Close()
+
+	http_output := NewHTTPOutput(replay.URL, &HTTPOutputConfig{Debug: false})
+
+	Plugins.Inputs = []io.Reader{input}
+	Plugins.Outputs = []io.Writer{http_output}
+
+	go Start(quit)
+
+	wg.Add(2)
+	curl := exec.Command("curl", "http://"+origin_address, "--header", "Transfer-Encoding: chunked", "--data-binary", "@/tmp/large")
+	err = curl.Run()
+	if err != nil {
+		log.Fatal("curl error:", err)
+	}
+
+	wg.Wait()
 	close(quit)
 }
