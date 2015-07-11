@@ -14,7 +14,7 @@ dbuild:
 	docker build -t gor .
 
 dtest:
-	docker run -v `pwd`:$(SOURCE_PATH) -t -i --env GORACE="halt_on_error=1" gor go test ./... $(ARGS) -race -v -timeout 5s
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i --env GORACE="halt_on_error=1" gor go test ./... $(ARGS) -race -v -timeout 15s
 
 dcover:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i --env GORACE="halt_on_error=1" gor go test $(ARGS) -race -v -timeout 15s -coverprofile=coverage.out
