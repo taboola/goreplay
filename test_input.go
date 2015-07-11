@@ -35,14 +35,14 @@ func (i *TestInput) EmitChunkedPOST() {
 	i.data <- []byte("POST /pub/WWW/ HTTP/1.1\r\nHost: www.w3.org\r\nTransfer-Encoding: chunked\r\n\r\n4\r\nWiki\r\n5\r\npedia\r\ne\r\n in\r\n\r\nchunks.\r\n0\r\n\r\n")
 }
 
-func (i *TestInput) EmitFile() {
-	size := 1024 * 1024 // 1 MB
+func (i *TestInput) EmitLargePOST() {
+	size := 5 * 1024 * 1024 // 5 MB
 	rb := make([]byte, size)
 	rand.Read(rb)
 
 	rs := base64.URLEncoding.EncodeToString(rb)
 
-	i.data <- []byte("POST /pub/WWW/ HTTP/1.1\nHost: www.w3.org\r\n\r\n------WebKitFormBoundaryePkpFF7tjBAqx29L\nContent-Disposition: form-data; name=\"uploadedfile\"; filename=\"hello.o\"\nContent-Type: application/x-object\n" + rs + "\r\n\r\n")
+	i.data <- []byte("POST / HTTP/1.1\nHost: www.w3.org\nContent-Length:5242880\r\n\r\n" + rs)
 }
 
 func (i *TestInput) EmitOPTIONS() {

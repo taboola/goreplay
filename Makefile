@@ -21,7 +21,7 @@ dcover:
 	go tool cover -html=coverage.out
 
 dfmt:
-	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go fmt
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go fmt ./...
 
 dvet:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go vet

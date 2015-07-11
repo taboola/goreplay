@@ -4,12 +4,12 @@ import (
 	"crypto/tls"
 	"github.com/buger/gor/proto"
 	"io"
+	"log"
 	"net"
 	"net/url"
+	"runtime/debug"
 	"strings"
 	"time"
-	"runtime/debug"
-	"log"
 )
 
 var defaultPorts = map[string]string{
@@ -103,7 +103,6 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 		}
 	}()
 
-
 	if c.conn == nil || !c.isAlive() {
 		Debug("[HTTPClient] Connecting:", c.baseURL)
 		if err = c.Connect(); err != nil {
@@ -162,4 +161,10 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 	c.redirectsCount = 0
 
 	return payload, err
+}
+
+func (c *HTTPClient) Get(path string) (response []byte, err error) {
+	payload := "GET " + path + " HTTP/1.1\r\n\r\n"
+
+	return c.Send([]byte(payload))
 }

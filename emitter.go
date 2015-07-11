@@ -40,7 +40,7 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 			}
 
 			if Settings.debug {
-				Debug("[EMITTER] Sending paylod:", string(payload))
+				Debug("[EMITTER] Sending payload, size:", len(payload), "First 500 bytes:", string(payload[0:500]))
 			}
 
 			if Settings.splitOutput {
