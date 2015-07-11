@@ -142,7 +142,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 		packet.Ack = ack_alias
 	}
 
-	m_id := packet.Addr.String() + strconv.Itoa(int(packet.Ack))
+	m_id := packet.Addr.String() + strconv.Itoa(int(packet.SrcPort)) + strconv.Itoa(int(packet.Ack))
 	message, ok := t.messages[m_id]
 
 	if !ok {
