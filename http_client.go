@@ -162,3 +162,9 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 
 	return payload, err
 }
+
+func (c *HTTPClient) Get(path string) (response []byte, err error) {
+	payload := "GET " + path + " HTTP/1.1\r\n\r\n"
+
+	return c.Send([]byte(payload))
+}

@@ -31,12 +31,13 @@ func TestRAWInput(t *testing.T) {
 
 	address := strings.Replace(listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
+	client := NewHTTPClient(address,  &HTTPClientConfig{})
+
 	go Start(quit)
 
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
-		res, _ := http.Get("http://" + address)
-		res.Body.Close()
+		client.Get("/")
 	}
 
 	wg.Wait()

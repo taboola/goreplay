@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"syscall"
+	"time"
 )
 
 // Capture traffic from socket using RAW_SOCKET's
@@ -60,6 +61,7 @@ func (t *Listener) listen() {
 		select {
 		// If message ready for deletion it means that its also complete or expired by timeout
 		case message := <-t.c_del_message:
+			log.Println("Sending message, len:", len(message.packets))
 			t.c_messages <- message
 			delete(t.ack_aliases, message.Ack)
 			delete(t.messages, message.ID)
@@ -116,34 +118,58 @@ func ipToSockaddr(ip net.IP) (syscall.Sockaddr, error) {
 	return sa, nil
 }
 
+func FD_SET(p *syscall.FdSet, i int) {
+	p.Bits[i/64] |= 1 << uint(i) % 64
+}
+
+func FD_ISSET(p *syscall.FdSet, i int) bool {
+	return (p.Bits[i/64] & (1 << uint(i) % 64)) != 0
+}
+
+func FD_ZERO(p *syscall.FdSet) {
+	for i := range p.Bits {
+		p.Bits[i] = 0
+	}
+}
+
 func (t *Listener) readRAWSocket() {
+	var err error
 	var n int
 	var sa syscall.Sockaddr
-	var err error
 
 	addr, _ := net.ResolveIPAddr("ip4", t.addr)
 	sa, _ = ipToSockaddr(addr.IP)
-	s, e := sysSocket(syscall.AF_INET, syscall.SOCK_RAW|syscall.SOCK_NONBLOCK|syscall.SOCK_CLOEXEC, syscall.IPPROTO_TCP)
+	fd, e := sysSocket(syscall.AF_INET, syscall.SOCK_RAW|syscall.SOCK_NONBLOCK|syscall.SOCK_CLOEXEC, syscall.IPPROTO_TCP)
+	syscall.SetsockoptInt(fd, syscall.SOL_SOCKET, syscall.SO_BROADCAST, 1)
+
+	syscall.SetNonblock(fd, true)
 
 	if e != nil {
 		log.Fatal(e)
 	}
 
-	if err := syscall.Bind(s, sa); err != nil {
+	if err := syscall.Bind(fd, sa); err != nil {
 		log.Fatal(os.NewSyscallError("bind", err))
 	}
 
-	defer syscall.Close(s)
+	defer syscall.Close(fd)
+
+	rfds := &syscall.FdSet{}
+	timeout := syscall.NsecToTimeval(time.Second.Nanoseconds())
 
 	for {
 		buf := make([]byte, 64*1024) // 64kb
 
 		for {
-			n, sa, err = syscall.Recvfrom(s, buf, 0)
+			if _, err := syscall.Select(fd, rfds, nil, nil, &timeout); err != nil {
+				log.Fatal("Error", e)
+			}
+
+			n, sa, err = syscall.Recvfrom(fd, buf, 0)
 
 			if err != nil {
-				n = 0
 				if err == syscall.EAGAIN {
+					n = 0
 					continue
 				}
 			}
@@ -172,6 +198,7 @@ func (t *Listener) parsePacket(sa syscall.Sockaddr, buf []byte) {
 	addr := &net.IPAddr{IP: sa.(*syscall.SockaddrInet4).Addr[0:]}
 
 	if t.isIncomingDataPacket(buf) {
+		log.Println("Received packet:", len(buf))
 		t.c_packets <- ParseTCPPacket(addr, buf)
 	}
 }
