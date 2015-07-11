@@ -5,10 +5,7 @@ import (
 	"encoding/binary"
 	"log"
 	"net"
-	"os"
 	"strconv"
-	"syscall"
-	"time"
 )
 
 // Capture traffic from socket using RAW_SOCKET's
@@ -61,7 +58,6 @@ func (t *Listener) listen() {
 		select {
 		// If message ready for deletion it means that its also complete or expired by timeout
 		case message := <-t.c_del_message:
-			log.Println("Sending message, len:", len(message.packets))
 			t.c_messages <- message
 			delete(t.ack_aliases, message.Ack)
 			delete(t.messages, message.ID)
@@ -72,135 +68,35 @@ func (t *Listener) listen() {
 		}
 	}
 }
-
-// Taken from http://golang.org/src/net/sock_cloexec.go?h=sysSocket#L16
-func sysSocket(family, sotype, proto int) (int, error) {
-	s, err := syscall.Socket(family, sotype|syscall.SOCK_NONBLOCK|syscall.SOCK_CLOEXEC, proto)
-	// On Linux the SOCK_NONBLOCK and SOCK_CLOEXEC flags were
-	// introduced in 2.6.27 kernel and on FreeBSD both flags were
-	// introduced in 10 kernel. If we get an EINVAL error on Linux
-	// or EPROTONOSUPPORT error on FreeBSD, fall back to using
-	// socket without them.
-	if err == nil || (err != syscall.EPROTONOSUPPORT && err != syscall.EINVAL) {
-		return s, err
-	}
-
-	// See ../syscall/exec_unix.go for description of ForkLock.
-	syscall.ForkLock.RLock()
-	s, err = syscall.Socket(family, sotype, proto)
-	if err == nil {
-		syscall.CloseOnExec(s)
-	}
-	syscall.ForkLock.RUnlock()
-	if err != nil {
-		return -1, err
-	}
-	if err = syscall.SetNonblock(s, true); err != nil {
-		syscall.Close(s)
-		return -1, err
-	}
-	return s, nil
-}
-
-func ipToSockaddr(ip net.IP) (syscall.Sockaddr, error) {
-	if len(ip) == 0 {
-		ip = net.IPv4zero
-	}
-	if ip = ip.To4(); ip == nil {
-		return nil, net.InvalidAddrError("non-IPv4 address")
-	}
-
-	sa := new(syscall.SockaddrInet4)
-	for i := 0; i < net.IPv4len; i++ {
-		sa.Addr[i] = ip[i]
-	}
-	sa.Port = 0
-	return sa, nil
-}
-
-func FD_SET(p *syscall.FdSet, i int) {
-	p.Bits[i/64] |= 1 << uint(i) % 64
-}
-
-func FD_ISSET(p *syscall.FdSet, i int) bool {
-	return (p.Bits[i/64] & (1 << uint(i) % 64)) != 0
-}
-
-func FD_ZERO(p *syscall.FdSet) {
-	for i := range p.Bits {
-		p.Bits[i] = 0
-	}
-}
-
 func (t *Listener) readRAWSocket() {
-	var err error
-	var n int
-	var sa syscall.Sockaddr
+    conn, e := net.ListenPacket("ip4:tcp", t.addr)
 
-	addr, _ := net.ResolveIPAddr("ip4", t.addr)
-	sa, _ = ipToSockaddr(addr.IP)
-	fd, e := sysSocket(syscall.AF_INET, syscall.SOCK_RAW|syscall.SOCK_NONBLOCK|syscall.SOCK_CLOEXEC, syscall.IPPROTO_TCP)
-	syscall.SetsockoptInt(fd, syscall.SOL_SOCKET, syscall.SO_BROADCAST, 1)
+    if e != nil {
+        log.Fatal(e)
+    }
 
-	syscall.SetNonblock(fd, true)
+    defer conn.Close()
 
-	if e != nil {
-		log.Fatal(e)
-	}
+    for {
+    	buf := make([]byte, 64*1024) // 64kb
+        // Note: ReadFrom receive messages without IP header
+        n, addr, err := conn.ReadFrom(buf)
 
-	if err := syscall.Bind(fd, sa); err != nil {
-		log.Fatal(os.NewSyscallError("bind", err))
-	}
+        if err != nil {
+            log.Println("Error:", err)
+            continue
+        }
 
-	defer syscall.Close(fd)
-
-	rfds := &syscall.FdSet{}
-	timeout := syscall.NsecToTimeval(time.Second.Nanoseconds())
-
-	for {
-		buf := make([]byte, 64*1024) // 64kb
-
-		for {
-			if _, err := syscall.Select(fd, rfds, nil, nil, &timeout); err != nil {
-				log.Fatal("Error", e)
-			}
-
-			n, sa, err = syscall.Recvfrom(fd, buf, 0)
-
-			if err != nil {
-				if err == syscall.EAGAIN {
-					n = 0
-					continue
-				}
-			}
-
-			break
-		}
-
-		if err != nil {
-			log.Println("Error:", err)
-			continue
-		}
-
-		if n > 0 {
-			// Ip header size
-			hsize := (int(buf[0]) & 0xf) * 4
-
-			if n > hsize {
-				go t.parsePacket(sa, buf[hsize:n])
-			}
-		}
-
-	}
+        if n > 0 {
+            go t.parsePacket(addr, buf[:n])
+        }
+    }
 }
 
-func (t *Listener) parsePacket(sa syscall.Sockaddr, buf []byte) {
-	addr := &net.IPAddr{IP: sa.(*syscall.SockaddrInet4).Addr[0:]}
-
-	if t.isIncomingDataPacket(buf) {
-		log.Println("Received packet:", len(buf))
-		t.c_packets <- ParseTCPPacket(addr, buf)
-	}
+func (t *Listener) parsePacket(addr net.Addr, buf []byte) {
+    if t.isIncomingDataPacket(buf) {
+        t.c_packets <- ParseTCPPacket(addr, buf)
+    }
 }
 
 func (t *Listener) isIncomingDataPacket(buf []byte) bool {
