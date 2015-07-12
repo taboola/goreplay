@@ -349,6 +349,10 @@ Basic idea is that SSL was made to protect itself from traffic interception. The
 
 More can be find here: https://github.com/buger/gor/issues/85
 
+# Is there a limit for size of HTTP request when using output-http?
+Due to the fact that Gor can't guarantee interception of all packets, for large payloads > 200kb there is chance of missing some packets and corrupting body. Treat it as a feature and chance to test broken bodies handling :)
+The only way to guarantee delivery is using `--input-http`, but you will miss some features.
+
 ### I'm getting 'too many open files' error
 Typical linux shell has a small open files soft limit at 1024. You can easily raise that when you do this before starting your gor replay process:
   
