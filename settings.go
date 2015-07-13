@@ -8,21 +8,24 @@ import (
 )
 
 const (
+	// VERSION specifies Gor current version
 	VERSION = "0.9.8"
 )
 
-// Allows to specify multiple flags with same name and collects all values to array
+// MultiOption allows to specify multiple flags with same name and collects all values into array
 type MultiOption []string
 
 func (h *MultiOption) String() string {
 	return fmt.Sprint(*h)
 }
 
+// Set gets called multiple times for each flag with same name
 func (h *MultiOption) Set(value string) error {
 	*h = append(*h, value)
 	return nil
 }
 
+// AppSettings is the struct of main configuration
 type AppSettings struct {
 	verbose bool
 	debug   bool
@@ -49,7 +52,8 @@ type AppSettings struct {
 	modifierConfig   HTTPModifierConfig
 }
 
-var Settings AppSettings = AppSettings{}
+// Settings holds Gor configuration
+var Settings AppSettings
 
 func usage() {
 	fmt.Printf("Gor is a simple http traffic replication tool written in Go. Its main goal is to replay traffic from production servers to staging and dev environments.\nProject page: https://github.com/buger/gor\nAuthor: <Leonid Bugaev> leonsbox@gmail.com\nCurrent Version: %s\n\n", VERSION)
@@ -113,6 +117,7 @@ func init() {
 	flag.Var(&Settings.modifierConfig.paramHashFilters, "http-param-limiter", "Takes a fraction of requests, consistently taking or rejecting a request based on the FNV32-1A hash of a specific GET param:\n\t gor --input-raw :8080 --output-http staging.com --http-param-limiter user_id:25%")
 }
 
+// Debug gets called only if --verbose flag specified
 func Debug(args ...interface{}) {
 	if Settings.verbose {
 		fmt.Print("[DEBUG] ")

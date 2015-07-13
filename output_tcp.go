@@ -9,6 +9,9 @@ import (
 	"time"
 )
 
+// TCPOutput used for sending raw tcp payloads
+// Currently used for internal communication between listener and replay server
+// Can be used for transfering binary payloads like protocol buffers
 type TCPOutput struct {
 	address  string
 	limit    int
@@ -16,6 +19,8 @@ type TCPOutput struct {
 	bufStats *GorStat
 }
 
+// NewTCPOutput constructor for TCPOutput
+// Initialize 10 workers which hold keep-alive connection
 func NewTCPOutput(address string) io.Writer {
 	o := new(TCPOutput)
 
