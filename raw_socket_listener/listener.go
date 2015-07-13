@@ -70,7 +70,6 @@ func (t *Listener) listen() {
 		select {
 		// If message ready for deletion it means that its also complete or expired by timeout
 		case message := <-t.messageDelChan:
-			log.Println("MESSAGE")
 			t.messagesChan <- message
 			delete(t.ackAliases, message.Ack)
 			delete(t.messages, message.ID)
@@ -107,8 +106,6 @@ func (t *Listener) readRAWSocket() {
 }
 
 func (t *Listener) parsePacket(addr net.Addr, buf []byte) {
-	log.Println("PACKET")
-
 	if t.isIncomingDataPacket(buf) {
 		t.packetsChan <- ParseTCPPacket(addr, buf)
 	}
