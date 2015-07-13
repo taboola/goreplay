@@ -86,9 +86,9 @@ func (m *HTTPModifier) Rewrite(payload []byte) (response []byte) {
 
 	if len(m.config.headerFilters) > 0 {
 		for _, f := range m.config.headerFilters {
-			value, s, _, _ := proto.Header(payload, f.name)
+			value := proto.Header(payload, f.name)
 
-			if s != -1 && !f.regexp.Match(value) {
+			if len(value) > 0 && !f.regexp.Match(value) {
 				return
 			}
 		}
@@ -96,9 +96,9 @@ func (m *HTTPModifier) Rewrite(payload []byte) (response []byte) {
 
 	if len(m.config.headerHashFilters) > 0 {
 		for _, f := range m.config.headerHashFilters {
-			value, s, _, _ := proto.Header(payload, f.name)
+			value := proto.Header(payload, f.name)
 
-			if s != -1 {
+			if len(value) > 0 {
 				hasher := fnv.New32a()
 				hasher.Write(value)
 

@@ -59,7 +59,7 @@ func (t *TCPPacket) Parse() {
 
 // ParseBasic set of fields
 func (t *TCPPacket) ParseBasic() {
-    t.SrcPort = binary.BigEndian.Uint16(t.Data[0:2])
+	t.SrcPort = binary.BigEndian.Uint16(t.Data[0:2])
 	t.Seq = binary.BigEndian.Uint32(t.Data[4:8])
 	t.Ack = binary.BigEndian.Uint32(t.Data[8:12])
 	t.DataOffset = (t.Data[12] & 0xF0) >> 4

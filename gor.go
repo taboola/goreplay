@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"runtime/debug"
 	"runtime/pprof"
-	"runtime"
 	"time"
 )
 

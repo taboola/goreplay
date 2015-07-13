@@ -31,7 +31,7 @@ func TestRAWInput(t *testing.T) {
 
 	address := strings.Replace(listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	client := NewHTTPClient(address,  &HTTPClientConfig{})
+	client := NewHTTPClient(address, &HTTPClientConfig{})
 
 	go Start(quit)
 

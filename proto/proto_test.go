@@ -11,17 +11,17 @@ func TestHeader(t *testing.T) {
 
 	payload = []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 
-	if val, _, _, _ = Header(payload, []byte("Content-Length")); !bytes.Equal(val, []byte("7")) {
+	if val = Header(payload, []byte("Content-Length")); !bytes.Equal(val, []byte("7")) {
 		t.Error("Should find header value")
 	}
 
 	payload = []byte("POST /post HTTP/1.1\r\nContent-Length:7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 
-	if val, _, _, _ = Header(payload, []byte("Content-Length")); !bytes.Equal(val, []byte("7")) {
+	if val = Header(payload, []byte("Content-Length")); !bytes.Equal(val, []byte("7")) {
 		t.Error("Should find header value without space after :")
 	}
 
-	if _, headerStart, _, _ = Header(payload, []byte("Not-Found")); headerStart != -1 {
+	if _, headerStart, _, _ = header(payload, []byte("Not-Found")); headerStart != -1 {
 		t.Error("Should not found header")
 	}
 }
@@ -50,19 +50,19 @@ func TestMIMEHeadersStartPos(t *testing.T) {
 }
 
 func TestSetHeader(t *testing.T) {
-	var payload, payload_after []byte
+	var payload, payloadAfter []byte
 
 	payload = []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
-	payload_after = []byte("POST /post HTTP/1.1\r\nContent-Length: 14\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+	payloadAfter = []byte("POST /post HTTP/1.1\r\nContent-Length: 14\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 
-	if payload = SetHeader(payload, []byte("Content-Length"), []byte("14")); !bytes.Equal(payload, payload_after) {
+	if payload = SetHeader(payload, []byte("Content-Length"), []byte("14")); !bytes.Equal(payload, payloadAfter) {
 		t.Error("Should update header if it exists", string(payload))
 	}
 
 	payload = []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
-	payload_after = []byte("POST /post HTTP/1.1\r\nUser-Agent: Gor\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+	payloadAfter = []byte("POST /post HTTP/1.1\r\nUser-Agent: Gor\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 
-	if payload = SetHeader(payload, []byte("User-Agent"), []byte("Gor")); !bytes.Equal(payload, payload_after) {
+	if payload = SetHeader(payload, []byte("User-Agent"), []byte("Gor")); !bytes.Equal(payload, payloadAfter) {
 		t.Error("Should add header if not found", string(payload))
 	}
 }
@@ -78,12 +78,12 @@ func TestPath(t *testing.T) {
 }
 
 func TestSetPath(t *testing.T) {
-	var payload, payload_after []byte
+	var payload, payloadAfter []byte
 
 	payload = []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
-	payload_after = []byte("POST /new_path HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+	payloadAfter = []byte("POST /new_path HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 
-	if payload = SetPath(payload, []byte("/new_path")); !bytes.Equal(payload, payload_after) {
+	if payload = SetPath(payload, []byte("/new_path")); !bytes.Equal(payload, payloadAfter) {
 		t.Error("Should replace path", string(payload))
 	}
 }
@@ -103,44 +103,44 @@ func TestPathParam(t *testing.T) {
 }
 
 func TestSetPathParam(t *testing.T) {
-	var payload, payload_after []byte
+	var payload, payloadAfter []byte
 
 	payload = []byte("POST /post?param=test&user_id=1 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
-	payload_after = []byte("POST /post?param=new&user_id=1 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+	payloadAfter = []byte("POST /post?param=new&user_id=1 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 
-	if payload = SetPathParam(payload, []byte("param"), []byte("new")); !bytes.Equal(payload, payload_after) {
+	if payload = SetPathParam(payload, []byte("param"), []byte("new")); !bytes.Equal(payload, payloadAfter) {
 		t.Error("Should replace existing value", string(payload))
 	}
 
 	payload = []byte("POST /post?param=test&user_id=1 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
-	payload_after = []byte("POST /post?param=test&user_id=2 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+	payloadAfter = []byte("POST /post?param=test&user_id=2 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 
-	if payload = SetPathParam(payload, []byte("user_id"), []byte("2")); !bytes.Equal(payload, payload_after) {
+	if payload = SetPathParam(payload, []byte("user_id"), []byte("2")); !bytes.Equal(payload, payloadAfter) {
 		t.Error("Should replace existing value", string(payload))
 	}
 
 	payload = []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
-	payload_after = []byte("POST /post?param=test HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+	payloadAfter = []byte("POST /post?param=test HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 
-	if payload = SetPathParam(payload, []byte("param"), []byte("test")); !bytes.Equal(payload, payload_after) {
+	if payload = SetPathParam(payload, []byte("param"), []byte("test")); !bytes.Equal(payload, payloadAfter) {
 		t.Error("Should set param if url have no params", string(payload))
 	}
 
 	payload = []byte("POST /post?param=test HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
-	payload_after = []byte("POST /post?param=test&user_id=1 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+	payloadAfter = []byte("POST /post?param=test&user_id=1 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 
-	if payload = SetPathParam(payload, []byte("user_id"), []byte("1")); !bytes.Equal(payload, payload_after) {
+	if payload = SetPathParam(payload, []byte("user_id"), []byte("1")); !bytes.Equal(payload, payloadAfter) {
 		t.Error("Should set param at the end if url params", string(payload))
 	}
 }
 
 func TestSetHostHTTP10(t *testing.T) {
-	var payload, payload_after []byte
+	var payload, payloadAfter []byte
 
 	payload = []byte("POST http://example.com/post HTTP/1.0\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
-	payload_after = []byte("POST http://new.com/post HTTP/1.0\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+	payloadAfter = []byte("POST http://new.com/post HTTP/1.0\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 
-	if payload = SetHost(payload, []byte("http://new.com"), []byte("new.com")); !bytes.Equal(payload, payload_after) {
+	if payload = SetHost(payload, []byte("http://new.com"), []byte("new.com")); !bytes.Equal(payload, payloadAfter) {
 		t.Error("Should replace host", string(payload))
 	}
 }

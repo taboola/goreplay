@@ -69,34 +69,34 @@ func (t *Listener) listen() {
 	}
 }
 func (t *Listener) readRAWSocket() {
-    conn, e := net.ListenPacket("ip4:tcp", t.addr)
+	conn, e := net.ListenPacket("ip4:tcp", t.addr)
 
-    if e != nil {
-        log.Fatal(e)
-    }
+	if e != nil {
+		log.Fatal(e)
+	}
 
-    defer conn.Close()
+	defer conn.Close()
 
-    for {
-    	buf := make([]byte, 64*1024) // 64kb
-        // Note: ReadFrom receive messages without IP header
-        n, addr, err := conn.ReadFrom(buf)
+	for {
+		buf := make([]byte, 64*1024) // 64kb
+		// Note: ReadFrom receive messages without IP header
+		n, addr, err := conn.ReadFrom(buf)
 
-        if err != nil {
-            log.Println("Error:", err)
-            continue
-        }
+		if err != nil {
+			log.Println("Error:", err)
+			continue
+		}
 
-        if n > 0 {
-            go t.parsePacket(addr, buf[:n])
-        }
-    }
+		if n > 0 {
+			go t.parsePacket(addr, buf[:n])
+		}
+	}
 }
 
 func (t *Listener) parsePacket(addr net.Addr, buf []byte) {
-    if t.isIncomingDataPacket(buf) {
-        t.c_packets <- ParseTCPPacket(addr, buf)
-    }
+	if t.isIncomingDataPacket(buf) {
+		t.c_packets <- ParseTCPPacket(addr, buf)
+	}
 }
 
 func (t *Listener) isIncomingDataPacket(buf []byte) bool {
