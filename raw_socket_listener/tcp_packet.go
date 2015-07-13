@@ -1,4 +1,4 @@
-package raw_socket
+package rawSocket
 
 import (
 	"encoding/binary"
@@ -9,19 +9,18 @@ import (
 
 // TCP Flags
 const (
-	TCP_FIN = 1 << iota
-	TCP_SYN
-	TCP_RST
-	TCP_PSH
-	TCP_ACK
-	TCP_URG
-	TCP_ECE
-	TCP_CWR
-	TCP_NS
+	fFIN = 1 << iota
+	fSYN
+	fRST
+	fPSH
+	fACK
+	fURG
+	fECE
+	fCWR
+	fNS
 )
 
-// Simple TCP packet parser
-//
+// TCPPacket provides tcp packet parser
 // Packet structure: http://en.wikipedia.org/wiki/Transmission_Control_Protocol
 type TCPPacket struct {
 	SrcPort    uint16
@@ -39,6 +38,7 @@ type TCPPacket struct {
 	Addr net.Addr
 }
 
+// ParseTCPPacket takes address and tcp payload and returns parsed TCPPacket
 func ParseTCPPacket(addr net.Addr, b []byte) (p *TCPPacket) {
 	p = &TCPPacket{Data: b}
 	p.ParseBasic()
@@ -76,15 +76,15 @@ func (t *TCPPacket) String() string {
 		"Acknowledgment:" + strconv.Itoa(int(t.Ack)),
 		"Header len:" + strconv.Itoa(int(t.DataOffset)),
 
-		"Flag ns:" + strconv.FormatBool(t.Flags&TCP_NS != 0),
-		"Flag crw:" + strconv.FormatBool(t.Flags&TCP_CWR != 0),
-		"Flag ece:" + strconv.FormatBool(t.Flags&TCP_ECE != 0),
-		"Flag urg:" + strconv.FormatBool(t.Flags&TCP_URG != 0),
-		"Flag ack:" + strconv.FormatBool(t.Flags&TCP_ACK != 0),
-		"Flag psh:" + strconv.FormatBool(t.Flags&TCP_PSH != 0),
-		"Flag rst:" + strconv.FormatBool(t.Flags&TCP_RST != 0),
-		"Flag syn:" + strconv.FormatBool(t.Flags&TCP_SYN != 0),
-		"Flag fin:" + strconv.FormatBool(t.Flags&TCP_FIN != 0),
+		"Flag ns:" + strconv.FormatBool(t.Flags&fNS != 0),
+		"Flag crw:" + strconv.FormatBool(t.Flags&fCWR != 0),
+		"Flag ece:" + strconv.FormatBool(t.Flags&fECE != 0),
+		"Flag urg:" + strconv.FormatBool(t.Flags&fURG != 0),
+		"Flag ack:" + strconv.FormatBool(t.Flags&fACK != 0),
+		"Flag psh:" + strconv.FormatBool(t.Flags&fPSH != 0),
+		"Flag rst:" + strconv.FormatBool(t.Flags&fRST != 0),
+		"Flag syn:" + strconv.FormatBool(t.Flags&fSYN != 0),
+		"Flag fin:" + strconv.FormatBool(t.Flags&fFIN != 0),
 
 		"Window size:" + strconv.Itoa(int(t.Window)),
 		"Checksum:" + strconv.Itoa(int(t.Checksum)),
@@ -94,8 +94,8 @@ func (t *TCPPacket) String() string {
 	}, "\n")
 }
 
-type BySeq []*TCPPacket
+type sortBySeq []*TCPPacket
 
-func (a BySeq) Len() int           { return len(a) }
-func (a BySeq) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a BySeq) Less(i, j int) bool { return a[i].Seq < a[j].Seq }
+func (a sortBySeq) Len() int           { return len(a) }
+func (a sortBySeq) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a sortBySeq) Less(i, j int) bool { return a[i].Seq < a[j].Seq }

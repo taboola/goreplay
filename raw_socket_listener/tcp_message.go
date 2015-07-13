@@ -1,4 +1,4 @@
-package raw_socket
+package rawSocket
 
 import (
 	"log"
@@ -6,7 +6,8 @@ import (
 	"time"
 )
 
-const MSG_EXPIRE = 2000 * time.Millisecond
+// MsgExpire specify period that message should wait before it considered as finished
+const MsgExpire = 2000 * time.Millisecond
 
 // TCPMessage ensure that all TCP packets for given request is received, and processed in right sequence
 // Its needed because all TCP message can be fragmented or re-transmitted
@@ -21,20 +22,20 @@ type TCPMessage struct {
 
 	timer *time.Timer // Used for expire check
 
-	c_packets chan *TCPPacket
+	packetsChan chan *TCPPacket
 
-	c_del_message chan *TCPMessage
+	delChan chan *TCPMessage
 }
 
 // NewTCPMessage pointer created from a Acknowledgment number and a channel of messages readuy to be deleted
-func NewTCPMessage(ID string, c_del chan *TCPMessage, Ack uint32) (msg *TCPMessage) {
+func NewTCPMessage(ID string, delChan chan *TCPMessage, Ack uint32) (msg *TCPMessage) {
 	msg = &TCPMessage{ID: ID, Ack: Ack}
 
-	msg.c_packets = make(chan *TCPPacket)
-	msg.c_del_message = c_del // used for notifying that message completed or expired
+	msg.packetsChan = make(chan *TCPPacket)
+	msg.delChan = delChan // used for notifying that message completed or expired
 
 	// Every time we receive packet we reset this timer
-	msg.timer = time.AfterFunc(MSG_EXPIRE, msg.Timeout)
+	msg.timer = time.AfterFunc(MsgExpire, msg.Timeout)
 
 	go msg.listen()
 
@@ -44,7 +45,7 @@ func NewTCPMessage(ID string, c_del chan *TCPMessage, Ack uint32) (msg *TCPMessa
 func (t *TCPMessage) listen() {
 	for {
 		select {
-		case packet, more := <-t.c_packets:
+		case packet, more := <-t.packetsChan:
 			if more {
 				t.AddPacket(packet)
 			} else {
@@ -60,21 +61,21 @@ func (t *TCPMessage) Timeout() {
 	select {
 	// In some cases Timeout can be called multiple times (do not know how yet)
 	// Ensure that we did not close channel 2 times
-	case packet, ok := <-t.c_packets:
+	case packet, ok := <-t.packetsChan:
 		if ok {
 			t.AddPacket(packet)
 		} else {
 			return
 		}
 	default:
-		close(t.c_packets)
-		t.c_del_message <- t // Notify RAWListener that message is ready to be send to replay server
+		close(t.packetsChan)
+		t.delChan <- t // Notify RAWListener that message is ready to be send to replay server
 	}
 }
 
 // Bytes sorts packets in right orders and return message content
 func (t *TCPMessage) Bytes() (output []byte) {
-	sort.Sort(BySeq(t.packets))
+	sort.Sort(sortBySeq(t.packets))
 
 	for _, v := range t.packets {
 		output = append(output, v.Data...)
@@ -102,5 +103,5 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 	}
 
 	// Reset message timeout timer
-	t.timer.Reset(MSG_EXPIRE)
+	t.timer.Reset(MsgExpire)
 }
