@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestRAWInput(t *testing.T) {
@@ -32,6 +33,8 @@ func TestRAWInput(t *testing.T) {
 	address := strings.Replace(listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
 	client := NewHTTPClient(address, &HTTPClientConfig{})
+
+	time.Sleep(time.Millisecond)
 
 	go Start(quit)
 
