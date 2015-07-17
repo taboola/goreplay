@@ -98,7 +98,7 @@ func (m *HTTPModifier) Rewrite(payload []byte) (response []byte) {
 
 	if len(m.config.headerNegativeFilters) > 0 {
 		for _, f := range m.config.headerNegativeFilters {
-			value, s, _, _ := proto.Header(payload, f.name)
+			value := proto.Header(payload, f.name)
 
 			if s != -1 && f.regexp.Match(value) {
 				return
