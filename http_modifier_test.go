@@ -40,7 +40,7 @@ func TestHTTPModifierHeaderFilters(t *testing.T) {
 }
 
 func TestHTTPModifierURLRewrite(t *testing.T) {
-	var url, new_url []byte
+	var url, newURL []byte
 
 	rewrites := UrlRewriteMap{}
 
@@ -58,13 +58,13 @@ func TestHTTPModifierURLRewrite(t *testing.T) {
 	})
 
 	url = []byte("/v1/user/joe/ping")
-	if new_url = proto.Path(modifier.Rewrite(payload(url))); bytes.Equal(new_url, url) {
-		t.Error("Request url should have been rewritten, wasn't", string(new_url))
+	if newURL = proto.Path(modifier.Rewrite(payload(url))); bytes.Equal(newURL, url) {
+		t.Error("Request url should have been rewritten, wasn't", string(newURL))
 	}
 
 	url = []byte("/v1/user/ping")
-	if new_url = proto.Path(modifier.Rewrite(payload(url))); !bytes.Equal(new_url, url) {
-		t.Error("Request url should have been rewritten, wasn't", string(new_url))
+	if newURL = proto.Path(modifier.Rewrite(payload(url))); !bytes.Equal(newURL, url) {
+		t.Error("Request url should have been rewritten, wasn't", string(newURL))
 	}
 }
 
@@ -128,9 +128,9 @@ func TestHTTPModifierHeaders(t *testing.T) {
 	})
 
 	payload := []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
-	new_payload := []byte("POST /post HTTP/1.1\r\nHeader1: 1\r\nContent-Length: 7\r\nHost: localhost\r\n\r\na=1&b=2")
+	newPayload := []byte("POST /post HTTP/1.1\r\nHeader1: 1\r\nContent-Length: 7\r\nHost: localhost\r\n\r\na=1&b=2")
 
-	if payload = modifier.Rewrite(payload); !bytes.Equal(payload, new_payload) {
+	if payload = modifier.Rewrite(payload); !bytes.Equal(payload, newPayload) {
 		t.Error("Should update request headers", string(payload))
 	}
 }
@@ -196,9 +196,9 @@ func TestHTTPModifierSetHeader(t *testing.T) {
 	})
 
 	payload := []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
-	payload_after := []byte("POST /post HTTP/1.1\r\nUser-Agent: Gor\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+	payloadAfter := []byte("POST /post HTTP/1.1\r\nUser-Agent: Gor\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 
-	if payload = modifier.Rewrite(payload); !bytes.Equal(payload_after, payload) {
+	if payload = modifier.Rewrite(payload); !bytes.Equal(payloadAfter, payload) {
 		t.Error("Should add new header", string(payload))
 	}
 }
@@ -212,9 +212,9 @@ func TestHTTPModifierSetParam(t *testing.T) {
 	})
 
 	payload := []byte("POST /post?api_key=1234 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
-	payload_after := []byte("POST /post?api_key=1 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+	payloadAfter := []byte("POST /post?api_key=1 HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 
-	if payload = modifier.Rewrite(payload); !bytes.Equal(payload_after, payload) {
+	if payload = modifier.Rewrite(payload); !bytes.Equal(payloadAfter, payload) {
 		t.Error("Should override param", string(payload))
 	}
 }

@@ -145,7 +145,7 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 
 		// 3xx requests
 		if status[0] == '3' {
-			c.redirectsCount += 1
+			c.redirectsCount++
 
 			location := proto.Header(payload, []byte("Location"))
 			redirectPayload := []byte("GET " + string(location) + " HTTP/1.1\r\n\r\n")

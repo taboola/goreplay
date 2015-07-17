@@ -7,12 +7,14 @@ import (
 	"net/http/httputil"
 )
 
+// HTTPInput used for sending requests to Gor via http
 type HTTPInput struct {
 	data     chan []byte
 	address  string
 	listener net.Listener
 }
 
+// NewHTTPInput constructor for HTTPInput. Accepts address with port which he will listen on.
 func NewHTTPInput(address string) (i *HTTPInput) {
 	i = new(HTTPInput)
 	i.data = make(chan []byte)

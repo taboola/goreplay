@@ -83,10 +83,10 @@ func BenchmarkTCPInput(b *testing.B) {
 			for {
 				data := <-dataChan
 
-				new_buf := make([]byte, len(data)+2)
+				buf := make([]byte, len(data)+2)
 				data = append(data, []byte("¶")...)
-				copy(new_buf, data)
-				conn.Write(new_buf)
+				copy(buf, data)
+				conn.Write(buf)
 			}
 		}(conn)
 	}

@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// Limiter is a wrapper for input or output plugin which adds rate limiting
 type Limiter struct {
 	plugin    interface{}
 	limit     int
@@ -30,6 +31,8 @@ func parseLimitOptions(options string) (limit int, isPercent bool) {
 	return
 }
 
+// NewLimiter constructor for Limiter, accepts plugin and options
+// `options` allow to sprcify relatve or absolute limiting
 func NewLimiter(plugin interface{}, options string) io.ReadWriter {
 	l := new(Limiter)
 	l.limit, l.isPercent = parseLimitOptions(options)

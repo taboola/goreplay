@@ -7,11 +7,13 @@ import (
 	"strings"
 )
 
+// RAWInput used for intercepting traffic for given address
 type RAWInput struct {
 	data    chan []byte
 	address string
 }
 
+// NewRAWInput constructor for RAWInput. Accepts address with port as argument.
 func NewRAWInput(address string) (i *RAWInput) {
 	i = new(RAWInput)
 	i.data = make(chan []byte)

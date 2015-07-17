@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// HTTPModifierConfig holds configuration options for built-in traffic modifier
 type HTTPModifierConfig struct {
 	urlNegativeRegexp HTTPUrlRegexp
 	urlRegexp         HTTPUrlRegexp
@@ -29,6 +30,7 @@ type headerFilter struct {
 	regexp *regexp.Regexp
 }
 
+// HTTPHeaderFilters holds list of headers and their regexps
 type HTTPHeaderFilters []headerFilter
 
 func (h *HTTPHeaderFilters) String() string {
@@ -67,7 +69,7 @@ func (h *HTTPHashFilters) String() string {
 func (h *HTTPHashFilters) Set(value string) error {
 	valArr := strings.SplitN(value, ":", 2)
 	if len(valArr) < 2 {
-		return errors.New("need both header and value, colon-delimited (ex. user_id:50%).")
+		return errors.New("need both header and value, colon-delimited (ex. user_id:50%)")
 	}
 
 	f := hashFilter{name: []byte(valArr[0])}
@@ -180,7 +182,7 @@ func (r *UrlRewriteMap) String() string {
 func (r *UrlRewriteMap) Set(value string) error {
 	valArr := strings.SplitN(value, ":", 2)
 	if len(valArr) < 2 {
-		return errors.New("need both src and target, colon-delimited (ex. /a:/b).")
+		return errors.New("need both src and target, colon-delimited (ex. /a:/b)")
 	}
 	regexp, err := regexp.Compile(valArr[0])
 	if err != nil {

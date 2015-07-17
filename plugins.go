@@ -13,7 +13,7 @@ type InOutPlugins struct {
 }
 
 // Plugins holds all the plugin objects
-var Plugins *InOutPlugins
+var Plugins *InOutPlugins = new(InOutPlugins)
 
 // extractLimitOptions detects if plugin get called with limiter support
 // Returns address and limit

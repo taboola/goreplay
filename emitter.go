@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Start initialize loop for sending data from inputs to outputs
 func Start(stop chan int) {
 	for _, in := range Plugins.Inputs {
 		go CopyMulty(in, Plugins.Outputs...)
@@ -19,7 +20,7 @@ func Start(stop chan int) {
 	}
 }
 
-// Copy from 1 reader to multiple writers
+// CopyMulty copies from 1 reader to multiple writers
 func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 	buf := make([]byte, 5*1024*1024)
 	wIndex := 0
