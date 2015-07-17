@@ -9,12 +9,13 @@ import (
 )
 
 type HTTPModifierConfig struct {
-	urlNegativeRegexp HTTPUrlRegexp
-	urlRegexp         HTTPUrlRegexp
-	urlRewrite        UrlRewriteMap
-	headerFilters     HTTPHeaderFilters
-	headerHashFilters HTTPHashFilters
-	paramHashFilters  HTTPHashFilters
+	urlNegativeRegexp     HTTPUrlRegexp
+	urlRegexp             HTTPUrlRegexp
+	urlRewrite            UrlRewriteMap
+	headerFilters         HTTPHeaderFilters
+	headerNegativeFilters HTTPHeaderFilters
+	headerHashFilters     HTTPHashFilters
+	paramHashFilters      HTTPHashFilters
 
 	params  HTTPParams
 	headers HTTPHeaders
@@ -22,7 +23,7 @@ type HTTPModifierConfig struct {
 }
 
 //
-// Handling of --http-allow-header options
+// Handling of --http-allow-header, --http-disallow-header options
 //
 type headerFilter struct {
 	name   []byte

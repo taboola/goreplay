@@ -128,6 +128,9 @@ gor --input-raw :8080 --output-http staging.com --http-disallow-url /api
 ```
 # only forward requests with an api version of 1.0x
 gor --input-raw :8080 --output-http staging.com --http-allow-header api-version:^1\.0\d
+
+# only forward requests NOT containing User-Agent header value "Replayed by Gor"
+gor --input-raw :8080 --output-http staging.com --http-disallow-header "User-Agent: Replayed by Gor"
 ```
 
 #### Filter based on http method
@@ -260,6 +263,8 @@ https://github.com/buger/gor/releases
 ```
   -http-allow-header=[]: A regexp to match a specific header against. Requests with non-matching headers will be dropped:
    gor --input-raw :8080 --output-http staging.com --http-allow-header api-version:^v1
+  -http-disallow-header=[]: A regexp to match a specific header against. Requests with matching headers will be dropped:
+   gor --input-raw :8080 --output-http staging.com --http-disallow-header "User-Agent: Replayed by Gor"
   -http-allow-method=[]: Whitelist of HTTP methods to replay. Anything else will be dropped:
   gor --input-raw :8080 --output-http staging.com --http-allow-method GET --http-allow-method OPTIONS
   -http-allow-url=[]: A regexp to match requests against. Filter get matched agains full url with domain. Anything else will be dropped:
