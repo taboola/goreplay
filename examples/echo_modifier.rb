@@ -10,7 +10,7 @@ while data = STDIN.gets
     STDOUT.puts encoded
 
 
-    STDERR.puts "[DEBUG] Original data: #{data}"
-    STDERR.puts "[DEBUG] Decoded request: #{decoded}"
-    STDERR.puts "[DEBUG] Encoded data: #{encoded}"
+    STDERR.puts "[DEBUG][MIDDLEWARE] Original data: #{data}"
+    STDERR.puts "[DEBUG][MIDDLEWARE] Decoded request: #{decoded}"
+    STDERR.puts "[DEBUG][MIDDLEWARE] Encoded data: #{encoded}"
 end

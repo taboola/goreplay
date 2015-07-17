@@ -4,7 +4,7 @@ while read line; do
     encoded=$(echo "$decoded" | xxd -p | tr -d "\\n")
     echo "$encoded"
 
-    >&2 echo "[DEBUG] Original data: $line"
-    >&2 echo "[DEBUG] Decoded request: $decoded"
-    >&2 echo "[DEBUG] Encoded data: $encoded"
+    >&2 echo "[DEBUG][MIDDLEWARE] Original data: $line"
+    >&2 echo "[DEBUG][MIDDLEWARE] Decoded request: $decoded"
+    >&2 echo "[DEBUG][MIDDLEWARE] Encoded data: $encoded"
 done;

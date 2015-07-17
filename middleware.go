@@ -12,7 +12,6 @@ import (
 )
 
 type Middleware struct {
-	plugin  interface{}
 	command string
 
 	data chan []byte
@@ -21,11 +20,10 @@ type Middleware struct {
 	Stdout io.Reader
 }
 
-func NewMiddleware(plugin interface{}, command string) io.Reader {
+func NewMiddleware(command string) *Middleware {
 	m := new(Middleware)
-	m.plugin = plugin
 	m.command = command
-	m.data = make(chan []byte)
+	m.data = make(chan []byte, 1000)
 
     commands := strings.Split(command, " ")
 	cmd := exec.Command(commands[0], commands[1:]...)
@@ -34,7 +32,6 @@ func NewMiddleware(plugin interface{}, command string) io.Reader {
 	m.Stdin, _ = cmd.StdinPipe()
 	cmd.Stderr = os.Stderr
 
-	go m.copy(m.Stdin, m.plugin.(io.Reader))
 	go m.read(m.Stdout)
 
 	go func() {
@@ -43,11 +40,15 @@ func NewMiddleware(plugin interface{}, command string) io.Reader {
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		cmd.Wait()
 	}()
 
-	defer cmd.Wait()
-
 	return m
+}
+
+func (m *Middleware) ReadFrom(plugin io.Reader) {
+	go m.copy(m.Stdin, plugin)
 }
 
 func (m *Middleware) copy(to io.Writer, from io.Reader) {
@@ -59,7 +60,7 @@ func (m *Middleware) copy(to io.Writer, from io.Reader) {
 		if nr > 0 && len(buf) > nr {
 			hex.Encode(dst, buf[0:nr])
 			to.Write(dst[0 : nr*2])
-			to.Write([]byte("\r\n"))
+			to.Write([]byte("\n"))
 		}
 	}
 }
@@ -94,5 +95,5 @@ func (m *Middleware) Read(data []byte) (int, error) {
 }
 
 func (m *Middleware) String() string {
-	return fmt.Sprintf("Modifying traffic for %s using '%s' command", m.plugin, m.command)
+	return fmt.Sprintf("Modifying traffic using '%s' command", m.command)
 }

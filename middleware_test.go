@@ -9,14 +9,18 @@ import (
 	"testing"
     "strings"
     "github.com/buger/gor/proto"
+    "net/http/httptest"
     "encoding/hex"
+    "time"
 )
 
+type fakeServiceCb func(string, int, []byte)
+
 // Simple service that generate token on request, and require this token for accesing to secure area
-func NewFakeSecureService(wg *sync.WaitGroup) string {
+func NewFakeSecureService(wg *sync.WaitGroup, cb fakeServiceCb) string {
 	active_tokens := make([]string, 0)
 
-	listener := startHTTP(func(w http.ResponseWriter, req *http.Request) {
+    server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
         Debug("Received request: " + req.URL.String())
 
 		switch req.URL.Path {
@@ -29,6 +33,8 @@ func NewFakeSecureService(wg *sync.WaitGroup) string {
 			active_tokens = append(active_tokens, token)
 
             w.Write([]byte(token))
+
+            cb(req.URL.Path, 200, []byte(token))
 		case "/secure":
 			token := req.URL.Query().Get("token")
             token_found := false
@@ -42,15 +48,17 @@ func NewFakeSecureService(wg *sync.WaitGroup) string {
 
             if token_found {
                 w.WriteHeader(http.StatusAccepted)
+                cb(req.URL.Path, 202, []byte(nil))
             } else {
                 w.WriteHeader(http.StatusForbidden)
+                cb(req.URL.Path, 403, []byte(nil))
             }
 		}
 
 		wg.Done()
-	})
+	}))
 
-    address := strings.Replace(listener.Addr().String(), "[::]", "127.0.0.1", -1)
+    address := strings.Replace(server.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 	return address
 }
 
@@ -59,7 +67,9 @@ func TestFakeSecureService(t *testing.T) {
 
 	wg := new(sync.WaitGroup)
 
-	addr := NewFakeSecureService(wg)
+	addr := NewFakeSecureService(wg, func(path string, status int, resp []byte){
+
+    })
 
 	wg.Add(3)
 
@@ -82,13 +92,66 @@ func TestFakeSecureService(t *testing.T) {
 	wg.Wait()
 }
 
-func TestMiddleware(t *testing.T) {
+func TestEchoMiddleware(t *testing.T) {
+    wg := new(sync.WaitGroup)
+
+    from := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        wg.Done()
+    }))
+    to := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        wg.Done()
+    }))
+
+    quit := make(chan int)
+
+    // Catch traffic from one service
+    input := NewRAWInput(from.Listener.Addr().String())
+
+    // And redirect to another
+    output := NewHTTPOutput(to.URL, &HTTPOutputConfig{})
+
+    Plugins.Inputs = []io.Reader{input}
+    Plugins.Outputs = []io.Writer{output}
+    Settings.middleware = "./examples/echo_modifier.sh"
+
+    // Start Gor
+    go Start(quit)
+
+    time.Sleep(time.Millisecond)
+
+    // Should receive 2 requests from original + 2 from replayed
+    wg.Add(4)
+
+    client := NewHTTPClient(from.URL, &HTTPClientConfig{Debug: true})
+
+    // Request should be echoed
+    client.Get("/")
+    client.Get("/")
+
+    wg.Wait()
+    close(quit)
+    Settings.middleware = ""
+}
+
+func TestTokenMiddleware(t *testing.T) {
     var resp, token []byte
 
     wg := new(sync.WaitGroup)
 
-    from := NewFakeSecureService(wg)
-    to := NewFakeSecureService(wg)
+    from := NewFakeSecureService(wg, func(path string, status int, tok []byte){
+    })
+    to := NewFakeSecureService(wg, func(path string, status int, tok []byte){
+        switch path {
+        case "/token":
+            if bytes.Equal(token, tok) {
+                t.Error("Tokens should not match")
+            }
+        case "/secure":
+            if status != 202 {
+                // t.Error("Server should receive valid rewritten token")
+            }
+        }
+    })
 
     quit := make(chan int)
 
@@ -100,9 +163,12 @@ func TestMiddleware(t *testing.T) {
 
     Plugins.Inputs = []io.Reader{input}
     Plugins.Outputs = []io.Writer{output}
+    // Settings.middleware = "./examples/echo_modifier.sh"
 
     // Start Gor
     go Start(quit)
+
+    time.Sleep(time.Millisecond)
 
     // Should receive 2 requests from original + 2 from replayed
     wg.Add(4)
@@ -120,4 +186,5 @@ func TestMiddleware(t *testing.T) {
 
     wg.Wait()
     close(quit)
+    Settings.middleware = ""
 }

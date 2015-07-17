@@ -3,11 +3,36 @@ package main
 import (
 	"io"
 	"time"
+	"crypto/rand"
 )
 
+func uuid() []byte {
+        b := make([]byte, 16)
+        rand.Read(b)
+        return b
+}
+
+
 func Start(stop chan int) {
-	for _, in := range Plugins.Inputs {
-		go CopyMulty(in, Plugins.Outputs...)
+	if Settings.middleware != "" {
+		middleware := NewMiddleware(Settings.middleware)
+
+		for _, in := range Plugins.Inputs {
+			middleware.ReadFrom(in)
+		}
+
+		// We going only to read responses, so using same ReadFrom method
+		for _, out := range Plugins.Outputs {
+			if r, ok := out.(io.Reader); ok {
+				middleware.ReadFrom(r)
+			}
+		}
+
+		go CopyMulty(middleware, Plugins.Outputs...)
+	} else {
+		for _, in := range Plugins.Inputs {
+			go CopyMulty(in, Plugins.Outputs...)
+		}
 	}
 
 	for {
@@ -31,7 +56,7 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 		if nr > 0 && len(buf) > nr {
 			payload := buf[0:nr]
 
-			Debug("[EMITTER] Received payload:", string(payload))
+			Debug("[EMITTER] input:", string(payload))
 
 			if modifier != nil {
 				payload = modifier.Rewrite(payload)

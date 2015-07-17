@@ -9,11 +9,7 @@ import (
 type InOutPlugins struct {
 	Inputs  []io.Reader
 	Outputs []io.Writer
-
-	Middleware []Middleware
 }
-
-type ReaderOrWriter interface{}
 
 var Plugins *InOutPlugins = new(InOutPlugins)
 
@@ -56,9 +52,6 @@ func registerPlugin(constructor interface{}, options ...interface{}) {
 	}
 
 	if _, ok := plugin.(io.Reader); ok {
-		if len(Settings.middleware) > 0 {
-			plugin_wrapper = NewMiddleware(plugin_wrapper, Settings.middleware)
-		}
 		Plugins.Inputs = append(Plugins.Inputs, plugin_wrapper.(io.Reader))
 	}
 
