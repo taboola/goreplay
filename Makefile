@@ -14,7 +14,7 @@ dbuild:
 	docker build -t gor .
 
 dlint:
-	docker run -v `pwd`:$(SOURCE_PATH) -t -i --env GORACE="halt_on_error=1" gor golint $(ARGS)
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i --env GORACE="halt_on_error=1" gor golint $(PKG)
 
 drace:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i --env GORACE="halt_on_error=1" gor go test ./... $(ARGS) -v -race -timeout 15s

@@ -4,10 +4,12 @@ import (
 	"time"
 )
 
+// DummyInput used for debugging. It generate 1 "GET /"" request per second.
 type DummyInput struct {
 	data chan []byte
 }
 
+// NewDummyInput constructor for DummyInput
 func NewDummyInput(options string) (di *DummyInput) {
 	di = new(DummyInput)
 	di.data = make(chan []byte)

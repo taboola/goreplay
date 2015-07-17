@@ -6,23 +6,25 @@ import (
 	"strings"
 )
 
+// InOutPlugins struct for holding references to plugins
 type InOutPlugins struct {
 	Inputs  []io.Reader
 	Outputs []io.Writer
 }
 
-type ReaderOrWriter interface{}
-
+// Plugins holds all the plugin objects
 var Plugins *InOutPlugins = new(InOutPlugins)
 
+// extractLimitOptions detects if plugin get called with limiter support
+// Returns address and limit
 func extractLimitOptions(options string) (string, string) {
 	split := strings.Split(options, "|")
 
 	if len(split) > 1 {
 		return split[0], split[1]
-	} else {
-		return split[0], ""
 	}
+
+	return split[0], ""
 }
 
 // Automatically detects type of plugin and initialize it
@@ -45,23 +47,24 @@ func registerPlugin(constructor interface{}, options ...interface{}) {
 
 	// Calling our constructor with list of given options
 	plugin := vc.Call(vo)[0].Interface()
-	plugin_wrapper := plugin
+	pluginWrapper := plugin
 
 	if limit != "" {
-		plugin_wrapper = NewLimiter(plugin, limit)
+		pluginWrapper = NewLimiter(plugin, limit)
 	} else {
-		plugin_wrapper = plugin
+		pluginWrapper = plugin
 	}
 
 	if _, ok := plugin.(io.Reader); ok {
-		Plugins.Inputs = append(Plugins.Inputs, plugin_wrapper.(io.Reader))
+		Plugins.Inputs = append(Plugins.Inputs, pluginWrapper.(io.Reader))
 	}
 
 	if _, ok := plugin.(io.Writer); ok {
-		Plugins.Outputs = append(Plugins.Outputs, plugin_wrapper.(io.Writer))
+		Plugins.Outputs = append(Plugins.Outputs, pluginWrapper.(io.Writer))
 	}
 }
 
+// InitPlugins specify and initialize all available plugins
 func InitPlugins() {
 	for _, options := range Settings.inputDummy {
 		registerPlugin(NewDummyInput, options)

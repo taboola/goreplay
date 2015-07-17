@@ -1,5 +1,7 @@
+// Package byteutils probvides helpers for working with byte slices
 package byteutils
 
+// Cut elements from slice for a given range
 func Cut(a []byte, from, to int) []byte {
 	copy(a[from:], a[to:])
 	a = a[:len(a)-to+from]
@@ -7,6 +9,7 @@ func Cut(a []byte, from, to int) []byte {
 	return a
 }
 
+// Insert new slice at specified position
 func Insert(a []byte, i int, b []byte) []byte {
 	a = append(a, make([]byte, len(b))...)
 	copy(a[i+len(b):], a[i:])
@@ -15,7 +18,7 @@ func Insert(a []byte, i int, b []byte) []byte {
 	return a
 }
 
-// Unlike bytes.Replace it allows you to specify range
+// Replace function unlike bytes.Replace allows you to specify range
 func Replace(a []byte, from, to int, new []byte) []byte {
 	lenDiff := len(new) - (to - from)
 
