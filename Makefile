@@ -13,15 +13,21 @@ release-x86:
 dbuild:
 	docker build -t gor .
 
+dlint:
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i --env GORACE="halt_on_error=1" gor golint $(PKG)
+
+drace:
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i --env GORACE="halt_on_error=1" gor go test ./... $(ARGS) -v -race -timeout 15s
+
 dtest:
-	docker run -v `pwd`:$(SOURCE_PATH) -t -i --env GORACE="halt_on_error=1" gor go test ./... $(ARGS) -race -v -timeout 15s
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go test ./... $(ARGS) -v -timeout 15s
 
 dcover:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i --env GORACE="halt_on_error=1" gor go test $(ARGS) -race -v -timeout 15s -coverprofile=coverage.out
 	go tool cover -html=coverage.out
 
 dfmt:
-	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go fmt
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go fmt ./...
 
 dvet:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go vet

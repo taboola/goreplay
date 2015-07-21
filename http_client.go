@@ -4,8 +4,10 @@ import (
 	"crypto/tls"
 	"github.com/buger/gor/proto"
 	"io"
+	"log"
 	"net"
 	"net/url"
+	"runtime/debug"
 	"strings"
 	"time"
 )
@@ -89,9 +91,24 @@ func (c *HTTPClient) isAlive() bool {
 }
 
 func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
+	// Don't exit on panic
+	defer func() {
+		if r := recover(); r != nil {
+			Debug("[HTTPClient]", r, string(data))
+
+			if _, ok := r.(error); !ok {
+				log.Println("[HTTPClient] Failed to send request: ", string(data))
+				log.Println("PANIC: pkg:", r, debug.Stack())
+			}
+		}
+	}()
+
 	if c.conn == nil || !c.isAlive() {
-		Debug("[HTTP] Connecting:", c.baseURL)
-		c.Connect()
+		Debug("[HTTPClient] Connecting:", c.baseURL)
+		if err = c.Connect(); err != nil {
+			log.Println("[HTTPClient] Connection error:", err)
+			return
+		}
 	}
 
 	timeout := time.Now().Add(5 * time.Second)
@@ -101,11 +118,11 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 	data = proto.SetHost(data, []byte(c.baseURL), []byte(c.host))
 
 	if c.config.Debug {
-		Debug("[HTTP] Sending:", string(data))
+		Debug("[HTTPClient] Sending:", string(data))
 	}
 
 	if _, err = c.conn.Write(data); err != nil {
-		Debug("[HTTP] Write error:", err, c.baseURL)
+		Debug("[HTTPClient] Write error:", err, c.baseURL)
 		return
 	}
 
@@ -113,14 +130,14 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 	n, err := c.conn.Read(c.respBuf)
 
 	if err != nil {
-		Debug("[HTTP] READ ERRORR!", err, c.conn)
+		Debug("[HTTPClient] Response read error", err, c.conn)
 		return
 	}
 
 	payload := c.respBuf[:n]
 
 	if c.config.Debug {
-		Debug("[HTTP] Received:", string(payload))
+		Debug("[HTTPClient] Received:", string(payload))
 	}
 
 	if c.config.FollowRedirects > 0 && c.redirectsCount < c.config.FollowRedirects {
@@ -128,13 +145,13 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 
 		// 3xx requests
 		if status[0] == '3' {
-			c.redirectsCount += 1
+			c.redirectsCount++
 
-			location, _, _, _ := proto.Header(payload, []byte("Location"))
+			location := proto.Header(payload, []byte("Location"))
 			redirectPayload := []byte("GET " + string(location) + " HTTP/1.1\r\n\r\n")
 
 			if c.config.Debug {
-				Debug("[HTTP] Redirecting to: " + string(location))
+				Debug("[HTTPClient] Redirecting to: " + string(location))
 			}
 
 			return c.Send(redirectPayload)

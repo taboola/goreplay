@@ -86,10 +86,10 @@ func TestOutputHTTPSSL(t *testing.T) {
 	}))
 
 	input := NewTestInput()
-	http_output := NewHTTPOutput(server.URL, &HTTPOutputConfig{})
+	output := NewHTTPOutput(server.URL, &HTTPOutputConfig{})
 
 	Plugins.Inputs = []io.Reader{input}
-	Plugins.Outputs = []io.Writer{http_output}
+	Plugins.Outputs = []io.Writer{output}
 
 	go Start(quit)
 

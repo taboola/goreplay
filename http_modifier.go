@@ -2,8 +2,9 @@ package main
 
 import (
 	"bytes"
-	"github.com/buger/gor/proto"
 	"hash/fnv"
+
+	"github.com/buger/gor/proto"
 )
 
 type HTTPModifier struct {
@@ -16,6 +17,7 @@ func NewHTTPModifier(config *HTTPModifierConfig) *HTTPModifier {
 		len(config.urlNegativeRegexp) == 0 &&
 		len(config.urlRewrite) == 0 &&
 		len(config.headerFilters) == 0 &&
+		len(config.headerNegativeFilters) == 0 &&
 		len(config.headerHashFilters) == 0 &&
 		len(config.paramHashFilters) == 0 &&
 		len(config.params) == 0 &&
@@ -86,9 +88,19 @@ func (m *HTTPModifier) Rewrite(payload []byte) (response []byte) {
 
 	if len(m.config.headerFilters) > 0 {
 		for _, f := range m.config.headerFilters {
-			value, s, _, _ := proto.Header(payload, f.name)
+			value := proto.Header(payload, f.name)
 
-			if s != -1 && !f.regexp.Match(value) {
+			if len(value) > 0 && !f.regexp.Match(value) {
+				return
+			}
+		}
+	}
+
+	if len(m.config.headerNegativeFilters) > 0 {
+		for _, f := range m.config.headerNegativeFilters {
+			value := proto.Header(payload, f.name)
+
+			if len(value) > 0 && f.regexp.Match(value) {
 				return
 			}
 		}
@@ -96,9 +108,9 @@ func (m *HTTPModifier) Rewrite(payload []byte) (response []byte) {
 
 	if len(m.config.headerHashFilters) > 0 {
 		for _, f := range m.config.headerHashFilters {
-			value, s, _, _ := proto.Header(payload, f.name)
+			value := proto.Header(payload, f.name)
 
-			if s != -1 {
+			if len(value) > 0 {
 				hasher := fnv.New32a()
 				hasher.Write(value)
 

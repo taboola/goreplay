@@ -7,8 +7,9 @@ import (
 	"time"
 )
 
-const InitialDynamicWorkers = 10
+const initialDynamicWorkers = 10
 
+// HTTPOutputConfig struct for holding http output configuration
 type HTTPOutputConfig struct {
 	redirectLimit int
 
@@ -20,16 +21,19 @@ type HTTPOutputConfig struct {
 	Debug bool
 }
 
+// HTTPOutput plugin manage pool of workers which send request to replayed server
+// By default workers pool is dynamic and starts with 10 workers
+// You can specify fixed number of workers using `--output-http-workers`
 type HTTPOutput struct {
 	// Keep this as first element of struct because it guarantees 64bit
 	// alignment. atomic.* functions crash on 32bit machines if operand is not
 	// aligned at 64bit. See https://github.com/golang/go/issues/599
 	activeWorkers int64
 
-	address string
-	limit   int
-	queue   chan []byte
-	responses   chan []byte
+	address   string
+	limit     int
+	queue     chan []byte
+	responses chan []byte
 
 	needWorker chan int
 
@@ -40,6 +44,8 @@ type HTTPOutput struct {
 	elasticSearch *ESPlugin
 }
 
+// NewHTTPOutput constructor for HTTPOutput
+// Initialize workers
 func NewHTTPOutput(address string, config *HTTPOutputConfig) io.Writer {
 	o := new(HTTPOutput)
 
@@ -55,7 +61,7 @@ func NewHTTPOutput(address string, config *HTTPOutputConfig) io.Writer {
 
 	// Initial workers count
 	if o.config.workers == 0 {
-		o.needWorker <- InitialDynamicWorkers
+		o.needWorker <- initialDynamicWorkers
 	} else {
 		o.needWorker <- o.config.workers
 	}
@@ -65,16 +71,16 @@ func NewHTTPOutput(address string, config *HTTPOutputConfig) io.Writer {
 		o.elasticSearch.Init(o.config.elasticSearch)
 	}
 
-	go o.WorkerMaster()
+	go o.workerMaster()
 
 	return o
 }
 
-func (o *HTTPOutput) WorkerMaster() {
+func (o *HTTPOutput) workerMaster() {
 	for {
-		new_workers := <-o.needWorker
-		for i := 0; i < new_workers; i++ {
-			go o.Worker()
+		newWorkers := <-o.needWorker
+		for i := 0; i < newWorkers; i++ {
+			go o.startWorker()
 		}
 
 		// Disable dynamic scaling if workers poll fixed size
@@ -84,13 +90,13 @@ func (o *HTTPOutput) WorkerMaster() {
 	}
 }
 
-func (o *HTTPOutput) Worker() {
+func (o *HTTPOutput) startWorker() {
 	client := NewHTTPClient(o.address, &HTTPClientConfig{
 		FollowRedirects: o.config.redirectLimit,
 		Debug:           o.config.Debug,
 	})
 
-	death_count := 0
+	deathCount := 0
 
 	atomic.AddInt64(&o.activeWorkers, 1)
 
@@ -98,19 +104,19 @@ func (o *HTTPOutput) Worker() {
 		select {
 		case data := <-o.queue:
 			o.sendRequest(client, data)
-			death_count = 0
+			deathCount = 0
 		case <-time.After(time.Millisecond * 100):
 			// When dynamic scaling enabled workers die after 2s of inactivity
 			if o.config.workers == 0 {
-				death_count += 1
+				deathCount++
 			} else {
 				continue
 			}
 
-			if death_count > 20 {
+			if deathCount > 20 {
 				workersCount := atomic.LoadInt64(&o.activeWorkers)
 
-				// At least 1 worker should be alive
+				// At least 1 startWorker should be alive
 				if workersCount != 1 {
 					atomic.AddInt64(&o.activeWorkers, -1)
 					return

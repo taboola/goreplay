@@ -1,18 +1,18 @@
 package main
 
 import (
+	"crypto/rand"
 	"io"
 	"time"
-	"crypto/rand"
 )
 
 func uuid() []byte {
-        b := make([]byte, 16)
-        rand.Read(b)
-        return b
+	b := make([]byte, 16)
+	rand.Read(b)
+	return b
 }
 
-
+// Start initialize loop for sending data from inputs to outputs
 func Start(stop chan int) {
 	if Settings.middleware != "" {
 		middleware := NewMiddleware(Settings.middleware)
@@ -44,7 +44,7 @@ func Start(stop chan int) {
 	}
 }
 
-// Copy from 1 reader to multiple writers
+// CopyMulty copies from 1 reader to multiple writers
 func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 	buf := make([]byte, 5*1024*1024)
 	wIndex := 0
@@ -65,6 +65,10 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 				if len(payload) == 0 {
 					continue
 				}
+			}
+
+			if Settings.debug {
+				Debug("[EMITTER] Sending payload, size:", len(payload), "First 500 bytes:", string(payload[0:500]))
 			}
 
 			if Settings.splitOutput {

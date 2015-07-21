@@ -128,6 +128,9 @@ gor --input-raw :8080 --output-http staging.com --http-disallow-url /api
 ```
 # only forward requests with an api version of 1.0x
 gor --input-raw :8080 --output-http staging.com --http-allow-header api-version:^1\.0\d
+
+# only forward requests NOT containing User-Agent header value "Replayed by Gor"
+gor --input-raw :8080 --output-http staging.com --http-disallow-header "User-Agent: Replayed by Gor"
 ```
 
 #### Filter based on http method
@@ -260,6 +263,8 @@ https://github.com/buger/gor/releases
 ```
   -http-allow-header=[]: A regexp to match a specific header against. Requests with non-matching headers will be dropped:
    gor --input-raw :8080 --output-http staging.com --http-allow-header api-version:^v1
+  -http-disallow-header=[]: A regexp to match a specific header against. Requests with matching headers will be dropped:
+   gor --input-raw :8080 --output-http staging.com --http-disallow-header "User-Agent: Replayed by Gor"
   -http-allow-method=[]: Whitelist of HTTP methods to replay. Anything else will be dropped:
   gor --input-raw :8080 --output-http staging.com --http-allow-method GET --http-allow-method OPTIONS
   -http-allow-url=[]: A regexp to match requests against. Filter get matched agains full url with domain. Anything else will be dropped:
@@ -348,6 +353,10 @@ Basic idea is that SSL was made to protect itself from traffic interception. The
 2. Use `--input-http` so you can duplicate request payload directly from your app to Gor, but it will require your app modifications.
 
 More can be find here: https://github.com/buger/gor/issues/85
+
+### Is there a limit for size of HTTP request when using output-http?
+Due to the fact that Gor can't guarantee interception of all packets, for large payloads > 200kb there is chance of missing some packets and corrupting body. Treat it as a feature and chance to test broken bodies handling :)
+The only way to guarantee delivery is using `--input-http`, but you will miss some features.
 
 ### I'm getting 'too many open files' error
 Typical linux shell has a small open files soft limit at 1024. You can easily raise that when you do this before starting your gor replay process:

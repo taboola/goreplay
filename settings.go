@@ -8,23 +8,27 @@ import (
 )
 
 const (
-	VERSION = "0.9.6"
+	// VERSION specifies Gor current version
+	VERSION = "0.9.8"
 )
 
-// Allows to specify multiple flags with same name and collects all values to array
+// MultiOption allows to specify multiple flags with same name and collects all values into array
 type MultiOption []string
 
 func (h *MultiOption) String() string {
 	return fmt.Sprint(*h)
 }
 
+// Set gets called multiple times for each flag with same name
 func (h *MultiOption) Set(value string) error {
 	*h = append(*h, value)
 	return nil
 }
 
+// AppSettings is the struct of main configuration
 type AppSettings struct {
 	verbose bool
+	debug   bool
 	stats   bool
 
 	splitOutput bool
@@ -50,7 +54,8 @@ type AppSettings struct {
 	modifierConfig   HTTPModifierConfig
 }
 
-var Settings AppSettings = AppSettings{}
+// Settings holds Gor configuration
+var Settings AppSettings
 
 func usage() {
 	fmt.Printf("Gor is a simple http traffic replication tool written in Go. Its main goal is to replay traffic from production servers to staging and dev environments.\nProject page: https://github.com/buger/gor\nAuthor: <Leonid Bugaev> leonsbox@gmail.com\nCurrent Version: %s\n\n", VERSION)
@@ -61,7 +66,8 @@ func usage() {
 func init() {
 	flag.Usage = usage
 
-	flag.BoolVar(&Settings.verbose, "verbose", false, "Turn on verbose/debug output")
+	flag.BoolVar(&Settings.verbose, "verbose", false, "Turn on more verbose output")
+	flag.BoolVar(&Settings.debug, "debug", false, "Turn on debug output, shows all itercepted traffic. Works only when with `verbose` flag")
 	flag.BoolVar(&Settings.stats, "stats", false, "Turn on queue stats output")
 
 	flag.BoolVar(&Settings.splitOutput, "split-output", false, "By default each output gets same traffic. If set to `true` it splits traffic equally among all outputs.")
@@ -109,12 +115,15 @@ func init() {
 	flag.Var(&Settings.modifierConfig.headerFilters, "http-allow-header", "A regexp to match a specific header against. Requests with non-matching headers will be dropped:\n\t gor --input-raw :8080 --output-http staging.com --http-allow-header api-version:^v1")
 	flag.Var(&Settings.modifierConfig.headerFilters, "output-http-header-filter", "WARNING: `--output-http-header-filter` DEPRECATED, use `--http-allow-header` instead")
 
+	flag.Var(&Settings.modifierConfig.headerFilters, "http-disallow-header", "A regexp to match a specific header against. Requests with matching headers will be dropped:\n\t gor --input-raw :8080 --output-http staging.com --http-disallow-header \"User-Agent: Replayed by Gor\"")
+
 	flag.Var(&Settings.modifierConfig.headerHashFilters, "http-header-limiter", "Takes a fraction of requests, consistently taking or rejecting a request based on the FNV32-1A hash of a specific header:\n\t gor --input-raw :8080 --output-http staging.com --http-header-imiter user-id:25%")
 	flag.Var(&Settings.modifierConfig.headerHashFilters, "output-http-header-hash-filter", "WARNING: `output-http-header-hash-filter` DEPRECATED, use `--http-header-hash-limiter` instead")
 
 	flag.Var(&Settings.modifierConfig.paramHashFilters, "http-param-limiter", "Takes a fraction of requests, consistently taking or rejecting a request based on the FNV32-1A hash of a specific GET param:\n\t gor --input-raw :8080 --output-http staging.com --http-param-limiter user_id:25%")
 }
 
+// Debug gets called only if --verbose flag specified
 func Debug(args ...interface{}) {
 	if Settings.verbose {
 		fmt.Print("[DEBUG] ")

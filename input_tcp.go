@@ -9,15 +9,15 @@ import (
 	"os"
 )
 
-// Can be tested using nc tool:
-//    echo "asdad" | nc 127.0.0.1 27017
-//
+// TCPInput used for internal communication
+// It expected hex encoded data
 type TCPInput struct {
 	data     chan []byte
 	address  string
 	listener net.Listener
 }
 
+// NewTCPInput constructor for TCPInput, accepts address with port
 func NewTCPInput(address string) (i *TCPInput) {
 	i = new(TCPInput)
 	i.data = make(chan []byte)

@@ -4,9 +4,11 @@ import (
 	"fmt"
 )
 
+// DummyOutput used for debugging, prints all incoming requests
 type DummyOutput struct {
 }
 
+// NewDummyOutput constructor for DummyOutput
 func NewDummyOutput(options string) (di *DummyOutput) {
 	di = new(DummyOutput)
 

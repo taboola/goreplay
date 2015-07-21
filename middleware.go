@@ -8,7 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
-    "strings"
+	"strings"
 )
 
 type Middleware struct {
@@ -25,7 +25,7 @@ func NewMiddleware(command string) *Middleware {
 	m.command = command
 	m.data = make(chan []byte, 1000)
 
-    commands := strings.Split(command, " ")
+	commands := strings.Split(command, " ")
 	cmd := exec.Command(commands[0], commands[1:]...)
 
 	m.Stdout, _ = cmd.StdoutPipe()

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"runtime/debug"
 	"runtime/pprof"
 	"time"
@@ -19,6 +20,11 @@ var (
 )
 
 func main() {
+	// If not set via env cariable
+	if len(os.Getenv("GOMAXPROCS")) == 0 {
+		runtime.GOMAXPROCS(runtime.NumCPU() * 2)
+	}
+
 	// Don't exit on panic
 	defer func() {
 		if r := recover(); r != nil {

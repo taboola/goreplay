@@ -132,7 +132,7 @@ func TestHTTPClientHTTPSSend(t *testing.T) {
 func TestHTTPClientServerInstantDisconnect(t *testing.T) {
 	wg := new(sync.WaitGroup)
 
-	GET_payload := []byte("GET / HTTP/1.1\r\n\r\n")
+	GETPayload := []byte("GET / HTTP/1.1\r\n\r\n")
 
 	ln, _ := net.Listen("tcp", ":0")
 
@@ -148,8 +148,8 @@ func TestHTTPClientServerInstantDisconnect(t *testing.T) {
 	client := NewHTTPClient(ln.Addr().String(), &HTTPClientConfig{})
 
 	wg.Add(2)
-	client.Send(GET_payload)
-	client.Send(GET_payload)
+	client.Send(GETPayload)
+	client.Send(GETPayload)
 
 	wg.Wait()
 }
@@ -157,7 +157,7 @@ func TestHTTPClientServerInstantDisconnect(t *testing.T) {
 func TestHTTPClientServerNoKeepAlive(t *testing.T) {
 	wg := new(sync.WaitGroup)
 
-	GET_payload := []byte("GET / HTTP/1.1\r\n\r\n")
+	GETPayload := []byte("GET / HTTP/1.1\r\n\r\n")
 
 	ln, _ := net.Listen("tcp", ":0")
 
@@ -186,8 +186,8 @@ func TestHTTPClientServerNoKeepAlive(t *testing.T) {
 	client := NewHTTPClient(ln.Addr().String(), &HTTPClientConfig{})
 
 	wg.Add(2)
-	client.Send(GET_payload)
-	client.Send(GET_payload)
+	client.Send(GETPayload)
+	client.Send(GETPayload)
 
 	wg.Wait()
 }
@@ -195,7 +195,7 @@ func TestHTTPClientServerNoKeepAlive(t *testing.T) {
 func TestHTTPClientRedirect(t *testing.T) {
 	wg := new(sync.WaitGroup)
 
-	GET_payload := []byte("GET / HTTP/1.1\r\n\r\n")
+	GETPayload := []byte("GET / HTTP/1.1\r\n\r\n")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -210,7 +210,7 @@ func TestHTTPClientRedirect(t *testing.T) {
 
 	// Should do 2 queries
 	wg.Add(2)
-	client.Send(GET_payload)
+	client.Send(GETPayload)
 
 	wg.Wait()
 }
@@ -218,7 +218,7 @@ func TestHTTPClientRedirect(t *testing.T) {
 func TestHTTPClientRedirectLimit(t *testing.T) {
 	wg := new(sync.WaitGroup)
 
-	GET_payload := []byte("GET / HTTP/1.1\r\n\r\n")
+	GETPayload := []byte("GET / HTTP/1.1\r\n\r\n")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -241,7 +241,7 @@ func TestHTTPClientRedirectLimit(t *testing.T) {
 
 	// Have 3 redirects + 1 GET, but should do only 2 redirects + GET
 	wg.Add(3)
-	client.Send(GET_payload)
+	client.Send(GETPayload)
 
 	wg.Wait()
 }
@@ -249,7 +249,7 @@ func TestHTTPClientRedirectLimit(t *testing.T) {
 func TestHTTPClientHandleHTTP10(t *testing.T) {
 	wg := new(sync.WaitGroup)
 
-	GET_payload := []byte("GET http://foobar.com/path HTTP/1.0\r\n\r\n")
+	GETPayload := []byte("GET http://foobar.com/path HTTP/1.0\r\n\r\n")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -263,7 +263,7 @@ func TestHTTPClientHandleHTTP10(t *testing.T) {
 	client := NewHTTPClient(server.URL, &HTTPClientConfig{Debug: true})
 
 	wg.Add(1)
-	client.Send(GET_payload)
+	client.Send(GETPayload)
 
 	wg.Wait()
 }
