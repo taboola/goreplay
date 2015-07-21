@@ -105,7 +105,7 @@ func TestEchoMiddleware(t *testing.T) {
 	quit := make(chan int)
 
 	// Catch traffic from one service
-	input := NewRAWInput(from.Listener.Addr().String())
+	input := NewRAWInput(from.Listener.Addr().String(), testRawExpire)
 
 	// And redirect to another
 	output := NewHTTPOutput(to.URL, &HTTPOutputConfig{})
@@ -156,7 +156,7 @@ func TestTokenMiddleware(t *testing.T) {
 	quit := make(chan int)
 
 	// Catch traffic from one service
-	input := NewRAWInput(from)
+	input := NewRAWInput(from, testRawExpire)
 
 	// And redirect to another
 	output := NewHTTPOutput(to, &HTTPOutputConfig{})

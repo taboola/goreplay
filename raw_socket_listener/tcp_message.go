@@ -6,9 +6,6 @@ import (
 	"time"
 )
 
-// MsgExpire specify period that message should wait before it considered as finished
-const MsgExpire = 2000 * time.Millisecond
-
 // TCPMessage ensure that all TCP packets for given request is received, and processed in right sequence
 // Its needed because all TCP message can be fragmented or re-transmitted
 //
@@ -25,17 +22,19 @@ type TCPMessage struct {
 	packetsChan chan *TCPPacket
 
 	delChan chan *TCPMessage
+
+	expire *time.Duration
 }
 
 // NewTCPMessage pointer created from a Acknowledgment number and a channel of messages readuy to be deleted
-func NewTCPMessage(ID string, delChan chan *TCPMessage, Ack uint32) (msg *TCPMessage) {
-	msg = &TCPMessage{ID: ID, Ack: Ack}
+func NewTCPMessage(ID string, delChan chan *TCPMessage, Ack uint32, expire *time.Duration) (msg *TCPMessage) {
+	msg = &TCPMessage{ID: ID, Ack: Ack, expire: expire}
 
 	msg.packetsChan = make(chan *TCPPacket)
 	msg.delChan = delChan // used for notifying that message completed or expired
 
 	// Every time we receive packet we reset this timer
-	msg.timer = time.AfterFunc(MsgExpire, msg.Timeout)
+	msg.timer = time.AfterFunc(*msg.expire, msg.Timeout)
 
 	go msg.listen()
 
@@ -103,5 +102,5 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 	}
 
 	// Reset message timeout timer
-	t.timer.Reset(MsgExpire)
+	t.timer.Reset(*t.expire)
 }

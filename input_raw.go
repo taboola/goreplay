@@ -5,19 +5,22 @@ import (
 	"log"
 	"net"
 	"strings"
+	"time"
 )
 
 // RAWInput used for intercepting traffic for given address
 type RAWInput struct {
 	data    chan []byte
 	address string
+	expire  time.Duration
 }
 
 // NewRAWInput constructor for RAWInput. Accepts address with port as argument.
-func NewRAWInput(address string) (i *RAWInput) {
+func NewRAWInput(address string, expire time.Duration) (i *RAWInput) {
 	i = new(RAWInput)
 	i.data = make(chan []byte)
 	i.address = address
+	i.expire = expire
 
 	go i.listen(address)
 
@@ -42,7 +45,7 @@ func (i *RAWInput) listen(address string) {
 		log.Fatal("input-raw: error while parsing address", err)
 	}
 
-	listener := raw.NewListener(host, port)
+	listener := raw.NewListener(host, port, i.expire)
 
 	for {
 		// Receiving TCPMessage object

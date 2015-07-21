@@ -18,6 +18,7 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"time"
 )
 
 // Listener handle traffic capture
@@ -42,10 +43,12 @@ type Listener struct {
 
 	addr string // IP to listen
 	port int    // Port to listen
+
+	messageExpire time.Duration
 }
 
 // NewListener creates and initializes new Listener object
-func NewListener(addr string, port string) (rawListener *Listener) {
+func NewListener(addr string, port string, expire time.Duration) (rawListener *Listener) {
 	rawListener = &Listener{}
 
 	rawListener.packetsChan = make(chan *TCPPacket, 10000)
@@ -58,6 +61,12 @@ func NewListener(addr string, port string) (rawListener *Listener) {
 
 	rawListener.addr = addr
 	rawListener.port, _ = strconv.Atoi(port)
+
+	if expire.Nanoseconds() == 0 {
+		expire = 2000 * time.Millisecond
+	}
+
+	rawListener.messageExpire = expire
 
 	go rawListener.listen()
 	go rawListener.readRAWSocket()
@@ -157,7 +166,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 
 	if !ok {
 		// We sending messageDelChan channel, so message object can communicate with Listener and notify it if message completed
-		message = NewTCPMessage(mID, t.messageDelChan, packet.Ack)
+		message = NewTCPMessage(mID, t.messageDelChan, packet.Ack, &t.messageExpire)
 		t.messages[mID] = message
 	}
 

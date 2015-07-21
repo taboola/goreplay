@@ -15,6 +15,8 @@ import (
 	"time"
 )
 
+const testRawExpire = time.Millisecond * 100
+
 func TestRAWInput(t *testing.T) {
 
 	wg := new(sync.WaitGroup)
@@ -22,7 +24,7 @@ func TestRAWInput(t *testing.T) {
 
 	listener := startHTTP(func(w http.ResponseWriter, req *http.Request) {})
 
-	input := NewRAWInput(listener.Addr().String())
+	input := NewRAWInput(listener.Addr().String(), testRawExpire)
 	output := NewTestOutput(func(data []byte) {
 		wg.Done()
 	})
@@ -64,7 +66,7 @@ func TestInputRAW100Expect(t *testing.T) {
 
 	originAddr := strings.Replace(origin.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr)
+	input := NewRAWInput(originAddr, testRawExpire)
 
 	// We will use it to get content of raw HTTP request
 	testOutput := NewTestOutput(func(data []byte) {
@@ -121,7 +123,7 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 
 	originAddr := strings.Replace(origin.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr)
+	input := NewRAWInput(originAddr, testRawExpire)
 
 	listener := startHTTP(func(w http.ResponseWriter, req *http.Request) {
 		defer req.Body.Close()
@@ -179,7 +181,7 @@ func TestInputRAWLargePayload(t *testing.T) {
 	}))
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr)
+	input := NewRAWInput(originAddr, testRawExpire)
 
 	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		req.Body = http.MaxBytesReader(w, req.Body, 1*1024*1024)
