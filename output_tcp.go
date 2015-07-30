@@ -60,7 +60,8 @@ func (o *TCPOutput) Write(data []byte) (n int, err error) {
 	// Hex encoding always 2x number of bytes
 	encoded := make([]byte, len(data)*2+1)
 	hex.Encode(encoded, data)
-	o.buf <- append(encoded, '\n')
+	encoded[len(encoded)-1] = '\n'
+	o.buf <- encoded
 
 	if Settings.outputTCPStats {
 		o.bufStats.Write(len(o.buf))
