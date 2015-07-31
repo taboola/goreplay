@@ -71,6 +71,12 @@ gor --input-tcp replay.local:28020 --output-http http://staging.com --output-htt
 ```
 The given example will follow up to 2 redirects per request.
 
+### HTTP timeouts
+By default http timeout for both request and response is 5 seconds. You can override it like this:
+```
+gor --input-tcp replay.local:28020 --output-http http://staging.com --output-http-timeout 30s
+```
+
 ### Rate limiting
 Rate limiting can be useful if you want forward only part of production traffic and not overload your staging environment. There is 2 strategies: dropping random requests or dropping fraction of requests based on Header or URL param value. 
 
