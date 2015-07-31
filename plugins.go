@@ -98,6 +98,15 @@ func InitPlugins() {
 		registerPlugin(NewHTTPInput, options)
 	}
 
+	// If we explicitly set Host header http output should not rewrite it
+	// Fix: https://github.com/buger/gor/issues/174
+	for _, header := range Settings.modifierConfig.headers {
+		if header.Name == "Host" {
+			Settings.outputHTTPConfig.OriginalHost = true
+			break
+		}
+	}
+
 	for _, options := range Settings.outputHTTP {
 		registerPlugin(NewHTTPOutput, options, &Settings.outputHTTPConfig)
 	}

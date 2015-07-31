@@ -20,6 +20,7 @@ var defaultPorts = map[string]string{
 type HTTPClientConfig struct {
 	FollowRedirects int
 	Debug           bool
+	OriginalHost    bool
 }
 
 type HTTPClient struct {
@@ -115,7 +116,9 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 
 	c.conn.SetWriteDeadline(timeout)
 
-	data = proto.SetHost(data, []byte(c.baseURL), []byte(c.host))
+	if !c.config.OriginalHost {
+		data = proto.SetHost(data, []byte(c.baseURL), []byte(c.host))
+	}
 
 	if c.config.Debug {
 		Debug("[HTTPClient] Sending:", string(data))

@@ -27,12 +27,12 @@ type Listener struct {
 
 	// Expect: 100-continue request is send in 2 tcp messages
 	// We store ACK aliases to merge this packets together
-	ackAliases   map[uint32]uint32
+	ackAliases map[uint32]uint32
 	// To get ACK of second message we need to compute its Seq and wait for them message
 	seqWithData map[uint32]uint32
 
 	// Messages ready to be send to client
-	packetsChan  chan *TCPPacket
+	packetsChan chan *TCPPacket
 
 	// Messages ready to be send to client
 	messagesChan chan *TCPMessage

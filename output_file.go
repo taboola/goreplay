@@ -21,7 +21,6 @@ type FileOutput struct {
 	file    *os.File
 }
 
-
 // NewFileOutput constructor for FileOutput, accepts path
 func NewFileOutput(path string) io.Writer {
 	o := new(FileOutput)
