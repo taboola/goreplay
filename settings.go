@@ -122,7 +122,7 @@ func init() {
 // Debug gets called only if --verbose flag specified
 func Debug(args ...interface{}) {
 	if Settings.verbose {
-		fmt.Print("[DEBUG] ")
+		fmt.Printf("[DEBUG][PID %d] ", os.Getpid())
 		log.Println(args...)
 	}
 }
