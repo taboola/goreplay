@@ -21,6 +21,7 @@ type HTTPClientConfig struct {
 	FollowRedirects int
 	Debug           bool
 	OriginalHost    bool
+	Timeout  time.Duration
 }
 
 type HTTPClient struct {
@@ -41,6 +42,10 @@ func NewHTTPClient(baseURL string, config *HTTPClientConfig) *HTTPClient {
 	u, _ := url.Parse(baseURL)
 	if !strings.Contains(u.Host, ":") {
 		u.Host += ":" + defaultPorts[u.Scheme]
+	}
+
+	if config.Timeout.Nanoseconds() == 0 {
+		config.Timeout = 5 * time.Second
 	}
 
 	client := new(HTTPClient)
@@ -112,7 +117,7 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 		}
 	}
 
-	timeout := time.Now().Add(5 * time.Second)
+	timeout := time.Now().Add(c.config.Timeout)
 
 	c.conn.SetWriteDeadline(timeout)
 
