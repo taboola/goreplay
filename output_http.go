@@ -18,6 +18,8 @@ type HTTPOutputConfig struct {
 
 	elasticSearch string
 
+	OriginalHost bool
+
 	Debug bool
 }
 
@@ -94,6 +96,7 @@ func (o *HTTPOutput) startWorker() {
 	client := NewHTTPClient(o.address, &HTTPClientConfig{
 		FollowRedirects: o.config.redirectLimit,
 		Debug:           o.config.Debug,
+		OriginalHost:    o.config.OriginalHost,
 	})
 
 	deathCount := 0
