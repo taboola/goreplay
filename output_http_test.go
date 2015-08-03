@@ -82,7 +82,7 @@ func TestHTTPOutputKeepOriginalHost(t *testing.T) {
 
 	input := NewTestInput()
 
-	listener := startHTTP(func(req *http.Request) {
+	listener := startHTTP(func(w http.ResponseWriter, req *http.Request) {
 		if req.Host != "custom-host.com" {
 			t.Error("Wrong header", req.Host)
 		}
