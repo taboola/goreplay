@@ -8,6 +8,8 @@ import (
 	"net/http/httputil"
 	"sync"
 	"testing"
+	"crypto/rand"
+	"bytes"
 	_ "time"
 )
 
@@ -77,6 +79,36 @@ func TestHTTPClientSend(t *testing.T) {
 	client.Send(payload("GET"))
 	client.Send(payload("POST_CHUNKED"))
 	client.Send(payload("POST"))
+
+	wg.Wait()
+}
+
+// https://github.com/buger/gor/issues/184
+func TestHTTPClientResponseBuffer(t *testing.T) {
+	wg := new(sync.WaitGroup)
+
+	payload := []byte("GET / HTTP/1.1\r\n\r\n")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		size := 1 * 1024 * 1024 // 1 MB
+		rb := make([]byte, size)
+		rand.Read(rb)
+
+		w.Write(rb)
+
+		wg.Done()
+	}))
+
+	client := NewHTTPClient(server.URL, &HTTPClientConfig{Debug: true})
+
+	wg.Add(2)
+	client.Send(payload)
+	resp, _ := client.Send(payload)
+
+	if !bytes.Equal(resp[0:8], []byte("HTTP/1.1")) {
+		t.Error("Response buffer contains data from previous request", string(resp[0:5]))
+	}
 
 	wg.Wait()
 }

@@ -52,7 +52,7 @@ func NewHTTPClient(baseURL string, config *HTTPClientConfig) *HTTPClient {
 	client.baseURL = u.String()
 	client.host = u.Host
 	client.scheme = u.Scheme
-	client.respBuf = make([]byte, 4096*10)
+	client.respBuf = make([]byte, 512*1024) // 500kb
 	client.config = config
 
 	return client
@@ -136,6 +136,16 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 
 	c.conn.SetReadDeadline(timeout)
 	n, err := c.conn.Read(c.respBuf)
+
+	// If response large then our buffer, we need to read all reponse buffer
+	// Otherwise it will corrupt response of next request
+	// Parsing response body is non trivial thing, especially with keep-alive
+	// Simples case is to to close connection if response too large
+	//
+	// See https://github.com/buger/gor/issues/184
+	if n == len(c.respBuf) {
+		c.Disconnect()
+	}
 
 	if err != nil {
 		Debug("[HTTPClient] Response read error", err, c.conn)
