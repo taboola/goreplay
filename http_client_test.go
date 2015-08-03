@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"crypto/rand"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -8,8 +10,6 @@ import (
 	"net/http/httputil"
 	"sync"
 	"testing"
-	"crypto/rand"
-	"bytes"
 	_ "time"
 )
 
@@ -100,7 +100,7 @@ func TestHTTPClientResponseBuffer(t *testing.T) {
 		wg.Done()
 	}))
 
-	client := NewHTTPClient(server.URL, &HTTPClientConfig{Debug: true})
+	client := NewHTTPClient(server.URL, &HTTPClientConfig{Debug: false})
 
 	wg.Add(2)
 	client.Send(payload)

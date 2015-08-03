@@ -21,7 +21,7 @@ type HTTPClientConfig struct {
 	FollowRedirects int
 	Debug           bool
 	OriginalHost    bool
-	Timeout  time.Duration
+	Timeout         time.Duration
 }
 
 type HTTPClient struct {
@@ -137,7 +137,7 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 	c.conn.SetReadDeadline(timeout)
 	n, err := c.conn.Read(c.respBuf)
 
-	// If response large then our buffer, we need to read all reponse buffer
+	// If response large then our buffer, we need to read all response buffer
 	// Otherwise it will corrupt response of next request
 	// Parsing response body is non trivial thing, especially with keep-alive
 	// Simples case is to to close connection if response too large
