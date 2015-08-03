@@ -76,6 +76,40 @@ func TestHTTPOutput(t *testing.T) {
 	Settings.modifierConfig = HTTPModifierConfig{}
 }
 
+func TestHTTPOutputKeepOriginalHost(t *testing.T) {
+	wg := new(sync.WaitGroup)
+	quit := make(chan int)
+
+	input := NewTestInput()
+
+	listener := startHTTP(func(req *http.Request) {
+		if req.Host != "custom-host.com" {
+			t.Error("Wrong header", req.Host)
+		}
+
+		wg.Done()
+	})
+
+	headers := HTTPHeaders{HTTPHeader{"Host", "custom-host.com"}}
+	Settings.modifierConfig = HTTPModifierConfig{headers: headers}
+
+	output := NewHTTPOutput(listener.Addr().String(), &HTTPOutputConfig{Debug: false, OriginalHost: true})
+
+	Plugins.Inputs = []io.Reader{input}
+	Plugins.Outputs = []io.Writer{output}
+
+	go Start(quit)
+
+	wg.Add(1)
+	input.EmitGET()
+
+	wg.Wait()
+
+	close(quit)
+
+	Settings.modifierConfig = HTTPModifierConfig{}
+}
+
 func TestOutputHTTPSSL(t *testing.T) {
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)

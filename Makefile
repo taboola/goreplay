@@ -20,7 +20,7 @@ drace:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i --env GORACE="halt_on_error=1" gor go test ./... $(ARGS) -v -race -timeout 15s
 
 dtest:
-	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go test ./... $(ARGS) -v -timeout 15s
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go test ./... $(ARGS) -v -timeout 10s
 
 dcover:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i --env GORACE="halt_on_error=1" gor go test $(ARGS) -race -v -timeout 15s -coverprofile=coverage.out
@@ -37,7 +37,13 @@ dbench:
 
 # Used mainly for debugging, because docker container do not have access to parent machine ports
 drun:
-	docker run -v `pwd`:/gopath/src/gor -t -i gor go run $(SOURCE) --input-modifier="bash ./examples/echo_modifier.sh" --input-dummy=0 --output-http="http://localhost:9000"  --verbose
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-dummy=0 --output-http="http://localhost:9000"  --verbose
+
+drecord:
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-dummy=0 --output-file=requests.bin --verbose
+
+dreplay:
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-file=requests.bin --output-tcp=:9000 --verbose -h
 
 dbash:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor /bin/bash
