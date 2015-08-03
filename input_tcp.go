@@ -67,7 +67,10 @@ func (i *TCPInput) handleConnection(conn net.Conn) {
 		encodedPayload := scanner.Bytes()
 		// Hex encoding always 2x number of bytes
 		decoded := make([]byte, len(encodedPayload)/2)
-		hex.Decode(decoded, encodedPayload)
+		_, err := hex.Decode(decoded, encodedPayload)
+		if err != nil {
+			log.Println("[TCPInput] failed to hex decode TCP payload:", err)
+		}
 		i.data <- decoded
 	}
 
