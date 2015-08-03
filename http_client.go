@@ -22,6 +22,7 @@ type HTTPClientConfig struct {
 	Debug           bool
 	OriginalHost    bool
 	Timeout         time.Duration
+	ResponseBufferSize  int
 }
 
 type HTTPClient struct {
@@ -48,11 +49,15 @@ func NewHTTPClient(baseURL string, config *HTTPClientConfig) *HTTPClient {
 		config.Timeout = 5 * time.Second
 	}
 
+	if config.ResponseBufferSize == 0 {
+		config.ResponseBufferSize = 512*1024 // 500kb
+	}
+
 	client := new(HTTPClient)
 	client.baseURL = u.String()
 	client.host = u.Host
 	client.scheme = u.Scheme
-	client.respBuf = make([]byte, 512*1024) // 500kb
+	client.respBuf = make([]byte, config.ResponseBufferSize)
 	client.config = config
 
 	return client

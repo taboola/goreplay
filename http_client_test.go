@@ -91,7 +91,7 @@ func TestHTTPClientResponseBuffer(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		size := 1 * 1024 * 1024 // 1 MB
+		size := 10 * 1024 // 10kb
 		rb := make([]byte, size)
 		rand.Read(rb)
 
@@ -100,7 +100,7 @@ func TestHTTPClientResponseBuffer(t *testing.T) {
 		wg.Done()
 	}))
 
-	client := NewHTTPClient(server.URL, &HTTPClientConfig{Debug: false})
+	client := NewHTTPClient(server.URL, &HTTPClientConfig{Debug: false, ResponseBufferSize: 1024})
 
 	wg.Add(2)
 	client.Send(payload)
