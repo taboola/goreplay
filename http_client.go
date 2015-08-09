@@ -42,7 +42,9 @@ func NewHTTPClient(baseURL string, config *HTTPClientConfig) *HTTPClient {
 
 	u, _ := url.Parse(baseURL)
 	if !strings.Contains(u.Host, ":") {
-		u.Host += ":" + defaultPorts[u.Scheme]
+		if u.Scheme != "http" {
+			u.Host += ":" + defaultPorts[u.Scheme]
+		}
 	}
 
 	if config.Timeout.Nanoseconds() == 0 {
@@ -66,7 +68,11 @@ func NewHTTPClient(baseURL string, config *HTTPClientConfig) *HTTPClient {
 func (c *HTTPClient) Connect() (err error) {
 	c.Disconnect()
 
-	c.conn, err = net.Dial("tcp", c.host)
+	if !strings.Contains(c.host, ":") {
+		c.conn, err = net.Dial("tcp", c.host + ":80")
+	} else {
+		c.conn, err = net.Dial("tcp", c.host)
+	}
 
 	if c.scheme == "https" {
 		tlsConn := tls.Client(c.conn, &tls.Config{InsecureSkipVerify: true})

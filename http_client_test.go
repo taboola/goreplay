@@ -15,8 +15,8 @@ import (
 
 func TestHTTPClientURLPort(t *testing.T) {
 	c1 := NewHTTPClient("http://example.com", &HTTPClientConfig{})
-	if c1.baseURL != "http://example.com:80" {
-		t.Error("Sould add 80 port for http:", c1.baseURL)
+	if c1.baseURL != "http://example.com" {
+		t.Error("Sould not add 80 port for http:", c1.baseURL)
 	}
 
 	c2 := NewHTTPClient("https://example.com", &HTTPClientConfig{})
@@ -30,8 +30,8 @@ func TestHTTPClientURLPort(t *testing.T) {
 	}
 
 	c4 := NewHTTPClient("example.com", &HTTPClientConfig{})
-	if c4.baseURL != "http://example.com:80" {
-		t.Error("Sould add default protocol:", c4.baseURL)
+	if c4.baseURL != "http://example.com" {
+		t.Error("Sould not add default protocol:", c4.baseURL)
 	}
 }
 
