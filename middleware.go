@@ -74,7 +74,7 @@ func (m *Middleware) read(from io.Reader) {
 		bytes := scanner.Bytes()
 		hex.Decode(buf, bytes)
 
-		Debug("Received:", buf[0:len(bytes)/2])
+		Debug("[MIDDLEWARE-MASTER] Received:", string(buf[0:len(bytes)/2]))
 
 		m.data <- buf[0 : len(bytes)/2]
 	}

@@ -60,6 +60,7 @@ func NewHTTPOutput(address string, config *HTTPOutputConfig) io.Writer {
 	}
 
 	o.queue = make(chan []byte, 100)
+	o.responses = make(chan []byte, 100)
 	o.needWorker = make(chan int, 1)
 
 	// Initial workers count
@@ -152,13 +153,32 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 	return len(data), nil
 }
 
+func (o *HTTPOutput) Read(data []byte) (int, error) {
+	buf := <- o.responses
+	header := []byte("2\n")
+	copy(data[0:2], header)
+	copy(data[2:], buf)
+
+	return len(buf) + len(header), nil
+}
+
 func (o *HTTPOutput) sendRequest(client *HTTPClient, request []byte) {
+	if len(Settings.middleware) > 0 {
+		request = request[2:]
+	}
+
 	start := time.Now()
 	resp, err := client.Send(request)
 	stop := time.Now()
 
+	panic(string(resp))
+
 	if err != nil {
 		log.Println("Request error:", err)
+	}
+
+	if len(Settings.middleware) > 0 {
+		o.responses <- resp
 	}
 
 	if o.elasticSearch != nil {

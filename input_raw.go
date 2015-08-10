@@ -29,7 +29,14 @@ func NewRAWInput(address string, expire time.Duration) (i *RAWInput) {
 
 func (i *RAWInput) Read(data []byte) (int, error) {
 	buf := <-i.data
-	copy(data, buf)
+
+	if len(Settings.middleware) > 0 {
+		header := []byte("1\n")
+		copy(data[0:len(header)], header)
+		copy(data[len(header):], buf)
+	} else {
+		copy(data, buf)
+	}
 
 	return len(buf), nil
 }

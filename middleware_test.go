@@ -99,6 +99,7 @@ func TestEchoMiddleware(t *testing.T) {
 		wg.Done()
 	}))
 	to := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		panic("Asdasd")
 		wg.Done()
 	}))
 
@@ -108,7 +109,7 @@ func TestEchoMiddleware(t *testing.T) {
 	input := NewRAWInput(from.Listener.Addr().String(), testRawExpire)
 
 	// And redirect to another
-	output := NewHTTPOutput(to.URL, &HTTPOutputConfig{})
+	output := NewHTTPOutput(to.URL, &HTTPOutputConfig{Debug: true})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
@@ -122,7 +123,7 @@ func TestEchoMiddleware(t *testing.T) {
 	// Should receive 2 requests from original + 2 from replayed
 	wg.Add(4)
 
-	client := NewHTTPClient(from.URL, &HTTPClientConfig{Debug: true})
+	client := NewHTTPClient(from.URL, &HTTPClientConfig{Debug: false})
 
 	// Request should be echoed
 	client.Get("/")
@@ -131,6 +132,8 @@ func TestEchoMiddleware(t *testing.T) {
 	wg.Wait()
 	close(quit)
 	Settings.middleware = ""
+
+	time.Sleep(10*time.Millisecond)
 }
 
 func TestTokenMiddleware(t *testing.T) {
