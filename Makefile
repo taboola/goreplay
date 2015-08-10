@@ -5,10 +5,10 @@ SOURCE_PATH = /gopath/src/github.com/buger/gor/
 release: release-x86 release-x64
 
 release-x64:
-	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=amd64 --env CGO_ENABLED=0 -i gor go build && tar -czf gor_x64.tar.gz gor && rm gor
+	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=amd64 --env CGO_ENABLED=0 -i gor go build -ldflags "-X main.VERSION $(VERSION)"&& tar -czf gor_$(VERSION)_x64.tar.gz gor && rm gor
 
 release-x86:
-	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=386 --env CGO_ENABLED=0 -i gor go build && tar -czf gor_x86.tar.gz gor && rm gor
+	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=386 --env CGO_ENABLED=0 -i gor go build -ldflags "-X main.VERSION $(VERSION)" && tar -czf gor_$(VERSION)_x86.tar.gz gor && rm gor
 
 dbuild:
 	docker build -t gor .

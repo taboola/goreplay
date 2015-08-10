@@ -172,6 +172,11 @@ gor --input-raw :80 --output-http "http://staging.server" \
     --http-header "Enable-Feature-X: true"
 ```
 
+#### Host header
+Host header gets special treatment. By default Host get set to the value specified in --output-http. If you manually set --http-header "Host: anonther.com", Gor will not override Host value.
+
+If you app accepts traffic from multiple domain, and you want to keep original headers, there is specific `--http-original-host` with tells Gor do not touch Host header at all.
+
 ### Saving requests to file and replaying them
 You can save requests to file, and replay them later:
 ```
