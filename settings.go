@@ -7,10 +7,7 @@ import (
 	"os"
 )
 
-const (
-	// VERSION specifies Gor current version
-	VERSION = "0.9.8"
-)
+var VERSION string
 
 // MultiOption allows to specify multiple flags with same name and collects all values into array
 type MultiOption []string
