@@ -18,11 +18,11 @@ var defaultPorts = map[string]string{
 }
 
 type HTTPClientConfig struct {
-	FollowRedirects int
-	Debug           bool
-	OriginalHost    bool
-	Timeout         time.Duration
-	ResponseBufferSize  int
+	FollowRedirects    int
+	Debug              bool
+	OriginalHost       bool
+	Timeout            time.Duration
+	ResponseBufferSize int
 }
 
 type HTTPClient struct {
@@ -52,7 +52,7 @@ func NewHTTPClient(baseURL string, config *HTTPClientConfig) *HTTPClient {
 	}
 
 	if config.ResponseBufferSize == 0 {
-		config.ResponseBufferSize = 512*1024 // 500kb
+		config.ResponseBufferSize = 512 * 1024 // 500kb
 	}
 
 	client := new(HTTPClient)
@@ -69,7 +69,7 @@ func (c *HTTPClient) Connect() (err error) {
 	c.Disconnect()
 
 	if !strings.Contains(c.host, ":") {
-		c.conn, err = net.Dial("tcp", c.host + ":80")
+		c.conn, err = net.Dial("tcp", c.host+":80")
 	} else {
 		c.conn, err = net.Dial("tcp", c.host)
 	}

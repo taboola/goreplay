@@ -154,7 +154,7 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 }
 
 func (o *HTTPOutput) Read(data []byte) (int, error) {
-	buf := <- o.responses
+	buf := <-o.responses
 	header := []byte("2\n")
 	copy(data[0:2], header)
 	copy(data[2:], buf)

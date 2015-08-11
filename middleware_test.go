@@ -132,7 +132,7 @@ func TestEchoMiddleware(t *testing.T) {
 	close(quit)
 	Settings.middleware = ""
 
-	time.Sleep(100*time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 }
 
 func TestTokenMiddleware(t *testing.T) {

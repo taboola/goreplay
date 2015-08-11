@@ -35,7 +35,7 @@ func (i *RAWInput) Read(data []byte) (int, error) {
 		copy(data[0:len(header)], header)
 		copy(data[len(header):], buf)
 
-		return len(buf)+len(header), nil
+		return len(buf) + len(header), nil
 	} else {
 		copy(data, buf)
 
