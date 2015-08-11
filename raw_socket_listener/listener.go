@@ -32,6 +32,8 @@ type Listener struct {
 	// To get ACK of second message we need to compute its Seq and wait for them message
 	seqWithData map[uint32]uint32
 
+	respAliases map[uint32]uint32
+
 	// Messages ready to be send to client
 	packetsChan chan *TCPPacket
 
@@ -42,14 +44,16 @@ type Listener struct {
 	messageDelChan chan *TCPMessage
 
 	addr string // IP to listen
-	port int    // Port to listen
+	port uint16    // Port to listen
 
 	messageExpire time.Duration
+
+	captureResponse bool
 }
 
 // NewListener creates and initializes new Listener object
-func NewListener(addr string, port string, expire time.Duration) (rawListener *Listener) {
-	rawListener = &Listener{}
+func NewListener(addr string, port string, expire time.Duration, captureResponse bool) (rawListener *Listener) {
+	rawListener = &Listener{captureResponse: captureResponse}
 
 	rawListener.packetsChan = make(chan *TCPPacket, 10000)
 	rawListener.messagesChan = make(chan *TCPMessage, 10000)
@@ -58,9 +62,11 @@ func NewListener(addr string, port string, expire time.Duration) (rawListener *L
 	rawListener.messages = make(map[string]*TCPMessage)
 	rawListener.ackAliases = make(map[uint32]uint32)
 	rawListener.seqWithData = make(map[uint32]uint32)
+	rawListener.respAliases = make(map[uint32]uint32)
 
 	rawListener.addr = addr
-	rawListener.port, _ = strconv.Atoi(port)
+	_port, _ := strconv.Atoi(port)
+	rawListener.port = uint16(_port)
 
 	if expire.Nanoseconds() == 0 {
 		expire = 2000 * time.Millisecond
@@ -115,18 +121,19 @@ func (t *Listener) readRAWSocket() {
 }
 
 func (t *Listener) parsePacket(addr net.Addr, buf []byte) {
-	if t.isIncomingDataPacket(buf) {
+	if t.isValidPacket(buf) {
 		t.packetsChan <- ParseTCPPacket(addr, buf)
 	}
 }
 
-func (t *Listener) isIncomingDataPacket(buf []byte) bool {
+func (t *Listener) isValidPacket(buf []byte) bool {
 	// To avoid full packet parsing every time, we manually parsing values needed for packet filtering
 	// http://en.wikipedia.org/wiki/Transmission_Control_Protocol
 	destPort := binary.BigEndian.Uint16(buf[2:4])
+	srcPort := binary.BigEndian.Uint16(buf[0:2])
 
 	// Because RAW_SOCKET can't be bound to port, we have to control it by ourself
-	if int(destPort) == t.port {
+	if destPort == t.port || (t.captureResponse && srcPort == t.port) {
 		// Get the 'data offset' (size of the TCP header in 32-bit words)
 		dataOffset := (buf[12] & 0xF0) >> 4
 
@@ -161,12 +168,20 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 		packet.Ack = alias
 	}
 
-	mID := packet.Addr.String() + strconv.Itoa(int(packet.SrcPort)) + strconv.Itoa(int(packet.Ack))
+	// if response
+	if t.captureResponse && packet.DestPort != t.port {
+		if alias, ok := t.respAliases[packet.Ack]; ok {
+			packet.Ack = alias
+		}
+	}
+
+
+	mID := packet.Addr.String() + strconv.Itoa(int(packet.Ack))
 	message, ok := t.messages[mID]
 
 	if !ok {
 		// We sending messageDelChan channel, so message object can communicate with Listener and notify it if message completed
-		message = NewTCPMessage(mID, t.messageDelChan, packet.Ack, &t.messageExpire)
+		message = NewTCPMessage(mID, t.messageDelChan, packet.Ack, &t.messageExpire, t.port)
 		t.messages[mID] = message
 	}
 
@@ -177,6 +192,11 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 			// Removing `Expect: 100-continue` header
 			packet.Data = append(packet.Data[:len(packet.Data)-24], packet.Data[len(packet.Data)-2:]...)
 		}
+	}
+
+	if t.captureResponse {
+		// Response tracking
+		t.respAliases[packet.Seq+uint32(len(packet.Data))] = packet.Ack
 	}
 
 	// Adding packet to message

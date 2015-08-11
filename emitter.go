@@ -56,8 +56,13 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 		if nr > 0 && len(buf) > nr {
 			payload := buf[0:nr]
 
+			_maxN := nr
+			if nr > 500 {
+				_maxN = 500
+			}
+
 			if Settings.debug {
-				Debug("[EMITTER] input:", string(payload[0:500]))
+				Debug("[EMITTER] input:", string(payload[0:_maxN]))
 			}
 
 			if modifier != nil {
@@ -69,7 +74,7 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 				}
 
 				if Settings.debug {
-					Debug("[EMITTER] Rewrittern input:", len(payload), "First 500 bytes:", string(payload[0:500]))
+					Debug("[EMITTER] Rewrittern input:", len(payload), "First 500 bytes:", string(payload[0:_maxN]))
 				}
 			}
 

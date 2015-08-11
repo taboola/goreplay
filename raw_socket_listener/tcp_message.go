@@ -15,6 +15,7 @@ import (
 type TCPMessage struct {
 	ID      string // Message ID
 	Ack     uint32
+	port uint16
 	packets []*TCPPacket
 
 	timer *time.Timer // Used for expire check
@@ -27,8 +28,8 @@ type TCPMessage struct {
 }
 
 // NewTCPMessage pointer created from a Acknowledgment number and a channel of messages readuy to be deleted
-func NewTCPMessage(ID string, delChan chan *TCPMessage, Ack uint32, expire *time.Duration) (msg *TCPMessage) {
-	msg = &TCPMessage{ID: ID, Ack: Ack, expire: expire}
+func NewTCPMessage(ID string, delChan chan *TCPMessage, Ack uint32, expire *time.Duration, port uint16) (msg *TCPMessage) {
+	msg = &TCPMessage{ID: ID, Ack: Ack, expire: expire, port: port}
 
 	msg.packetsChan = make(chan *TCPPacket)
 	msg.delChan = delChan // used for notifying that message completed or expired
@@ -73,11 +74,26 @@ func (t *TCPMessage) Timeout() {
 }
 
 // Bytes sorts packets in right orders and return message content
-func (t *TCPMessage) Bytes() (output []byte) {
+func (t *TCPMessage) RequestBytes() (output []byte) {
 	sort.Sort(sortBySeq(t.packets))
 
 	for _, v := range t.packets {
-		output = append(output, v.Data...)
+		if v.DestPort == t.port {
+			output = append(output, v.Data...)
+		}
+	}
+
+	return output
+}
+
+// Bytes sorts packets in right orders and return message content
+func (t *TCPMessage) ResponseBytes() (output []byte) {
+	sort.Sort(sortBySeq(t.packets))
+
+	for _, v := range t.packets {
+		if v.DestPort != t.port {
+			output = append(output, v.Data...)
+		}
 	}
 
 	return output

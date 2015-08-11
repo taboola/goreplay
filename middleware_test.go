@@ -105,7 +105,7 @@ func TestEchoMiddleware(t *testing.T) {
 	quit := make(chan int)
 
 	// Catch traffic from one service
-	input := NewRAWInput(from.Listener.Addr().String(), testRawExpire)
+	input := NewRAWInput(from.Listener.Addr().String(), testRawExpire, true)
 
 	// And redirect to another
 	output := NewHTTPOutput(to.URL, &HTTPOutputConfig{Debug: true})
@@ -158,14 +158,14 @@ func TestTokenMiddleware(t *testing.T) {
 	quit := make(chan int)
 
 	// Catch traffic from one service
-	input := NewRAWInput(from, testRawExpire)
+	input := NewRAWInput(from, testRawExpire, true)
 
 	// And redirect to another
 	output := NewHTTPOutput(to, &HTTPOutputConfig{})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
-	// Settings.middleware = "./examples/echo_modifier.sh"
+	Settings.middleware = "./examples/echo_modifier.sh"
 
 	// Start Gor
 	go Start(quit)

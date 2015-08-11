@@ -24,7 +24,7 @@ func TestRAWInput(t *testing.T) {
 
 	listener := startHTTP(func(w http.ResponseWriter, req *http.Request) {})
 
-	input := NewRAWInput(listener.Addr().String(), testRawExpire)
+	input := NewRAWInput(listener.Addr().String(), testRawExpire, false)
 	output := NewTestOutput(func(data []byte) {
 		wg.Done()
 	})
@@ -66,7 +66,7 @@ func TestInputRAW100Expect(t *testing.T) {
 
 	originAddr := strings.Replace(origin.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr, testRawExpire)
+	input := NewRAWInput(originAddr, testRawExpire, false)
 
 	// We will use it to get content of raw HTTP request
 	testOutput := NewTestOutput(func(data []byte) {
@@ -123,7 +123,7 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 
 	originAddr := strings.Replace(origin.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr, testRawExpire)
+	input := NewRAWInput(originAddr, testRawExpire, false)
 
 	listener := startHTTP(func(w http.ResponseWriter, req *http.Request) {
 		defer req.Body.Close()
@@ -181,7 +181,7 @@ func TestInputRAWLargePayload(t *testing.T) {
 	}))
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr, testRawExpire)
+	input := NewRAWInput(originAddr, testRawExpire, false)
 
 	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		req.Body = http.MaxBytesReader(w, req.Body, 1*1024*1024)
@@ -213,4 +213,37 @@ func TestInputRAWLargePayload(t *testing.T) {
 
 	wg.Wait()
 	close(quit)
+}
+
+func TestInputRAWResponse(t *testing.T) {
+	wg := new(sync.WaitGroup)
+	quit := make(chan int)
+
+	listener := startHTTP(func(w http.ResponseWriter, req *http.Request) {})
+
+	input := NewRAWInput(listener.Addr().String(), testRawExpire, true)
+	output := NewTestOutput(func(data []byte) {
+		wg.Done()
+	})
+
+	Plugins.Inputs = []io.Reader{input}
+	Plugins.Outputs = []io.Writer{output}
+
+	address := strings.Replace(listener.Addr().String(), "[::]", "127.0.0.1", -1)
+
+	client := NewHTTPClient(address, &HTTPClientConfig{})
+
+	time.Sleep(time.Millisecond)
+	go Start(quit)
+
+	for i := 0; i < 100; i++ {
+		// 2 because we track both request and response
+		wg.Add(2)
+		client.Get("/")
+	}
+
+	wg.Wait()
+	close(quit)
+
+	time.Sleep(100*time.Millisecond)
 }

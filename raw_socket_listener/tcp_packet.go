@@ -50,7 +50,6 @@ func ParseTCPPacket(addr net.Addr, b []byte) (p *TCPPacket) {
 // Parse TCP Packet, inspired by: https://github.com/miekg/pcap/blob/master/packet.go
 func (t *TCPPacket) Parse() {
 	t.ParseBasic()
-	t.DestPort = binary.BigEndian.Uint16(t.Data[2:4])
 	t.Flags = binary.BigEndian.Uint16(t.Data[12:14]) & 0x1FF
 	t.Window = binary.BigEndian.Uint16(t.Data[14:16])
 	t.Checksum = binary.BigEndian.Uint16(t.Data[16:18])
@@ -59,6 +58,7 @@ func (t *TCPPacket) Parse() {
 
 // ParseBasic set of fields
 func (t *TCPPacket) ParseBasic() {
+	t.DestPort = binary.BigEndian.Uint16(t.Data[2:4])
 	t.SrcPort = binary.BigEndian.Uint16(t.Data[0:2])
 	t.Seq = binary.BigEndian.Uint32(t.Data[4:8])
 	t.Ack = binary.BigEndian.Uint32(t.Data[8:12])
