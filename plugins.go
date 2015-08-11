@@ -55,11 +55,14 @@ func registerPlugin(constructor interface{}, options ...interface{}) {
 		pluginWrapper = plugin
 	}
 
-	if _, ok := plugin.(io.Reader); ok {
+	_, isR := plugin.(io.Reader)
+	_, isW := plugin.(io.Writer)
+
+	if isR && !isW {
 		Plugins.Inputs = append(Plugins.Inputs, pluginWrapper.(io.Reader))
 	}
 
-	if _, ok := plugin.(io.Writer); ok {
+	if isW {
 		Plugins.Outputs = append(Plugins.Outputs, pluginWrapper.(io.Writer))
 	}
 }
