@@ -99,7 +99,6 @@ func TestEchoMiddleware(t *testing.T) {
 		wg.Done()
 	}))
 	to := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		panic("Asdasd")
 		wg.Done()
 	}))
 
@@ -133,7 +132,7 @@ func TestEchoMiddleware(t *testing.T) {
 	close(quit)
 	Settings.middleware = ""
 
-	time.Sleep(10*time.Millisecond)
+	time.Sleep(100*time.Millisecond)
 }
 
 func TestTokenMiddleware(t *testing.T) {

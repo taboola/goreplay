@@ -34,11 +34,13 @@ func (i *RAWInput) Read(data []byte) (int, error) {
 		header := []byte("1\n")
 		copy(data[0:len(header)], header)
 		copy(data[len(header):], buf)
+
+		return len(buf)+len(header), nil
 	} else {
 		copy(data, buf)
-	}
 
-	return len(buf), nil
+		return len(buf), nil
+	}
 }
 
 func (i *RAWInput) listen(address string) {

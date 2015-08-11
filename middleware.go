@@ -58,9 +58,14 @@ func (m *Middleware) copy(to io.Writer, from io.Reader) {
 	for {
 		nr, _ := from.Read(buf)
 		if nr > 0 && len(buf) > nr {
+
 			hex.Encode(dst, buf[0:nr])
 			to.Write(dst[0 : nr*2])
 			to.Write([]byte("\n"))
+
+			if Settings.debug {
+				Debug("[MIDDLEWARE-MASTER] Sending:", string(buf[0:nr]), "From:", from)
+			}
 		}
 	}
 }
@@ -74,7 +79,9 @@ func (m *Middleware) read(from io.Reader) {
 		bytes := scanner.Bytes()
 		hex.Decode(buf, bytes)
 
-		Debug("[MIDDLEWARE-MASTER] Received:", string(buf[0:len(bytes)/2]))
+		if Settings.debug {
+			Debug("[MIDDLEWARE-MASTER] Received:", string(buf[0:len(bytes)/2]))
+		}
 
 		m.data <- buf[0 : len(bytes)/2]
 	}

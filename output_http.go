@@ -171,8 +171,6 @@ func (o *HTTPOutput) sendRequest(client *HTTPClient, request []byte) {
 	resp, err := client.Send(request)
 	stop := time.Now()
 
-	panic(string(resp))
-
 	if err != nil {
 		log.Println("Request error:", err)
 	}
