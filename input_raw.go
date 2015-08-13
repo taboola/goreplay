@@ -10,18 +10,16 @@ import (
 
 // RAWInput used for intercepting traffic for given address
 type RAWInput struct {
-	requests    chan []byte
-	responses    chan []byte
-	address string
-	expire  time.Duration
+	data            chan *raw.TCPMessage
+	address         string
+	expire          time.Duration
 	captureResponse bool
 }
 
 // NewRAWInput constructor for RAWInput. Accepts address with port as argument.
 func NewRAWInput(address string, expire time.Duration, captureResponse bool) (i *RAWInput) {
 	i = new(RAWInput)
-	i.requests = make(chan []byte)
-	i.responses = make(chan []byte)
+	i.data = make(chan *raw.TCPMessage)
 	i.address = address
 	i.expire = expire
 	i.captureResponse = captureResponse
@@ -32,25 +30,25 @@ func NewRAWInput(address string, expire time.Duration, captureResponse bool) (i 
 }
 
 func (i *RAWInput) Read(data []byte) (int, error) {
-	select {
-	case buf := <- i.requests:
-		if i.captureResponse {
-			header := []byte("1\n")
-			copy(data[0:len(header)], header)
-			copy(data[len(header):], buf)
+	msg := <-i.data
+	buf := msg.Bytes()
 
-			return len(buf) + len(header), nil
+	if i.captureResponse {
+		var header []byte
+
+		if msg.IsIncoming {
+			header = []byte("1\n")
 		} else {
-			copy(data, buf)
-
-			return len(buf), nil
+			header = []byte("3\n")
 		}
-	case buf := <- i.responses:
-		header := []byte("3\n")
+
 		copy(data[0:len(header)], header)
 		copy(data[len(header):], buf)
 
 		return len(buf) + len(header), nil
+	} else {
+		copy(data, buf)
+		return len(buf), nil
 	}
 }
 
@@ -71,11 +69,7 @@ func (i *RAWInput) listen(address string) {
 		// Receiving TCPMessage object
 		m := listener.Receive()
 
-		i.requests <- m.RequestBytes()
-
-		if i.captureResponse {
-			i.responses <- m.ResponseBytes()
-		}
+		i.data <- m
 	}
 }
 

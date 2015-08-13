@@ -245,5 +245,5 @@ func TestInputRAWResponse(t *testing.T) {
 	wg.Wait()
 	close(quit)
 
-	time.Sleep(100*time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 }
