@@ -198,6 +198,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 
 		if !isIncoming && responseRequest != nil {
 			message.RequestStart = responseRequest.start
+			message.RequestAck = responseRequest.ack
 		}
 	}
 

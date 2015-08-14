@@ -11,10 +11,10 @@ while read line; do
     >&2 echo "[DEBUG][ECHO] ==================================="
 
     case ${header:0:1} in
-    "3")
+    "2")
         >&2 echo "[DEBUG][ECHO] Request type: Original Response"
         ;;
-    "2")
+    "3")
         >&2 echo "[DEBUG][ECHO] Request type: Replayed Response"
         ;;
     "1")

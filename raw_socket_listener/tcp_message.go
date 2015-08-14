@@ -4,6 +4,9 @@ import (
 	"log"
 	"sort"
 	"time"
+	"crypto/sha1"
+	"encoding/hex"
+	"strconv"
 )
 
 // TCPMessage ensure that all TCP packets for given request is received, and processed in right sequence
@@ -16,6 +19,7 @@ type TCPMessage struct {
 	ID           string // Message ID
 	Ack          uint32
 	RequestStart int64
+	RequestAck   uint32
 	Start        int64
 	IsIncoming   bool
 	packets      []*TCPPacket
@@ -115,4 +119,22 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 
 	// Reset message timeout timer
 	t.timer.Reset(*t.expire)
+}
+
+func (t *TCPMessage) UUID() []byte {
+	var key []byte
+
+	if t.IsIncoming {
+		key = strconv.AppendInt(key, t.Start, 10)
+		key = strconv.AppendUint(key, uint64(t.Ack), 10)
+	} else {
+		key = strconv.AppendInt(key, t.RequestStart, 10)
+		key = strconv.AppendUint(key, uint64(t.RequestAck), 10)
+	}
+
+	uuid := make([]byte, 40)
+	sha := sha1.Sum(key)
+	hex.Encode(uuid, sha[:20])
+
+	return uuid
 }

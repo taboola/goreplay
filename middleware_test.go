@@ -96,23 +96,28 @@ func TestEchoMiddleware(t *testing.T) {
 	wg := new(sync.WaitGroup)
 
 	from := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Env", "prod")
+		w.Header().Set("RequestPath", r.URL.Path)
 		wg.Done()
 	}))
 	to := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Env", "test")
+		w.Header().Set("RequestPath", r.URL.Path)
 		wg.Done()
 	}))
 
 	quit := make(chan int)
 
+	Settings.middleware = "./examples/echo_modifier.sh"
+
 	// Catch traffic from one service
 	input := NewRAWInput(from.Listener.Addr().String(), testRawExpire, true)
 
 	// And redirect to another
-	output := NewHTTPOutput(to.URL, &HTTPOutputConfig{Debug: true})
+	output := NewHTTPOutput(to.URL, &HTTPOutputConfig{Debug: false})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
-	Settings.middleware = "./examples/echo_modifier.sh"
 
 	// Start Gor
 	go Start(quit)
@@ -125,14 +130,14 @@ func TestEchoMiddleware(t *testing.T) {
 	client := NewHTTPClient(from.URL, &HTTPClientConfig{Debug: false})
 
 	// Request should be echoed
-	client.Get("/")
-	client.Get("/")
+	client.Get("/a")
+	client.Get("/b")
 
 	wg.Wait()
 	close(quit)
-	Settings.middleware = ""
-
 	time.Sleep(100 * time.Millisecond)
+
+	Settings.middleware = ""
 }
 
 func TestTokenMiddleware(t *testing.T) {
@@ -150,7 +155,7 @@ func TestTokenMiddleware(t *testing.T) {
 			}
 		case "/secure":
 			if status != 202 {
-				// t.Error("Server should receive valid rewritten token")
+				t.Error("Server should receive valid rewritten token")
 			}
 		}
 	})
@@ -161,25 +166,28 @@ func TestTokenMiddleware(t *testing.T) {
 	input := NewRAWInput(from, testRawExpire, true)
 
 	// And redirect to another
-	output := NewHTTPOutput(to, &HTTPOutputConfig{})
+	output := NewHTTPOutput(to, &HTTPOutputConfig{Debug: true})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
-	Settings.middleware = "./examples/echo_modifier.sh"
+	Settings.middleware = "go run ./examples/token_modifier.go"
 
 	// Start Gor
 	go Start(quit)
 
-	time.Sleep(time.Millisecond)
+	// Wait for middleware to initialize
+	time.Sleep(500 * time.Millisecond)
 
 	// Should receive 2 requests from original + 2 from replayed
 	wg.Add(4)
 
-	client := NewHTTPClient("http://"+from, &HTTPClientConfig{Debug: true})
+	client := NewHTTPClient("http://"+from, &HTTPClientConfig{Debug: false})
 
 	// Sending traffic to original service
 	resp, _ = client.Get("/token")
 	token = proto.Body(resp)
+
+	time.Sleep(50*time.Millisecond)
 
 	resp, _ = client.Get("/secure?token=" + string(token))
 	if !bytes.Equal(proto.Status(resp), []byte("202")) {
@@ -188,5 +196,6 @@ func TestTokenMiddleware(t *testing.T) {
 
 	wg.Wait()
 	close(quit)
+	time.Sleep(100 * time.Millisecond)
 	Settings.middleware = ""
 }

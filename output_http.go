@@ -9,6 +9,11 @@ import (
 
 const initialDynamicWorkers = 10
 
+type response struct {
+	payload []byte
+	uuid []byte
+}
+
 // HTTPOutputConfig struct for holding http output configuration
 type HTTPOutputConfig struct {
 	redirectLimit int
@@ -36,7 +41,7 @@ type HTTPOutput struct {
 	address   string
 	limit     int
 	queue     chan []byte
-	responses chan []byte
+	responses chan response
 
 	needWorker chan int
 
@@ -60,7 +65,7 @@ func NewHTTPOutput(address string, config *HTTPOutputConfig) io.Writer {
 	}
 
 	o.queue = make(chan []byte, 100)
-	o.responses = make(chan []byte, 100)
+	o.responses = make(chan response, 100)
 	o.needWorker = make(chan int, 1)
 
 	// Initial workers count
@@ -154,17 +159,23 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 }
 
 func (o *HTTPOutput) Read(data []byte) (int, error) {
-	buf := <-o.responses
-	header := []byte("2\n")
-	copy(data[0:2], header)
-	copy(data[2:], buf)
+	resp := <-o.responses
 
-	return len(buf) + len(header), nil
+	Debug("[OUTPUT-HTTP] Received response", string(resp.payload))
+
+	header := payloadHeader(ReplayedResponsePayload, resp.uuid)
+	copy(data[0:len(header)], header)
+	copy(data[len(header):], resp.payload)
+
+	return len(resp.payload) + len(header), nil
 }
 
 func (o *HTTPOutput) sendRequest(client *HTTPClient, request []byte) {
+	var uuid []byte
+
 	if len(Settings.middleware) > 0 {
-		request = request[2:]
+		uuid = request[2:42]
+		request = request[43:]
 	}
 
 	start := time.Now()
@@ -176,7 +187,7 @@ func (o *HTTPOutput) sendRequest(client *HTTPClient, request []byte) {
 	}
 
 	if len(Settings.middleware) > 0 {
-		o.responses <- resp
+		o.responses <- response{resp, uuid}
 	}
 
 	if o.elasticSearch != nil {

@@ -9,12 +9,15 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 )
 
 type Middleware struct {
 	command string
 
 	data chan []byte
+
+	mu     sync.Mutex
 
 	Stdin  io.Writer
 	Stdout io.Reader
@@ -48,6 +51,7 @@ func NewMiddleware(command string) *Middleware {
 }
 
 func (m *Middleware) ReadFrom(plugin io.Reader) {
+	Debug("[MIDDLEWARE-MASTER] Starting reading from", plugin)
 	go m.copy(m.Stdin, plugin)
 }
 
@@ -60,8 +64,11 @@ func (m *Middleware) copy(to io.Writer, from io.Reader) {
 		if nr > 0 && len(buf) > nr {
 
 			hex.Encode(dst, buf[0:nr])
-			to.Write(dst[0 : nr*2])
-			to.Write([]byte("\n"))
+			dst[nr*2] = '\n'
+
+			m.mu.Lock()
+			to.Write(dst[0 : nr*2+1])
+			m.mu.Unlock()
 
 			if Settings.debug {
 				Debug("[MIDDLEWARE-MASTER] Sending:", string(buf[0:nr]), "From:", from)
@@ -71,19 +78,23 @@ func (m *Middleware) copy(to io.Writer, from io.Reader) {
 }
 
 func (m *Middleware) read(from io.Reader) {
-	buf := make([]byte, 5*1024*1024)
-
 	scanner := bufio.NewScanner(from)
 
 	for scanner.Scan() {
 		bytes := scanner.Bytes()
-		hex.Decode(buf, bytes)
-
-		if Settings.debug {
-			Debug("[MIDDLEWARE-MASTER] Received:", string(buf[0:len(bytes)/2]))
+		buf := make([]byte, len(bytes)/2)
+		if _, err := hex.Decode(buf, bytes); err != nil {
+			fmt.Fprintln(os.Stderr, "Failed to decode input payload", err, len(bytes))
 		}
 
-		m.data <- buf[0 : len(bytes)/2]
+		if Settings.debug {
+			Debug("[MIDDLEWARE-MASTER] Received:", string(buf))
+		}
+
+		// We should accept only request payloads
+		if buf[0] == '1' {
+			m.data <- buf
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
