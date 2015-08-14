@@ -204,6 +204,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 
 	// Handling Expect: 100-continue requests
 	if bytes.Equal(packet.Data[0:4], bPOST) {
+		// reading last 20 bytes (not counting CRLF): last header value (if no body presented)
 		if bytes.Equal(packet.Data[len(packet.Data)-24:len(packet.Data)-4], bExpect100ContinueCheck) {
 			t.seqWithData[packet.Seq+uint32(len(packet.Data))] = packet.Ack
 

@@ -187,7 +187,7 @@ func TestTokenMiddleware(t *testing.T) {
 	resp, _ = client.Get("/token")
 	token = proto.Body(resp)
 
-	time.Sleep(50*time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 
 	resp, _ = client.Get("/secure?token=" + string(token))
 	if !bytes.Equal(proto.Status(resp), []byte("202")) {

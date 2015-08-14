@@ -138,7 +138,7 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 	})
 	replayAddr := listener.Addr().String()
 
-	httpOutput := NewHTTPOutput(replayAddr, &HTTPOutputConfig{Debug: true})
+	httpOutput := NewHTTPOutput(replayAddr, &HTTPOutputConfig{Debug: false})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{httpOutput}

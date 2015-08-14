@@ -17,7 +17,7 @@ type Middleware struct {
 
 	data chan []byte
 
-	mu     sync.Mutex
+	mu sync.Mutex
 
 	Stdin  io.Writer
 	Stdout io.Reader

@@ -11,7 +11,7 @@ const initialDynamicWorkers = 10
 
 type response struct {
 	payload []byte
-	uuid []byte
+	uuid    []byte
 }
 
 // HTTPOutputConfig struct for holding http output configuration

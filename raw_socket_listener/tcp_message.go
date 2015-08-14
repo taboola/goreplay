@@ -1,12 +1,14 @@
 package rawSocket
 
 import (
-	"log"
-	"sort"
-	"time"
+	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
+	"github.com/buger/gor/proto"
+	"log"
+	"sort"
 	"strconv"
+	"time"
 )
 
 // TCPMessage ensure that all TCP packets for given request is received, and processed in right sequence
@@ -22,7 +24,8 @@ type TCPMessage struct {
 	RequestAck   uint32
 	Start        int64
 	IsIncoming   bool
-	packets      []*TCPPacket
+
+	packets []*TCPPacket
 
 	timer *time.Timer // Used for expire check
 
@@ -39,9 +42,6 @@ func NewTCPMessage(ID string, delChan chan *TCPMessage, Ack uint32, expire *time
 	msg.Start = time.Now().UnixNano()
 	msg.packetsChan = make(chan *TCPPacket)
 	msg.delChan = delChan // used for notifying that message completed or expired
-
-	// Every time we receive packet we reset this timer
-	msg.timer = time.AfterFunc(*msg.expire, msg.Timeout)
 
 	go msg.listen()
 
@@ -64,6 +64,10 @@ func (t *TCPMessage) listen() {
 
 // Timeout notifies message to stop listening, close channel and message ready to be sent
 func (t *TCPMessage) Timeout() {
+	if t.timer != nil {
+		t.timer.Stop()
+	}
+
 	select {
 	// In some cases Timeout can be called multiple times (do not know how yet)
 	// Ensure that we did not close channel 2 times
@@ -117,8 +121,63 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 		t.packets = append(t.packets, packet)
 	}
 
-	// Reset message timeout timer
-	t.timer.Reset(*t.expire)
+	if !t.isMultipart() {
+		log.Println("MESSAGE NOT MULTIPART", string(packet.Data))
+		t.Timeout()
+	} else {
+		log.Println("MESSAGE MULTIPART", string(packet.Data))
+		// If more then 1 packet, wait for more, and set expiration
+		if len(t.packets) == 1 {
+			// Every time we receive packet we reset this timer
+			t.timer = time.AfterFunc(*t.expire, t.Timeout)
+		} else {
+			// Reset message timeout timer
+			t.timer.Reset(*t.expire)
+		}
+	}
+}
+
+// isMultipart returns true if message contains from multiple tcp packets
+func (t *TCPMessage) isMultipart() bool {
+	if len(t.packets) > 1 {
+		return true
+	}
+
+	payload := t.packets[0].Data
+	m := payload[:3]
+
+	if t.IsIncoming {
+		// If one GET, OPTIONS, or HEAD request
+		if bytes.Equal(m, []byte("GET")) || bytes.Equal(m, []byte("OPT")) || bytes.Equal(m, []byte("HEA")) {
+			return false
+		} else {
+			if length := proto.Header(payload, []byte("Content-Length")); len(length) > 0 {
+				l, _ := strconv.Atoi(string(length))
+
+				log.Println("Content-Length", l, "Body length:", len(proto.Body(payload)))
+				// If content-length equal current body length
+				if l > 0 && l == len(proto.Body(payload)) {
+					return false
+				}
+			}
+		}
+	} else {
+		if length := proto.Header(payload, []byte("Content-Length")); len(length) > 0 {
+			if length[0] == '0' {
+				return false
+			}
+
+			l, _ := strconv.Atoi(string(length))
+
+			log.Println("Content-Length", l, "Body length:", len(proto.Body(payload)))
+			// If content-length equal current body length
+			if l > 0 && l == len(proto.Body(payload)) {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 func (t *TCPMessage) UUID() []byte {
