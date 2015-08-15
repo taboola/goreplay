@@ -79,7 +79,13 @@ func InitPlugins() {
 	}
 
 	for _, options := range Settings.inputRAW {
-		registerPlugin(NewRAWInput, options)
+		captureResponse := false
+
+		if len(Settings.middleware) > 0 {
+			captureResponse = true
+		}
+
+		registerPlugin(NewRAWInput, options, 0, captureResponse)
 	}
 
 	for _, options := range Settings.inputTCP {
