@@ -122,10 +122,8 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 	}
 
 	if !t.isMultipart() {
-		log.Println("MESSAGE NOT MULTIPART", string(packet.Data))
 		t.Timeout()
 	} else {
-		log.Println("MESSAGE MULTIPART", string(packet.Data))
 		// If more then 1 packet, wait for more, and set expiration
 		if len(t.packets) == 1 {
 			// Every time we receive packet we reset this timer

@@ -165,8 +165,6 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 
 	payload := c.respBuf[:n]
 
-	Debug("[HTTPClient] Received:", n)
-
 	if c.config.Debug {
 		Debug("[HTTPClient] Received:", string(payload))
 	}
