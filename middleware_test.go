@@ -68,7 +68,6 @@ func TestFakeSecureService(t *testing.T) {
 	wg := new(sync.WaitGroup)
 
 	addr := NewFakeSecureService(wg, func(path string, status int, resp []byte) {
-
 	})
 
 	wg.Add(3)

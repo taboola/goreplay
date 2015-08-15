@@ -1,3 +1,22 @@
+/*
+This middleware made for auth system that randomly generate access tokens, which used later for accessing secure content. Since there is no pre-defined token value, naive approach without middleware (or if middleware use only request payloads) will fail, because replayed server have own tokens, not synced with origin. To fix this, our middleware should take in account responses of replayed and origin server, store `originalToken -> replayedToken` aliases and rewrite all requests using this token to use replayed alias. See `middleware_test.go#TestTokenMiddleware` test for examples of using this middleware.
+
+How middleware works:
+
+                   Original request      +--------------+
++-------------+----------STDIN---------->+              |
+|  Gor input  |                          |  Middleware  |
++-------------+----------STDIN---------->+              |
+                   Original response     +------+---+---+
+                                                |   ^
++-------------+    Modified request             v   |
+| Gor output  +<---------STDOUT-----------------+   |
++-----+-------+                                     |
+      |                                             |
+      |            Replayed response                |
+      +------------------STDIN----------------->----+
+*/
+
 package main
 
 import (
@@ -50,10 +69,10 @@ func process(buf []byte) {
 			originalTokens[reqID] = []byte{}
 			Debug("Found token request:", reqID)
 		} else {
-			tokenVal, vs, _ := proto.PathParam(payload, []byte("token"))
+			token, vs, _ := proto.PathParam(payload, []byte("token"))
 
 			if vs != -1 { // If there is GET token param
-				if alias, ok := tokenAliases[string(tokenVal)]; ok {
+				if alias, ok := tokenAliases[string(token)]; ok {
 					// Rewrite original token to alias
 					payload = proto.SetPathParam(payload, []byte("token"), alias)
 

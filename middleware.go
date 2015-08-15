@@ -33,7 +33,10 @@ func NewMiddleware(command string) *Middleware {
 
 	m.Stdout, _ = cmd.StdoutPipe()
 	m.Stdin, _ = cmd.StdinPipe()
-	cmd.Stderr = os.Stderr
+
+	if Settings.verbose {
+		cmd.Stderr = os.Stderr
+	}
 
 	go m.read(m.Stdout)
 

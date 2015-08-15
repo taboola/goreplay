@@ -178,7 +178,7 @@ Host header gets special treatment. By default Host get set to the value specifi
 If you app accepts traffic from multiple domain, and you want to keep original headers, there is specific `--http-original-host` with tells Gor do not touch Host header at all.
 
 ### Middleware
-Middleware is a programm that accepts request payload and response at STDIN and emits modified requests at STDOUT.
+Middleware is a programm that accepts request and response payload at STDIN and emits modified requests at STDOUT. You can implement any custom logic like stripping private data, advanced rewriting, support for oAuth and etc.
 
 ```
                    Original request      +--------------+
@@ -195,6 +195,29 @@ Middleware is a programm that accepts request payload and response at STDIN and 
       +------------------STDIN----------------->----+
 ```
 
+Middleware can be written in any language, see `examples/middleware` folder for examples.
+Middleware programm should accept the fact that all communication with Gor is asyncronious, there is no guarantee that original request and response messages will come one after each other. Your app should take care of the state if logic depends on original or replayed response, see `examples/middleware/token_modifier.go` as example.
+
+#### Communication protocol
+All messages should be hex encoded, new line character specifieds the end of the message, eg. new message per line.
+
+Decoded payload consist of 2 parts: header and HTTP payload, separated by new line character. Example:
+```
+1 932079936fa4306fc308d67588178d17d823647c
+GET /a HTTP/1.1
+Host: 127.0.0.1
+
+```
+
+First header byte `1` represent payload type, possible values: `1` - request, `2` - original response, `3` - replayed response
+After empty spaces, goes request id `932079936fa4306fc308d67588178d17d823647c`, which is always 40 characters length. Request id unique among all requests (sha1 of time and Ack), but remain same for original and replayed response, so you can create associations between request and responses.
+
+HTTP payload is unmodified HTTP requests/responses intercepted from network. You can read more about request format [here](http://www.jmarshall.com/easy/http/), [here](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol) and [here](http://www.w3.org/Protocols/rfc2616/rfc2616.html). You can operate with payload as you want, add headers, change path, and etc. Basically you just editing a string, just ensure that it is RCF compliant.
+
+At the end modified (or untouched) request should be emitted back to STDOUT, keeping original header, and hex-encoded. If you want to filter request, just not send it. Emitting responses back is optional, and does not affect anyting at the moment.
+
+#### Advanced example
+Imagine that you have auth system that randomly generate access tokens, which used later for accessing secure content. Since there is no pre-defined token value, naive approach without middleware (or if middleware use only request payloads) will fail, because replayed server have own tokens, not synced with origin. To fix this, our middleware should take in account responses of replayed and origin server, store `originalToken -> replayedToken` aliases and rewrite all requests using this token to use replayed alias. See `examples/middleware/token_modifier.go` and `middleware_test.go#TestTokenMiddleware` as example of described scheme.
 
 ### Saving requests to file and replaying them
 You can save requests to file, and replay them later:
