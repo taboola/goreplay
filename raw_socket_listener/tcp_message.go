@@ -154,7 +154,6 @@ func (t *TCPMessage) isMultipart() bool {
 			if length := proto.Header(payload, []byte("Content-Length")); len(length) > 0 {
 				l, _ := strconv.Atoi(string(length))
 
-				log.Println("Content-Length", l, "Body length:", len(proto.Body(payload)))
 				// If content-length equal current body length
 				if l > 0 && l == len(proto.Body(payload)) {
 					return false
@@ -169,7 +168,6 @@ func (t *TCPMessage) isMultipart() bool {
 
 			l, _ := strconv.Atoi(string(length))
 
-			log.Println("Content-Length", l, "Body length:", len(proto.Body(payload)))
 			// If content-length equal current body length
 			if l > 0 && l == len(proto.Body(payload)) {
 				return false
