@@ -146,6 +146,7 @@ func TestTokenMiddleware(t *testing.T) {
 	wg := new(sync.WaitGroup)
 
 	from := NewFakeSecureService(wg, func(path string, status int, tok []byte) {
+		time.Sleep(10 * time.Millisecond)
 	})
 	to := NewFakeSecureService(wg, func(path string, status int, tok []byte) {
 		switch path {
@@ -158,6 +159,8 @@ func TestTokenMiddleware(t *testing.T) {
 				t.Error("Server should receive valid rewritten token")
 			}
 		}
+
+		time.Sleep(10 * time.Millisecond)
 	})
 
 	quit := make(chan int)

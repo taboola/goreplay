@@ -3,8 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
+	"sync"
+	"time"
 )
 
 var VERSION string
@@ -122,10 +123,19 @@ func init() {
 	flag.Var(&Settings.modifierConfig.paramHashFilters, "http-param-limiter", "Takes a fraction of requests, consistently taking or rejecting a request based on the FNV32-1A hash of a specific GET param:\n\t gor --input-raw :8080 --output-http staging.com --http-param-limiter user_id:25%")
 }
 
+var previousDebugTime int64
+var debugMutex sync.Mutex
+
 // Debug gets called only if --verbose flag specified
 func Debug(args ...interface{}) {
 	if Settings.verbose {
-		fmt.Printf("[DEBUG][PID %d] ", os.Getpid())
-		log.Println(args...)
+		debugMutex.Lock()
+		now := time.Now()
+		diff := float64(now.UnixNano()-previousDebugTime) / 1000000
+		previousDebugTime = now.UnixNano()
+		debugMutex.Unlock()
+
+		fmt.Printf("[DEBUG][PID %d][%d][%fms] ", os.Getpid(), now.UnixNano(), diff)
+		fmt.Println(args...)
 	}
 }
