@@ -190,6 +190,8 @@ func TestTokenMiddleware(t *testing.T) {
 	resp, _ = client.Get("/token")
 	token = proto.Body(resp)
 
+	// When delay is too smal, middleware does not always rewrite requests in time
+	// Hopefuly client will have delay more then 10ms :)
 	time.Sleep(10 * time.Millisecond)
 
 	resp, _ = client.Get("/secure?token=" + string(token))
