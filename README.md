@@ -210,7 +210,7 @@ Host: 127.0.0.1
 ```
 
 First header byte `1` represent payload type, possible values: `1` - request, `2` - original response, `3` - replayed response
-After empty spaces, goes request id `932079936fa4306fc308d67588178d17d823647c`, which is always 40 characters length. Request id unique among all requests (sha1 of time and Ack), but remain same for original and replayed response, so you can create associations between request and responses.
+After empty spaces, goes request id `932079936fa4306fc308d67588178d17d823647c`. Request id unique among all requests (sha1 of time and Ack), but remain same for original and replayed response, so you can create associations between request and responses.
 
 HTTP payload is unmodified HTTP requests/responses intercepted from network. You can read more about request format [here](http://www.jmarshall.com/easy/http/), [here](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol) and [here](http://www.w3.org/Protocols/rfc2616/rfc2616.html). You can operate with payload as you want, add headers, change path, and etc. Basically you just editing a string, just ensure that it is RCF compliant.
 
