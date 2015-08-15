@@ -108,7 +108,7 @@ func TestEchoMiddleware(t *testing.T) {
 
 	quit := make(chan int)
 
-	Settings.middleware = "./examples/echo_modifier.sh"
+	Settings.middleware = "./examples/middleware/echo_modifier.sh"
 
 	// Catch traffic from one service
 	input := NewRAWInput(from.Listener.Addr().String(), testRawExpire, true)
@@ -173,12 +173,13 @@ func TestTokenMiddleware(t *testing.T) {
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
-	Settings.middleware = "go run ./examples/token_modifier.go"
+	Settings.middleware = "go run ./examples/middleware/token_modifier.go"
 
 	// Start Gor
 	go Start(quit)
 
 	// Wait for middleware to initialize
+	// Give go compiller time to build programm
 	time.Sleep(500 * time.Millisecond)
 
 	// Should receive 2 requests from original + 2 from replayed

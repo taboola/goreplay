@@ -61,7 +61,7 @@ gor --input-tcp :28020 --output-http "http://staging.com"  --output-http "http:/
 ```
 
 ### HTTP output workers
-By default Gor creates dynamic pull of workers: it starts with 10 and create more http output workers when the http output queue length is greater than 10.  The number of workers created (N) is equal to the queue length at the time which it is checked and found to have a length greater than 10. The queue length is checked every time a message is written to the http output queue.  No more workers will be spawned until that request to spawn N workers is satisfied.  If a dynamic worker cannot process a message at that time, it will sleep for 100 milliseconds. If a dynamic worker cannot process a message for 2 seconds it dies.  
+By default Gor creates dynamic pull of workers: it starts with 10 and create more http output workers when the http output queue length is greater than 10.  The number of workers created (N) is equal to the queue length at the time which it is checked and found to have a length greater than 10. The queue length is checked every time a message is written to the http output queue.  No more workers will be spawned until that request to spawn N workers is satisfied.  If a dynamic worker cannot process a message at that time, it will sleep for 100 milliseconds. If a dynamic worker cannot process a message for 2 seconds it dies.
 You may specify fixed number of workers using  `--output-http-workers=20` option.
 
 ### Follow redirects
@@ -149,7 +149,7 @@ gor --input-raw :80 --output-http "http://staging.server" \
 ```
 
 ### Rewriting original request
-Gor supports built-in basic rewriting support, for complex logic see https://github.com/buger/gor/pull/162
+Gor supports some basic request rewriting support. For complex logic you can use middleware, see below.
 
 #### Rewrite URL based on a mapping
 ```
@@ -176,6 +176,25 @@ gor --input-raw :80 --output-http "http://staging.server" \
 Host header gets special treatment. By default Host get set to the value specified in --output-http. If you manually set --http-header "Host: anonther.com", Gor will not override Host value.
 
 If you app accepts traffic from multiple domain, and you want to keep original headers, there is specific `--http-original-host` with tells Gor do not touch Host header at all.
+
+### Middleware
+Middleware is a programm that accepts request payload and response at STDIN and emits modified requests at STDOUT.
+
+```
+                   Original request      +--------------+
++-------------+----------STDIN---------->+              |
+|  Gor input  |                          |  Middleware  |
++-------------+----------STDIN---------->+              |
+                   Original response     +------+---+---+
+                                                |   ^
++-------------+    Modified request             v   |
+| Gor output  +<---------STDOUT-----------------+   |
++-----+-------+                                     |
+      |                                             |
+      |            Replayed response                |
+      +------------------STDIN----------------->----+
+```
+
 
 ### Saving requests to file and replaying them
 You can save requests to file, and replay them later:

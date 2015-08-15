@@ -45,7 +45,7 @@ func process(buf []byte) {
 	Debug("Received payload:", string(buf))
 
 	switch payloadType {
-	case '1':
+	case '1': // Request
 		if bytes.Equal(proto.Path(payload), []byte("/token")) {
 			originalTokens[reqID] = []byte{}
 			Debug("Found token request:", reqID)
