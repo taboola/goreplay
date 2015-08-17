@@ -108,7 +108,6 @@ func (m *Middleware) read(from io.Reader) {
 }
 
 func (m *Middleware) Read(data []byte) (int, error) {
-	Debug("Trying to read channel!")
 	buf := <-m.data
 	copy(data, buf)
 

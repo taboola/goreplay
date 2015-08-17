@@ -34,12 +34,13 @@ func (i *RAWInput) Read(data []byte) (int, error) {
 	buf := msg.Bytes()
 
 	if i.captureResponse {
-		payloadType := RequestPayload
-		if !msg.IsIncoming {
-			payloadType = ResponsePayload
-		}
+		var header []byte
 
-		header := payloadHeader(payloadType, msg.UUID())
+		if msg.IsIncoming {
+			header = payloadHeader(RequestPayload, msg.UUID(), msg.Start)
+		} else {
+			header = payloadHeader(ResponsePayload, msg.UUID(), msg.End-msg.RequestStart)
+		}
 
 		copy(data[0:len(header)], header)
 		copy(data[len(header):], buf)

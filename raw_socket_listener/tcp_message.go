@@ -23,6 +23,7 @@ type TCPMessage struct {
 	RequestStart int64
 	RequestAck   uint32
 	Start        int64
+	End          int64
 	IsIncoming   bool
 
 	packets []*TCPPacket
@@ -119,6 +120,7 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 		log.Println("Received packet with same sequence")
 	} else {
 		t.packets = append(t.packets, packet)
+		t.End = time.Now().UnixNano()
 	}
 
 	if !t.isMultipart() {

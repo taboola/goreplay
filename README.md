@@ -213,16 +213,30 @@ gor --input-raw :80 --middleware "/opt/middleware_executable" --output-http "htt
 #### Communication protocol
 All messages should be hex encoded, new line character specifieds the end of the message, eg. new message per line.
 
-Decoded payload consist of 2 parts: header and HTTP payload, separated by new line character. Example:
+Decoded payload consist of 2 parts: header and HTTP payload, separated by new line character.  
+
+Example request payload:
+
 ```
-1 932079936fa4306fc308d67588178d17d823647c
+1 932079936fa4306fc308d67588178d17d823647c 1439818823587396305
 GET /a HTTP/1.1
 Host: 127.0.0.1
 
 ```
 
-First header byte `1` represent payload type, possible values: `1` - request, `2` - original response, `3` - replayed response
-After empty spaces, goes request id `932079936fa4306fc308d67588178d17d823647c`. Request id unique among all requests (sha1 of time and Ack), but remain same for original and replayed response, so you can create associations between request and responses.
+Example response payload:
+
+```
+2 8e091765ae902fef8a2b7d9dd960e9d52222bd8c 2782013
+HTTP/1.1 200 OK
+Date: Mon, 17 Aug 2015 13:40:23 GMT
+Content-Length: 0
+Content-Type: text/plain; charset=utf-8
+
+```
+
+Header contains request meta information separated by spaces. First value is payload type, possible values: `1` - request, `2` - original response, `3` - replayed response.
+Next goes request id: unique among all requests (sha1 of time and Ack), but remain same for original and replayed response, so you can create associations between request and responses. Third argument varies depending on payload type: for request - start time, for responses - round-trip time.
 
 HTTP payload is unmodified HTTP requests/responses intercepted from network. You can read more about request format [here](http://www.jmarshall.com/easy/http/), [here](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol) and [here](http://www.w3.org/Protocols/rfc2616/rfc2616.html). You can operate with payload as you want, add headers, change path, and etc. Basically you just editing a string, just ensure that it is RCF compliant.
 

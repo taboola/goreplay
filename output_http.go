@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"io"
 	"log"
 	"sync/atomic"
@@ -10,8 +11,9 @@ import (
 const initialDynamicWorkers = 10
 
 type response struct {
-	payload []byte
-	uuid    []byte
+	payload       []byte
+	uuid          []byte
+	roundTripTime int64
 }
 
 // HTTPOutputConfig struct for holding http output configuration
@@ -163,7 +165,7 @@ func (o *HTTPOutput) Read(data []byte) (int, error) {
 
 	Debug("[OUTPUT-HTTP] Received response", string(resp.payload))
 
-	header := payloadHeader(ReplayedResponsePayload, resp.uuid)
+	header := payloadHeader(ReplayedResponsePayload, resp.uuid, resp.roundTripTime)
 	copy(data[0:len(header)], header)
 	copy(data[len(header):], resp.payload)
 
@@ -174,8 +176,10 @@ func (o *HTTPOutput) sendRequest(client *HTTPClient, request []byte) {
 	var uuid []byte
 
 	if len(Settings.middleware) > 0 {
-		uuid = request[2:42]
-		request = request[43:]
+		headerSize := bytes.IndexByte(request, '\n')
+		meta := bytes.Split(request[:headerSize], []byte{' '})
+		uuid = meta[1]
+		request = request[headerSize+1:]
 	}
 
 	start := time.Now()
@@ -187,7 +191,7 @@ func (o *HTTPOutput) sendRequest(client *HTTPClient, request []byte) {
 	}
 
 	if len(Settings.middleware) > 0 {
-		o.responses <- response{resp, uuid}
+		o.responses <- response{resp, uuid, stop.UnixNano() - start.UnixNano()}
 	}
 
 	if o.elasticSearch != nil {

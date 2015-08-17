@@ -55,10 +55,13 @@ func process(buf []byte) {
 	//  2 - Response
 	//  3 - ReplayedResponse
 	payloadType := buf[0]
-	headerSize := 42
-	header := buf[:headerSize]
+	headerSize := bytes.IndexByte(buf, '\n') + 1
+	header := buf[:headerSize-1]
+
+	// Header contains space separated values of: request type, request id, and request start time (or round-trip time for responses)
+	meta := bytes.Split(header, []byte(" "))
 	// For each request you should receive 3 payloads (request, response, replayed response) with same request id
-	reqID := string(header[2:headerSize])
+	reqID := string(meta[1])
 	payload := buf[headerSize:]
 
 	Debug("Received payload:", string(buf))
@@ -83,7 +86,7 @@ func process(buf []byte) {
 		}
 
 		// Re-compute length in case if payload was modified
-		bufLen := len(header) + len(payload)
+		bufLen := headerSize + len(payload)
 		// Encoding request and sending it back
 		dst := make([]byte, bufLen*2+1)
 		hex.Encode(dst, buf[:bufLen])
