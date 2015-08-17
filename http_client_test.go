@@ -8,7 +8,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
+	"github.com/buger/gor/proto"
 	"sync"
+	"time"
+	"log"
+	_ "reflect"
 	"testing"
 	_ "time"
 )
@@ -298,4 +302,91 @@ func TestHTTPClientHandleHTTP10(t *testing.T) {
 	client.Send(GETPayload)
 
 	wg.Wait()
+}
+
+func TestHTTPClientErrors(t *testing.T) {
+	req := []byte("GET http://foobar.com/path HTTP/1.0\r\n\r\n")
+
+	// Port not exists
+	client := NewHTTPClient("http://127.0.0.1:1", &HTTPClientConfig{Debug: true})
+	if resp, err := client.Send(req); err != nil {
+		if s := proto.Status(resp); !bytes.Equal(s, []byte("521")) {
+			t.Error("Should return status 521 for connection refused, instead:", string(s))
+		}
+	} else {
+		t.Error("Should throw error")
+	}
+
+	client = NewHTTPClient("http://not.existing", &HTTPClientConfig{Debug: true})
+	if resp, err := client.Send(req); err != nil {
+		if s := proto.Status(resp); !bytes.Equal(s, []byte("521")) {
+			t.Error("Should return status 521 for no such host, instead:", string(s))
+		}
+	} else {
+		t.Error("Should throw error")
+	}
+
+	// Non routable IP address to simulate connection timeout
+	client = NewHTTPClient("http://10.255.255.1", &HTTPClientConfig{Debug: true, ConnectionTimeout: 100 * time.Millisecond })
+
+	if resp, err := client.Send(req); err != nil {
+		if s := proto.Status(resp); !bytes.Equal(s, []byte("521")) {
+			t.Error("Should return status 521 for io/timeout:", string(s))
+		}
+	} else {
+		t.Error("Should throw error")
+	}
+
+	// Connecting but io timeout on read
+	ln, _ := net.Listen("tcp", ":0")
+	client = NewHTTPClient("http://" + ln.Addr().String(), &HTTPClientConfig{Debug: true, Timeout: 10 * time.Millisecond})
+
+	if resp, err := client.Send(req); err != nil {
+		if s := proto.Status(resp); !bytes.Equal(s, []byte("524")) {
+			t.Error("Should return status 524 for io read, instead:", string(s))
+		}
+	} else {
+		t.Error("Should throw error")
+	}
+
+	// Response read error read tcp [::1]:51128: connection reset by peer &{{0xc20802a000}}
+	ln1, _ := net.Listen("tcp", ":0")
+	go func(){
+		ln1.Accept()
+	}()
+
+	client = NewHTTPClient("http://" + ln1.Addr().String(), &HTTPClientConfig{Debug: true, Timeout: 10 * time.Millisecond})
+
+	if resp, err := client.Send(req); err != nil {
+		if s := proto.Status(resp); !bytes.Equal(s, []byte("524")) {
+			t.Error("Should return status 524 for connection reset by peer, instead:", string(s))
+		}
+	} else {
+		t.Error("Should throw error")
+	}
+
+	ln2, _ := net.Listen("tcp", ":0")
+	go func(){
+		for {
+			buf := make([]byte, 64*1024)
+			conn, err := ln2.Accept()
+
+			if err != nil {
+				log.Println("Error while Accept()", err)
+ 				continue
+ 			}
+
+			conn.Read(buf)
+		}
+	}()
+
+	client = NewHTTPClient("http://" + ln2.Addr().String(), &HTTPClientConfig{Debug: true, Timeout: 10 * time.Millisecond})
+
+	if resp, err := client.Send(req); err != nil {
+		if s := proto.Status(resp); !bytes.Equal(s, []byte("524")) {
+			t.Error("Should return status 524 for connection reset by peer, instead:", string(s))
+		}
+	} else {
+		t.Error("Should throw error")
+	}
 }
