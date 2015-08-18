@@ -21,9 +21,12 @@ func NewDummyInput(options string) (di *DummyInput) {
 
 func (i *DummyInput) Read(data []byte) (int, error) {
 	buf := <-i.data
-	copy(data, buf)
 
-	return len(buf), nil
+	header := payloadHeader(RequestPayload, uuid(), time.Now().UnixNano())
+	copy(data[0:len(header)], header)
+	copy(data[len(header):], buf)
+
+	return len(buf) + len(header), nil
 }
 
 func (i *DummyInput) emit() {

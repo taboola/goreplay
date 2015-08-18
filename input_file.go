@@ -1,9 +1,11 @@
 package main
 
 import (
-	"encoding/gob"
 	"log"
 	"os"
+	"bufio"
+	"bytes"
+	"strconv"
 	"time"
 )
 
@@ -11,7 +13,7 @@ import (
 type FileInput struct {
 	data        chan []byte
 	path        string
-	decoder     *gob.Decoder
+	file        *os.File
 	speedFactor float64
 }
 
@@ -35,7 +37,7 @@ func (i *FileInput) init(path string) {
 		log.Fatal(i, "Cannot open file %q. Error: %s", path, err)
 	}
 
-	i.decoder = gob.NewDecoder(file)
+	i.file = file
 }
 
 func (i *FileInput) Read(data []byte) (int, error) {
@@ -49,30 +51,46 @@ func (i *FileInput) String() string {
 	return "File input: " + i.path
 }
 
+func scanSeparator(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+   		return 0, nil, nil
+   	}
+
+	if i := bytes.Index(data, []byte(fileSeparator)); i >= 0 {
+		// We have a full newline-terminated line.
+		return i + len(fileSeparator), data[0:i], nil
+	}
+
+	if atEOF {
+   		return len(data), data, nil
+	}
+   return 0, nil, nil
+}
+
 func (i *FileInput) emit() {
 	var lastTime int64
 
-	for {
-		raw := new(RawRequest)
-		err := i.decoder.Decode(raw)
+	// reader := bufio.NewReader(conn)
+	scanner := bufio.NewScanner(i.file)
+	scanner.Split(scanSeparator)
 
-		if err != nil {
-			return
-		}
+	for scanner.Scan() {
+		buf := scanner.Bytes()
+		meta := payloadMeta(buf)
 
-		if lastTime != 0 {
-			timeDiff := raw.Timestamp - lastTime
+		if meta[0][0] == '1' && lastTime != 0 {
+			ts, _ := strconv.ParseInt(string(meta[2]), 10, 64)
+			timeDiff := ts - lastTime
 
-			// We can speedup or slowdown execution based on speedFactor
 			if i.speedFactor != 1 {
-				timeDiff = int64(float64(raw.Timestamp-lastTime) / i.speedFactor)
+				timeDiff = int64(float64(timeDiff) / i.speedFactor)
 			}
 
 			time.Sleep(time.Duration(timeDiff))
+
+			lastTime = ts
 		}
 
-		lastTime = raw.Timestamp
-
-		i.data <- raw.Request
+		i.data <- buf
 	}
 }

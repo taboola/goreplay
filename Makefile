@@ -40,7 +40,7 @@ drun:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-dummy=0 --output-http="http://localhost:9000" --input-http :9000 --verbose
 
 drecord:
-	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-dummy=0 --output-file=requests.bin --verbose
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-dummy=0 --output-file=requests.gor --verbose
 
 dreplay:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-file=requests.bin --output-tcp=:9000 --verbose -h

@@ -1,23 +1,14 @@
 package main
 
 import (
-	"encoding/gob"
 	"io"
 	"log"
 	"os"
-	"time"
 )
-
-// RawRequest stores original start time and request payload
-type RawRequest struct {
-	Timestamp int64
-	Request   []byte
-}
 
 // FileOutput output plugin
 type FileOutput struct {
 	path    string
-	encoder *gob.Encoder
 	file    *os.File
 }
 
@@ -38,18 +29,17 @@ func (o *FileOutput) init(path string) {
 	if err != nil {
 		log.Fatal(o, "Cannot open file %q. Error: %s", path, err)
 	}
-
-	o.encoder = gob.NewEncoder(o.file)
 }
+
+var fileSeparator = "\n🐵🙈🙉\n"
 
 func (o *FileOutput) Write(data []byte) (n int, err error) {
 	if !isOriginPayload(data) {
 		return len(data), nil
 	}
 
-	raw := RawRequest{time.Now().UnixNano(), data}
-
-	o.encoder.Encode(raw)
+	o.file.Write(data)
+	o.file.Write([]byte(fileSeparator))
 
 	return len(data), nil
 }
