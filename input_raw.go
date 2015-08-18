@@ -10,9 +10,9 @@ import (
 
 // RAWInput used for intercepting traffic for given address
 type RAWInput struct {
-	data            chan *raw.TCPMessage
-	address         string
-	expire          time.Duration
+	data    chan *raw.TCPMessage
+	address string
+	expire  time.Duration
 }
 
 // NewRAWInput constructor for RAWInput. Accepts address with port as argument.

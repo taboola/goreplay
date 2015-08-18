@@ -1,9 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"io"
 	"time"
-	"bytes"
 )
 
 // Start initialize loop for sending data from inputs to outputs

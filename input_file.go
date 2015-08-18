@@ -1,9 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"log"
 	"os"
-	"bufio"
 	"strconv"
 	"time"
 )

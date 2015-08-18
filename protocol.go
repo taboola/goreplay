@@ -1,15 +1,15 @@
 package main
 
 import (
-	"strconv"
 	"bytes"
-	"encoding/hex"
 	"crypto/rand"
+	"encoding/hex"
+	"strconv"
 )
 
 const (
-	RequestPayload = '1'
-	ResponsePayload = '2'
+	RequestPayload          = '1'
+	ResponsePayload         = '2'
 	ReplayedResponsePayload = '3'
 )
 
@@ -27,8 +27,8 @@ var payloadSeparator = "\n🐵🙈🙉\n"
 
 func payloadScanner(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	if atEOF && len(data) == 0 {
-   		return 0, nil, nil
-   	}
+		return 0, nil, nil
+	}
 
 	if i := bytes.Index(data, []byte(payloadSeparator)); i >= 0 {
 		// We have a full newline-terminated line.
@@ -36,11 +36,10 @@ func payloadScanner(data []byte, atEOF bool) (advance int, token []byte, err err
 	}
 
 	if atEOF {
-   		return len(data), data, nil
+		return len(data), data, nil
 	}
-   return 0, nil, nil
+	return 0, nil, nil
 }
-
 
 // Timing is request start or round-trip time, depending on payloadType
 func payloadHeader(payloadType byte, uuid []byte, timing int64) (header []byte) {

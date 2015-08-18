@@ -8,8 +8,8 @@ import (
 
 // FileOutput output plugin
 type FileOutput struct {
-	path    string
-	file    *os.File
+	path string
+	file *os.File
 }
 
 // NewFileOutput constructor for FileOutput, accepts path
