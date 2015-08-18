@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 	"bufio"
-	"bytes"
 	"strconv"
 	"time"
 )
@@ -51,28 +50,12 @@ func (i *FileInput) String() string {
 	return "File input: " + i.path
 }
 
-func scanSeparator(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	if atEOF && len(data) == 0 {
-   		return 0, nil, nil
-   	}
-
-	if i := bytes.Index(data, []byte(fileSeparator)); i >= 0 {
-		// We have a full newline-terminated line.
-		return i + len(fileSeparator), data[0:i], nil
-	}
-
-	if atEOF {
-   		return len(data), data, nil
-	}
-   return 0, nil, nil
-}
-
 func (i *FileInput) emit() {
 	var lastTime int64
 
 	// reader := bufio.NewReader(conn)
 	scanner := bufio.NewScanner(i.file)
-	scanner.Split(scanSeparator)
+	scanner.Split(payloadScanner)
 
 	for scanner.Scan() {
 		buf := scanner.Bytes()

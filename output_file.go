@@ -31,15 +31,13 @@ func (o *FileOutput) init(path string) {
 	}
 }
 
-var fileSeparator = "\n🐵🙈🙉\n"
-
 func (o *FileOutput) Write(data []byte) (n int, err error) {
 	if !isOriginPayload(data) {
 		return len(data), nil
 	}
 
 	o.file.Write(data)
-	o.file.Write([]byte(fileSeparator))
+	o.file.Write([]byte(payloadSeparator))
 
 	return len(data), nil
 }

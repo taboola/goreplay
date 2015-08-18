@@ -23,6 +23,24 @@ func uuid() []byte {
 	return uuid
 }
 
+var payloadSeparator = "\n🐵🙈🙉\n"
+
+func payloadScanner(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+   		return 0, nil, nil
+   	}
+
+	if i := bytes.Index(data, []byte(payloadSeparator)); i >= 0 {
+		// We have a full newline-terminated line.
+		return i + len([]byte(payloadSeparator)), data[0:i], nil
+	}
+
+	if atEOF {
+   		return len(data), data, nil
+	}
+   return 0, nil, nil
+}
+
 
 // Timing is request start or round-trip time, depending on payloadType
 func payloadHeader(payloadType int, uuid []byte, timing int64) (header []byte) {
