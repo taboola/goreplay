@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
@@ -47,7 +46,9 @@ func (o *TCPOutput) worker() {
 	defer conn.Close()
 
 	for {
-		_, err := conn.Write(<-o.buf)
+		conn.Write(<-o.buf)
+		_, err := conn.Write([]byte(payloadSeparator))
+
 		if err != nil {
 			log.Println("Worker failed on write, exitings and starting new worker")
 			go o.worker()
@@ -61,11 +62,7 @@ func (o *TCPOutput) Write(data []byte) (n int, err error) {
 		return len(data), nil
 	}
 
-	// Hex encoding always 2x number of bytes
-	encoded := make([]byte, len(data)*2+1)
-	hex.Encode(encoded, data)
-	encoded[len(encoded)-1] = '\n'
-	o.buf <- encoded
+	o.buf <- data
 
 	if Settings.outputTCPStats {
 		o.bufStats.Write(len(o.buf))

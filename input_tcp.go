@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"net"
@@ -10,7 +9,6 @@ import (
 )
 
 // TCPInput used for internal communication
-// It expected hex encoded data
 type TCPInput struct {
 	data     chan []byte
 	address  string
@@ -62,16 +60,10 @@ func (i *TCPInput) handleConnection(conn net.Conn) {
 
 	reader := bufio.NewReader(conn)
 	scanner := bufio.NewScanner(reader)
+	scanner.Split(payloadScanner)
 
 	for scanner.Scan() {
-		encodedPayload := scanner.Bytes()
-		// Hex encoding always 2x number of bytes
-		decoded := make([]byte, len(encodedPayload)/2)
-		_, err := hex.Decode(decoded, encodedPayload)
-		if err != nil {
-			log.Println("[TCPInput] failed to hex decode TCP payload:", err)
-		}
-		i.data <- decoded
+		i.data <- scanner.Bytes()
 	}
 
 	if err := scanner.Err(); err != nil {
