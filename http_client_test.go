@@ -3,17 +3,17 @@ package main
 import (
 	"bytes"
 	"crypto/rand"
+	"github.com/buger/gor/proto"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
-	"github.com/buger/gor/proto"
-	"sync"
-	"time"
-	"log"
 	_ "reflect"
+	"sync"
 	"testing"
+	"time"
 	_ "time"
 )
 
@@ -327,7 +327,7 @@ func TestHTTPClientErrors(t *testing.T) {
 	}
 
 	// Non routable IP address to simulate connection timeout
-	client = NewHTTPClient("http://10.255.255.1", &HTTPClientConfig{Debug: true, ConnectionTimeout: 100 * time.Millisecond })
+	client = NewHTTPClient("http://10.255.255.1", &HTTPClientConfig{Debug: true, ConnectionTimeout: 100 * time.Millisecond})
 
 	if resp, err := client.Send(req); err != nil {
 		if s := proto.Status(resp); !bytes.Equal(s, []byte("521")) {
@@ -339,7 +339,7 @@ func TestHTTPClientErrors(t *testing.T) {
 
 	// Connecting but io timeout on read
 	ln, _ := net.Listen("tcp", ":0")
-	client = NewHTTPClient("http://" + ln.Addr().String(), &HTTPClientConfig{Debug: true, Timeout: 10 * time.Millisecond})
+	client = NewHTTPClient("http://"+ln.Addr().String(), &HTTPClientConfig{Debug: true, Timeout: 10 * time.Millisecond})
 
 	if resp, err := client.Send(req); err != nil {
 		if s := proto.Status(resp); !bytes.Equal(s, []byte("524")) {
@@ -351,11 +351,11 @@ func TestHTTPClientErrors(t *testing.T) {
 
 	// Response read error read tcp [::1]:51128: connection reset by peer &{{0xc20802a000}}
 	ln1, _ := net.Listen("tcp", ":0")
-	go func(){
+	go func() {
 		ln1.Accept()
 	}()
 
-	client = NewHTTPClient("http://" + ln1.Addr().String(), &HTTPClientConfig{Debug: true, Timeout: 10 * time.Millisecond})
+	client = NewHTTPClient("http://"+ln1.Addr().String(), &HTTPClientConfig{Debug: true, Timeout: 10 * time.Millisecond})
 
 	if resp, err := client.Send(req); err != nil {
 		if s := proto.Status(resp); !bytes.Equal(s, []byte("524")) {
@@ -366,21 +366,21 @@ func TestHTTPClientErrors(t *testing.T) {
 	}
 
 	ln2, _ := net.Listen("tcp", ":0")
-	go func(){
+	go func() {
 		for {
 			buf := make([]byte, 64*1024)
 			conn, err := ln2.Accept()
 
 			if err != nil {
 				log.Println("Error while Accept()", err)
- 				continue
- 			}
+				continue
+			}
 
 			conn.Read(buf)
 		}
 	}()
 
-	client = NewHTTPClient("http://" + ln2.Addr().String(), &HTTPClientConfig{Debug: true, Timeout: 10 * time.Millisecond})
+	client = NewHTTPClient("http://"+ln2.Addr().String(), &HTTPClientConfig{Debug: true, Timeout: 10 * time.Millisecond})
 
 	if resp, err := client.Send(req); err != nil {
 		if s := proto.Status(resp); !bytes.Equal(s, []byte("524")) {
