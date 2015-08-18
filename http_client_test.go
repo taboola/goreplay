@@ -340,6 +340,7 @@ func TestHTTPClientErrors(t *testing.T) {
 	// Connecting but io timeout on read
 	ln, _ := net.Listen("tcp", ":0")
 	client = NewHTTPClient("http://"+ln.Addr().String(), &HTTPClientConfig{Debug: true, Timeout: 10 * time.Millisecond})
+	defer ln.Close()
 
 	if resp, err := client.Send(req); err != nil {
 		if s := proto.Status(resp); !bytes.Equal(s, []byte("524")) {
@@ -354,6 +355,7 @@ func TestHTTPClientErrors(t *testing.T) {
 	go func() {
 		ln1.Accept()
 	}()
+	defer ln1.Close()
 
 	client = NewHTTPClient("http://"+ln1.Addr().String(), &HTTPClientConfig{Debug: true, Timeout: 10 * time.Millisecond})
 
@@ -367,18 +369,18 @@ func TestHTTPClientErrors(t *testing.T) {
 
 	ln2, _ := net.Listen("tcp", ":0")
 	go func() {
-		for {
-			buf := make([]byte, 64*1024)
-			conn, err := ln2.Accept()
+		buf := make([]byte, 64*1024)
+		conn, err := ln2.Accept()
 
-			if err != nil {
-				log.Println("Error while Accept()", err)
-				continue
-			}
-
-			conn.Read(buf)
+		if err != nil {
+			log.Println("Error while Accept()", err)
+			continue
 		}
+
+		conn.Read(buf)
+		defer conn.Close()
 	}()
+	defer ln2.Close()
 
 	client = NewHTTPClient("http://"+ln2.Addr().String(), &HTTPClientConfig{Debug: true, Timeout: 10 * time.Millisecond})
 
