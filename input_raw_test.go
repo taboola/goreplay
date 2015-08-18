@@ -72,12 +72,12 @@ func TestInputRAW100Expect(t *testing.T) {
 	// We will use it to get content of raw HTTP request
 	testOutput := NewTestOutput(func(data []byte) {
 		switch data[0] {
-		case '1':
+		case RequestPayload:
 			if strings.Contains(string(data), "Expect: 100-continue") {
 				t.Error("Should not contain 100-continue header")
 			}
 			wg.Done()
-		case '2':
+		case ResponsePayload:
 			wg.Done()
 		}
 	})
