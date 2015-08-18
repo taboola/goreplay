@@ -43,6 +43,10 @@ func (o *FileOutput) init(path string) {
 }
 
 func (o *FileOutput) Write(data []byte) (n int, err error) {
+	if !isOriginPayload(data) {
+		return len(data), nil
+	}
+
 	raw := RawRequest{time.Now().UnixNano(), data}
 
 	o.encoder.Encode(raw)

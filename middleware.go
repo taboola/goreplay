@@ -94,10 +94,7 @@ func (m *Middleware) read(from io.Reader) {
 			Debug("[MIDDLEWARE-MASTER] Received:", string(buf))
 		}
 
-		// We should accept only request payloads
-		if buf[0] == '1' {
-			m.data <- buf
-		}
+		m.data <- buf
 	}
 
 	if err := scanner.Err(); err != nil {

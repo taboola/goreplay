@@ -13,16 +13,14 @@ type RAWInput struct {
 	data            chan *raw.TCPMessage
 	address         string
 	expire          time.Duration
-	captureResponse bool
 }
 
 // NewRAWInput constructor for RAWInput. Accepts address with port as argument.
-func NewRAWInput(address string, expire time.Duration, captureResponse bool) (i *RAWInput) {
+func NewRAWInput(address string, expire time.Duration) (i *RAWInput) {
 	i = new(RAWInput)
 	i.data = make(chan *raw.TCPMessage)
 	i.address = address
 	i.expire = expire
-	i.captureResponse = captureResponse
 
 	go i.listen(address)
 
@@ -33,23 +31,18 @@ func (i *RAWInput) Read(data []byte) (int, error) {
 	msg := <-i.data
 	buf := msg.Bytes()
 
-	if i.captureResponse {
-		var header []byte
+	var header []byte
 
-		if msg.IsIncoming {
-			header = payloadHeader(RequestPayload, msg.UUID(), msg.Start)
-		} else {
-			header = payloadHeader(ResponsePayload, msg.UUID(), msg.End-msg.RequestStart)
-		}
-
-		copy(data[0:len(header)], header)
-		copy(data[len(header):], buf)
-
-		return len(buf) + len(header), nil
+	if msg.IsIncoming {
+		header = payloadHeader(RequestPayload, msg.UUID(), msg.Start)
 	} else {
-		copy(data, buf)
-		return len(buf), nil
+		header = payloadHeader(ResponsePayload, msg.UUID(), msg.End-msg.RequestStart)
 	}
+
+	copy(data[0:len(header)], header)
+	copy(data[len(header):], buf)
+
+	return len(buf) + len(header), nil
 }
 
 func (i *RAWInput) listen(address string) {
@@ -63,7 +56,7 @@ func (i *RAWInput) listen(address string) {
 		log.Fatal("input-raw: error while parsing address", err)
 	}
 
-	listener := raw.NewListener(host, port, i.expire, i.captureResponse)
+	listener := raw.NewListener(host, port, i.expire, true)
 
 	for {
 		// Receiving TCPMessage object

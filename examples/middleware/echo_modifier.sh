@@ -22,7 +22,6 @@ while read line; do
     case ${header:0:1} in
     "1")
         log "Request type: Request"
-        echo "$encoded"
         ;;
     "2")
         log "Request type: Original Response"
@@ -33,6 +32,8 @@ while read line; do
     *)
         log "Unknown request type $header"
     esac
+    echo "$encoded"
+
     log "==================================="
 
     log "Original data: $line"

@@ -57,6 +57,10 @@ func (o *TCPOutput) worker() {
 }
 
 func (o *TCPOutput) Write(data []byte) (n int, err error) {
+	if !isOriginPayload(data) {
+		return len(data), nil
+	}
+
 	// Hex encoding always 2x number of bytes
 	encoded := make([]byte, len(data)*2+1)
 	hex.Encode(encoded, data)

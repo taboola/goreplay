@@ -91,9 +91,14 @@ func (t *Listener) listen() {
 		select {
 		// If message ready for deletion it means that its also complete or expired by timeout
 		case message := <-t.messageDelChan:
-			t.messagesChan <- message
 			delete(t.ackAliases, message.Ack)
 			delete(t.messages, message.ID)
+
+			if !message.IsIncoming {
+				delete(t.respAliases, message.Ack)
+			}
+
+			t.messagesChan <- message
 
 		// We need to use channels to process each packet to avoid data races
 		case packet := <-t.packetsChan:
@@ -216,11 +221,12 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 	if t.captureResponse && isIncoming {
 		// If message have multiple packets, delete previous alias
 		if len(message.packets) > 0 {
-			delete(t.respAliases, uint32(message.Size()))
+			delete(t.respAliases, message.ResponseAck)
 		}
 
-		responseAck := packet.Seq + uint32(message.Size()+len(packet.Data))
+		responseAck := packet.Seq + uint32(len(packet.Data))
 		t.respAliases[responseAck] = &request{message.Start, message.Ack}
+		message.ResponseAck = responseAck
 	}
 
 	// Adding packet to message

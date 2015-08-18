@@ -110,7 +110,7 @@ func TestEchoMiddleware(t *testing.T) {
 	Settings.middleware = "./examples/middleware/echo_modifier.sh"
 
 	// Catch traffic from one service
-	input := NewRAWInput(from.Listener.Addr().String(), testRawExpire, true)
+	input := NewRAWInput(from.Listener.Addr().String(), testRawExpire)
 
 	// And redirect to another
 	output := NewHTTPOutput(to.URL, &HTTPOutputConfig{Debug: false})
@@ -165,7 +165,7 @@ func TestTokenMiddleware(t *testing.T) {
 	quit := make(chan int)
 
 	// Catch traffic from one service
-	input := NewRAWInput(from, testRawExpire, true)
+	input := NewRAWInput(from, testRawExpire)
 
 	// And redirect to another
 	output := NewHTTPOutput(to, &HTTPOutputConfig{Debug: true})

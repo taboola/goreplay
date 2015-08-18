@@ -2,6 +2,9 @@ package main
 
 import (
 	"strconv"
+	"bytes"
+	"encoding/hex"
+	"crypto/rand"
 )
 
 const (
@@ -9,6 +12,17 @@ const (
 	ResponsePayload
 	ReplayedResponsePayload
 )
+
+func uuid() []byte {
+	b := make([]byte, 20)
+	rand.Read(b)
+
+	uuid := make([]byte, 40)
+	hex.Encode(uuid, b)
+
+	return uuid
+}
+
 
 // Timing is request start or round-trip time, depending on payloadType
 func payloadHeader(payloadType int, uuid []byte, timing int64) (header []byte) {
@@ -35,4 +49,27 @@ func payloadHeader(payloadType int, uuid []byte, timing int64) (header []byte) {
 	copy(header[3+len(uuid):], sTime)
 
 	return header
+}
+
+func payloadBody(payload []byte) []byte {
+	headerSize := bytes.IndexByte(payload, '\n')
+	return payload[headerSize+1:]
+}
+
+func payloadMeta(payload []byte) [][]byte {
+	headerSize := bytes.IndexByte(payload, '\n')
+	return bytes.Split(payload[:headerSize], []byte{' '})
+}
+
+func isOriginPayload(payload []byte) bool {
+	switch payload[0] {
+	case '1', '2':
+		return true
+	default:
+		return false
+	}
+}
+
+func isRequestPayload(payload []byte) bool {
+	return payload[0] == '1'
 }

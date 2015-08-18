@@ -240,7 +240,7 @@ Next goes request id: unique among all requests (sha1 of time and Ack), but rema
 
 HTTP payload is unmodified HTTP requests/responses intercepted from network. You can read more about request format [here](http://www.jmarshall.com/easy/http/), [here](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol) and [here](http://www.w3.org/Protocols/rfc2616/rfc2616.html). You can operate with payload as you want, add headers, change path, and etc. Basically you just editing a string, just ensure that it is RCF compliant.
 
-At the end modified (or untouched) request should be emitted back to STDOUT, keeping original header, and hex-encoded. If you want to filter request, just not send it. Emitting responses back is optional, and does not affect anything at the moment.
+At the end modified (or untouched) request should be emitted back to STDOUT, keeping original header, and hex-encoded. If you want to filter request, just not send it. Emitting responses back is required, even if you did not touch them.
 
 #### Advanced example
 Imagine that you have auth system that randomly generate access tokens, which used later for accessing secure content. Since there is no pre-defined token value, naive approach without middleware (or if middleware use only request payloads) will fail, because replayed server have own tokens, not synced with origin. To fix this, our middleware should take in account responses of replayed and origin server, store `originalToken -> replayedToken` aliases and rewrite all requests using this token to use replayed alias. See `examples/middleware/token_modifier.go` and `middleware_test.go#TestTokenMiddleware` as example of described scheme.

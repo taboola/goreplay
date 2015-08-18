@@ -69,6 +69,11 @@ func (t *TCPPacket) ParseBasic() {
 
 // String output for a TCP Packet
 func (t *TCPPacket) String() string {
+	maxLen := len(t.Data)
+	if maxLen > 500 {
+		maxLen = 500
+	}
+
 	return strings.Join([]string{
 		"Source port: " + strconv.Itoa(int(t.SrcPort)),
 		"Dest port:" + strconv.Itoa(int(t.DestPort)),
@@ -90,7 +95,7 @@ func (t *TCPPacket) String() string {
 		"Checksum:" + strconv.Itoa(int(t.Checksum)),
 
 		"Data size:" + strconv.Itoa(len(t.Data)),
-		"Data:" + string(t.Data),
+		"Data:" + string(t.Data[:maxLen]),
 	}, "\n")
 }
 

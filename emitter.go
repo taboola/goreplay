@@ -1,16 +1,10 @@
 package main
 
 import (
-	"crypto/rand"
 	"io"
 	"time"
+	"bytes"
 )
-
-func uuid() []byte {
-	b := make([]byte, 16)
-	rand.Read(b)
-	return b
-}
 
 // Start initialize loop for sending data from inputs to outputs
 func Start(stop chan int) {
@@ -65,12 +59,19 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 				Debug("[EMITTER] input:", string(payload[0:_maxN]))
 			}
 
-			if modifier != nil {
-				payload = modifier.Rewrite(payload)
+			if modifier != nil && isRequestPayload(payload) {
+				headSize := bytes.IndexByte(payload, '\n') + 1
+				body := payload[headSize:]
+				originalBodyLen := len(body)
+				body = modifier.Rewrite(body)
 
 				// If modifier tells to skip request
-				if len(payload) == 0 {
+				if len(body) == 0 {
 					continue
+				}
+
+				if originalBodyLen != len(body) {
+					payload = append(payload[:headSize], body...)
 				}
 
 				if Settings.debug {

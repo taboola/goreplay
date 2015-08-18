@@ -55,7 +55,7 @@ func TestHTTPOutput(t *testing.T) {
 	methods := HTTPMethods{[]byte("GET"), []byte("PUT"), []byte("POST")}
 	Settings.modifierConfig = HTTPModifierConfig{headers: headers, methods: methods}
 
-	output := NewHTTPOutput(listener.Addr().String(), &HTTPOutputConfig{})
+	output := NewHTTPOutput(listener.Addr().String(), &HTTPOutputConfig{Debug: true})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}

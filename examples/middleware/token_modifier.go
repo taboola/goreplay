@@ -80,21 +80,13 @@ func process(buf []byte) {
 					payload = proto.SetPathParam(payload, []byte("token"), alias)
 
 					// Copy modified payload to our buffer
-					copy(buf[headerSize:], payload)
+					buf = append(buf[:headerSize], payload...)
 				}
 			}
 		}
 
-		// Re-compute length in case if payload was modified
-		bufLen := headerSize + len(payload)
-		// Encoding request and sending it back
-		dst := make([]byte, bufLen*2+1)
-		hex.Encode(dst, buf[:bufLen])
-		dst[len(dst)-1] = '\n'
-
-		os.Stdout.Write(dst)
-
-		return
+		// Emitting data back
+		os.Stdout.Write(encode(buf))
 	case '2': // Original response
 		if _, ok := originalTokens[reqID]; ok {
 			// Token is inside response body
@@ -111,6 +103,14 @@ func process(buf []byte) {
 			Debug("Create alias for new token token, was:", string(originalToken), "now:", string(secureToken))
 		}
 	}
+}
+
+func encode(buf []byte) []byte {
+	dst := make([]byte, len(buf)*2+1)
+	hex.Encode(dst, buf)
+	dst[len(dst)-1] = '\n'
+
+	return dst
 }
 
 func Debug(args ...interface{}) {

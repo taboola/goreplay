@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"io"
 	"log"
 	"sync/atomic"
@@ -140,6 +139,10 @@ func (o *HTTPOutput) startWorker() {
 }
 
 func (o *HTTPOutput) Write(data []byte) (n int, err error) {
+	if !isRequestPayload(data) {
+		return len(data), nil
+	}
+
 	buf := make([]byte, len(data))
 	copy(buf, data)
 
@@ -173,17 +176,11 @@ func (o *HTTPOutput) Read(data []byte) (int, error) {
 }
 
 func (o *HTTPOutput) sendRequest(client *HTTPClient, request []byte) {
-	var uuid []byte
-
-	if len(Settings.middleware) > 0 {
-		headerSize := bytes.IndexByte(request, '\n')
-		meta := bytes.Split(request[:headerSize], []byte{' '})
-		uuid = meta[1]
-		request = request[headerSize+1:]
-	}
+	meta := payloadMeta(request)
+	uuid := meta[1]
 
 	start := time.Now()
-	resp, err := client.Send(request)
+	resp, err := client.Send(payloadBody(request))
 	stop := time.Now()
 
 	if err != nil {

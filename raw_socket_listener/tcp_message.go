@@ -20,6 +20,7 @@ import (
 type TCPMessage struct {
 	ID           string // Message ID
 	Ack          uint32
+	ResponseAck  uint32
 	RequestStart int64
 	RequestAck   uint32
 	Start        int64
@@ -80,7 +81,11 @@ func (t *TCPMessage) Timeout() {
 		}
 	default:
 		close(t.packetsChan)
-		t.delChan <- t // Notify RAWListener that message is ready to be send to replay server
+		// Notify RAWListener that message is ready to be send to replay server
+		// Responses without requests gets discarded
+		if t.IsIncoming || t.RequestStart != 0 {
+			t.delChan <- t
+		}
 	}
 }
 

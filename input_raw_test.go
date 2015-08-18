@@ -24,7 +24,7 @@ func TestRAWInput(t *testing.T) {
 
 	listener := startHTTP(func(w http.ResponseWriter, req *http.Request) {})
 
-	input := NewRAWInput(listener.Addr().String(), testRawExpire, false)
+	input := NewRAWInput(listener.Addr().String(), testRawExpire)
 	output := NewTestOutput(func(data []byte) {
 		wg.Done()
 	})
@@ -41,7 +41,8 @@ func TestRAWInput(t *testing.T) {
 	go Start(quit)
 
 	for i := 0; i < 100; i++ {
-		wg.Add(1)
+		// request + response
+		wg.Add(2)
 		client.Get("/")
 	}
 
@@ -66,14 +67,19 @@ func TestInputRAW100Expect(t *testing.T) {
 
 	originAddr := strings.Replace(origin.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr, testRawExpire, false)
+	input := NewRAWInput(originAddr, testRawExpire)
 
 	// We will use it to get content of raw HTTP request
 	testOutput := NewTestOutput(func(data []byte) {
-		if strings.Contains(string(data), "Expect: 100-continue") {
-			t.Error("Should not contain 100-continue header")
+		switch data[0] {
+		case '1':
+			if strings.Contains(string(data), "Expect: 100-continue") {
+				t.Error("Should not contain 100-continue header")
+			}
+			wg.Done()
+		case '2':
+			wg.Done()
 		}
-		wg.Done()
 	})
 
 	listener := startHTTP(func(w http.ResponseWriter, req *http.Request) {
@@ -96,7 +102,8 @@ func TestInputRAW100Expect(t *testing.T) {
 
 	go Start(quit)
 
-	wg.Add(3)
+	// Origin + Response/Request Test Output + Request Http Output
+	wg.Add(4)
 	curl := exec.Command("curl", "http://"+originAddr, "--data-binary", "@README.md")
 	err := curl.Run()
 	if err != nil {
@@ -123,7 +130,7 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 
 	originAddr := strings.Replace(origin.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr, testRawExpire, false)
+	input := NewRAWInput(originAddr, testRawExpire)
 
 	listener := startHTTP(func(w http.ResponseWriter, req *http.Request) {
 		defer req.Body.Close()
@@ -138,7 +145,7 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 	})
 	replayAddr := listener.Addr().String()
 
-	httpOutput := NewHTTPOutput(replayAddr, &HTTPOutputConfig{Debug: false})
+	httpOutput := NewHTTPOutput(replayAddr, &HTTPOutputConfig{Debug: true})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{httpOutput}
@@ -181,7 +188,7 @@ func TestInputRAWLargePayload(t *testing.T) {
 	}))
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr, testRawExpire, false)
+	input := NewRAWInput(originAddr, testRawExpire)
 
 	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		req.Body = http.MaxBytesReader(w, req.Body, 1*1024*1024)
@@ -209,37 +216,6 @@ func TestInputRAWLargePayload(t *testing.T) {
 	err = curl.Run()
 	if err != nil {
 		log.Fatal("curl error:", err)
-	}
-
-	wg.Wait()
-	close(quit)
-}
-
-func TestInputRAWResponse(t *testing.T) {
-	wg := new(sync.WaitGroup)
-	quit := make(chan int)
-
-	listener := startHTTP(func(w http.ResponseWriter, req *http.Request) {})
-
-	input := NewRAWInput(listener.Addr().String(), testRawExpire, true)
-	output := NewTestOutput(func(data []byte) {
-		wg.Done()
-	})
-
-	Plugins.Inputs = []io.Reader{input}
-	Plugins.Outputs = []io.Writer{output}
-
-	address := strings.Replace(listener.Addr().String(), "[::]", "127.0.0.1", -1)
-
-	client := NewHTTPClient(address, &HTTPClientConfig{})
-
-	time.Sleep(time.Millisecond)
-	go Start(quit)
-
-	for i := 0; i < 100; i++ {
-		// 2 because we track both request and response
-		wg.Add(2)
-		client.Get("/")
 	}
 
 	wg.Wait()
