@@ -19,8 +19,11 @@ type fakeServiceCb func(string, int, []byte)
 // Simple service that generate token on request, and require this token for accesing to secure area
 func NewFakeSecureService(wg *sync.WaitGroup, cb fakeServiceCb) string {
 	active_tokens := make([]string, 0)
+	var mu sync.Mutex
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
 		Debug("Received request: " + req.URL.String())
 
 		switch req.URL.Path {

@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -18,14 +19,23 @@ import (
 const testRawExpire = time.Millisecond * 100
 
 func TestRAWInput(t *testing.T) {
-
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
 	listener := startHTTP(func(w http.ResponseWriter, req *http.Request) {})
 
+	var respCounter, reqCounter int64
+
 	input := NewRAWInput(listener.Addr().String(), testRawExpire)
 	output := NewTestOutput(func(data []byte) {
+		if data[0] == '1' {
+			atomic.AddInt64(&reqCounter, 1)
+		} else {
+			atomic.AddInt64(&respCounter, 1)
+		}
+
+		log.Println(reqCounter, respCounter)
+
 		wg.Done()
 	})
 

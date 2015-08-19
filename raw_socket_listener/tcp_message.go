@@ -83,7 +83,7 @@ func (t *TCPMessage) Timeout() {
 		close(t.packetsChan)
 		// Notify RAWListener that message is ready to be send to replay server
 		// Responses without requests gets discarded
-		if t.IsIncoming {
+		if t.IsIncoming || t.RequestStart != 0 {
 			t.delChan <- t
 		}
 	}
@@ -156,19 +156,22 @@ func (t *TCPMessage) isMultipart() bool {
 	}
 
 	payload := t.packets[0].Data
-	m := payload[:3]
+	m := payload[:4]
 
 	if t.IsIncoming {
 		// If one GET, OPTIONS, or HEAD request
-		if bytes.Equal(m, []byte("GET")) || bytes.Equal(m, []byte("OPT")) || bytes.Equal(m, []byte("HEA")) {
+		if bytes.Equal(m, []byte("GET ")) || bytes.Equal(m, []byte("OPTI")) || bytes.Equal(m, []byte("HEAD")) {
 			return false
 		} else {
-			if length := proto.Header(payload, []byte("Content-Length")); len(length) > 0 {
-				l, _ := strconv.Atoi(string(length))
+			// Sometimes header comes after the body :(
+			if bytes.Equal(m, []byte("POST")) || bytes.Equal(m, []byte("PUT ")) || bytes.Equal(m, []byte("PATC")) {
+				if length := proto.Header(payload, []byte("Content-Length")); len(length) > 0 {
+					l, _ := strconv.Atoi(string(length))
 
-				// If content-length equal current body length
-				if l > 0 && l == len(proto.Body(payload)) {
-					return false
+					// If content-length equal current body length
+					if l > 0 && l == len(proto.Body(payload)) {
+						return false
+					}
 				}
 			}
 		}
