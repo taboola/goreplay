@@ -4,6 +4,7 @@ import (
 	"io"
 	"reflect"
 	"strings"
+	"time"
 )
 
 // InOutPlugins struct for holding references to plugins
@@ -79,13 +80,7 @@ func InitPlugins() {
 	}
 
 	for _, options := range Settings.inputRAW {
-		captureResponse := false
-
-		if len(Settings.middleware) > 0 {
-			captureResponse = true
-		}
-
-		registerPlugin(NewRAWInput, options, 0, captureResponse)
+		registerPlugin(NewRAWInput, options, time.Duration(0))
 	}
 
 	for _, options := range Settings.inputTCP {

@@ -37,7 +37,7 @@ dbench:
 
 # Used mainly for debugging, because docker container do not have access to parent machine ports
 drun:
-	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-dummy=0 --output-http="http://localhost:9000" --input-http :9000 --verbose
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-dummy=0 --output-http="http://localhost:9000" --input-raw :9000 --input-http :9000 --verbose --debug
 
 drecord:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-dummy=0 --output-file=requests.gor --verbose
