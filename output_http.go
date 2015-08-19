@@ -28,6 +28,8 @@ type HTTPOutputConfig struct {
 	OriginalHost bool
 
 	Debug bool
+
+	TrackResponses bool
 }
 
 // HTTPOutput plugin manage pool of workers which send request to replayed server
@@ -42,6 +44,7 @@ type HTTPOutput struct {
 	address   string
 	limit     int
 	queue     chan []byte
+
 	responses chan response
 
 	needWorker chan int
@@ -79,6 +82,10 @@ func NewHTTPOutput(address string, config *HTTPOutputConfig) io.Writer {
 	if o.config.elasticSearch != "" {
 		o.elasticSearch = new(ESPlugin)
 		o.elasticSearch.Init(o.config.elasticSearch)
+	}
+
+	if len(Settings.middleware) > 0 {
+		o.config.TrackResponses = true
 	}
 
 	go o.workerMaster()
@@ -187,7 +194,7 @@ func (o *HTTPOutput) sendRequest(client *HTTPClient, request []byte) {
 		log.Println("Request error:", err)
 	}
 
-	if len(Settings.middleware) > 0 {
+	if o.config.TrackResponses {
 		o.responses <- response{resp, uuid, stop.UnixNano() - start.UnixNano()}
 	}
 

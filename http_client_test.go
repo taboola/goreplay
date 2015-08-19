@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"github.com/buger/gor/proto"
 	"io/ioutil"
-	"log"
+	_ "log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -171,12 +171,16 @@ func TestHTTPClientServerInstantDisconnect(t *testing.T) {
 	GETPayload := []byte("GET / HTTP/1.1\r\n\r\n")
 
 	ln, _ := net.Listen("tcp", ":0")
+	defer ln.Close()
 
 	go func() {
 		for {
-			conn, _ := ln.Accept()
-			conn.Close()
+			conn, err := ln.Accept()
 
+			if err != nil {
+				break
+			}
+			conn.Close()
 			wg.Done()
 		}
 	}()
@@ -196,12 +200,13 @@ func TestHTTPClientServerNoKeepAlive(t *testing.T) {
 	GETPayload := []byte("GET / HTTP/1.1\r\n\r\n")
 
 	ln, _ := net.Listen("tcp", ":0")
+	defer ln.Close()
 
 	go func() {
 		for {
 			conn, err := ln.Accept()
 			if err != nil {
-				// handle error
+				break
 			}
 
 			buf := make([]byte, 4096)
@@ -370,12 +375,7 @@ func TestHTTPClientErrors(t *testing.T) {
 	ln2, _ := net.Listen("tcp", ":0")
 	go func() {
 		buf := make([]byte, 64*1024)
-		conn, err := ln2.Accept()
-
-		if err != nil {
-			log.Println("Error while Accept()", err)
-			continue
-		}
+		conn, _ := ln2.Accept()
 
 		conn.Read(buf)
 		defer conn.Close()

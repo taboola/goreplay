@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"time"
+	"sync"
 )
 
 // TCPMessage ensure that all TCP packets for given request is received, and processed in right sequence
@@ -36,6 +37,8 @@ type TCPMessage struct {
 	delChan chan *TCPMessage
 
 	expire *time.Duration
+
+	mu sync.Mutex
 }
 
 // NewTCPMessage pointer created from a Acknowledgment number and a channel of messages readuy to be deleted
@@ -44,6 +47,7 @@ func NewTCPMessage(ID string, delChan chan *TCPMessage, Ack uint32, expire *time
 	msg.Start = time.Now().UnixNano()
 	msg.packetsChan = make(chan *TCPPacket)
 	msg.delChan = delChan // used for notifying that message completed or expired
+	msg.timer = time.NewTimer(0)
 
 	go msg.listen()
 
@@ -66,16 +70,13 @@ func (t *TCPMessage) listen() {
 
 // Timeout notifies message to stop listening, close channel and message ready to be sent
 func (t *TCPMessage) Timeout() {
-	if t.timer != nil {
-		t.timer.Stop()
-	}
-
 	select {
 	// In some cases Timeout can be called multiple times (do not know how yet)
 	// Ensure that we did not close channel 2 times
 	case packet, ok := <-t.packetsChan:
 		if ok {
 			t.AddPacket(packet)
+			t.Timeout()
 		} else {
 			return
 		}
@@ -112,6 +113,9 @@ func (t *TCPMessage) Size() (size int) {
 // AddPacket to the message and ensure packet uniqueness
 // TCP allows that packet can be re-send multiple times
 func (t *TCPMessage) AddPacket(packet *TCPPacket) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
 	packetFound := false
 
 	for _, pkt := range t.packets {
@@ -124,7 +128,13 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 	if packetFound {
 		log.Println("Received packet with same sequence")
 	} else {
-		t.packets = append(t.packets, packet)
+		// Packets not always captured in same Seq order, and sometimes we need to prepend
+		if len(t.packets) == 0 || packet.Seq > t.packets[len(t.packets)-1].Seq {
+			t.packets = append(t.packets, packet)
+		} else {
+			t.packets = append([]*TCPPacket{packet}, t.packets...)
+		}
+
 		t.End = time.Now().UnixNano()
 	}
 

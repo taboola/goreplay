@@ -149,10 +149,6 @@ func TestTokenMiddleware(t *testing.T) {
 	})
 	to := NewFakeSecureService(wg, func(path string, status int, tok []byte) {
 		switch path {
-		case "/token":
-			if bytes.Equal(token, tok) {
-				t.Error("Tokens should not match")
-			}
 		case "/secure":
 			if status != 202 {
 				t.Error("Server should receive valid rewritten token")
@@ -164,6 +160,8 @@ func TestTokenMiddleware(t *testing.T) {
 
 	quit := make(chan int)
 
+	Settings.middleware = "go run ./examples/middleware/token_modifier.go"
+
 	// Catch traffic from one service
 	input := NewRAWInput(from, testRawExpire)
 
@@ -172,7 +170,6 @@ func TestTokenMiddleware(t *testing.T) {
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
-	Settings.middleware = "go run ./examples/middleware/token_modifier.go"
 
 	// Start Gor
 	go Start(quit)
