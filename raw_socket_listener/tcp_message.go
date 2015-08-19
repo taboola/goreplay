@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"github.com/buger/gor/proto"
 	"log"
-	"sort"
 	"strconv"
 	"time"
 	"sync"
@@ -84,16 +83,14 @@ func (t *TCPMessage) Timeout() {
 		close(t.packetsChan)
 		// Notify RAWListener that message is ready to be send to replay server
 		// Responses without requests gets discarded
-		if t.IsIncoming || t.RequestStart != 0 {
+		if t.IsIncoming {
 			t.delChan <- t
 		}
 	}
 }
 
-// Bytes sorts packets in right orders and return message content
+// Bytes return message content
 func (t *TCPMessage) Bytes() (output []byte) {
-	sort.Sort(sortBySeq(t.packets))
-
 	for _, p := range t.packets {
 		output = append(output, p.Data...)
 	}
