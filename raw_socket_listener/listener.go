@@ -110,7 +110,7 @@ func (t *Listener) listen() {
 
 		// We need to use channels to process each packet to avoid data races
 		case packet := <-t.packetsChan:
-			// log.Println("Received packet:", packet)
+			log.Println("Received packet:", packet)
 			t.processTCPPacket(packet)
 		}
 	}
