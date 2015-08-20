@@ -20,6 +20,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"time"
+	"strings"
 )
 
 // Listener handle traffic capture
@@ -50,6 +51,9 @@ type Listener struct {
 	messageExpire time.Duration
 
 	captureResponse bool
+
+	conn net.PacketConn
+	quit chan bool
 }
 
 type request struct {
@@ -58,30 +62,31 @@ type request struct {
 }
 
 // NewListener creates and initializes new Listener object
-func NewListener(addr string, port string, expire time.Duration, captureResponse bool) (rawListener *Listener) {
-	rawListener = &Listener{captureResponse: captureResponse}
+func NewListener(addr string, port string, expire time.Duration, captureResponse bool) (l *Listener) {
+	l = &Listener{captureResponse: captureResponse}
 
-	rawListener.packetsChan = make(chan *TCPPacket, 10000)
-	rawListener.messagesChan = make(chan *TCPMessage, 10000)
-	rawListener.messageDelChan = make(chan *TCPMessage, 10000)
+	l.packetsChan = make(chan *TCPPacket, 10000)
+	l.messagesChan = make(chan *TCPMessage, 10000)
+	l.messageDelChan = make(chan *TCPMessage, 10000)
+	l.quit = make(chan bool)
 
-	rawListener.messages = make(map[string]*TCPMessage)
-	rawListener.ackAliases = make(map[uint32]uint32)
-	rawListener.seqWithData = make(map[uint32]uint32)
-	rawListener.respAliases = make(map[uint32]*request)
+	l.messages = make(map[string]*TCPMessage)
+	l.ackAliases = make(map[uint32]uint32)
+	l.seqWithData = make(map[uint32]uint32)
+	l.respAliases = make(map[uint32]*request)
 
-	rawListener.addr = addr
+	l.addr = addr
 	_port, _ := strconv.Atoi(port)
-	rawListener.port = uint16(_port)
+	l.port = uint16(_port)
 
 	if expire.Nanoseconds() == 0 {
 		expire = 2000 * time.Millisecond
 	}
 
-	rawListener.messageExpire = expire
+	l.messageExpire = expire
 
-	go rawListener.listen()
-	go rawListener.readRAWSocket()
+	go l.listen()
+	go l.readRAWSocket()
 
 	return
 }
@@ -89,6 +94,9 @@ func NewListener(addr string, port string, expire time.Duration, captureResponse
 func (t *Listener) listen() {
 	for {
 		select {
+		case <-t.quit:
+			t.conn.Close()
+			return
 		// If message ready for deletion it means that its also complete or expired by timeout
 		case message := <-t.messageDelChan:
 			delete(t.ackAliases, message.Ack)
@@ -109,21 +117,26 @@ func (t *Listener) listen() {
 }
 func (t *Listener) readRAWSocket() {
 	conn, e := net.ListenPacket("ip4:tcp", t.addr)
+	t.conn = conn
 
 	if e != nil {
 		log.Fatal(e)
 	}
 
-	defer conn.Close()
+	defer t.conn.Close()
 
 	for {
 		buf := make([]byte, 64*1024) // 64kb
 		// Note: ReadFrom receive messages without IP header
-		n, addr, err := conn.ReadFrom(buf)
+		n, addr, err := t.conn.ReadFrom(buf)
 
 		if err != nil {
-			log.Println("Error:", err)
-			continue
+			if strings.HasSuffix(err.Error(), "closed network connection") {
+				return
+			} else {
+				log.Println("Raw listener error:", err)
+				continue
+			}
 		}
 
 		if n > 0 {
@@ -239,4 +252,10 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 // Receive TCP messages from the listener channel
 func (t *Listener) Receive() *TCPMessage {
 	return <-t.messagesChan
+}
+
+func (t *Listener) Close() {
+	close(t.quit)
+	t.conn.Close()
+	return
 }

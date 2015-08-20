@@ -13,6 +13,8 @@ type RAWInput struct {
 	data    chan *raw.TCPMessage
 	address string
 	expire  time.Duration
+	quit    chan bool
+	listener *raw.Listener
 }
 
 // NewRAWInput constructor for RAWInput. Accepts address with port as argument.
@@ -21,6 +23,7 @@ func NewRAWInput(address string, expire time.Duration) (i *RAWInput) {
 	i.data = make(chan *raw.TCPMessage)
 	i.address = address
 	i.expire = expire
+	i.quit = make(chan bool)
 
 	go i.listen(address)
 
@@ -56,11 +59,17 @@ func (i *RAWInput) listen(address string) {
 		log.Fatal("input-raw: error while parsing address", err)
 	}
 
-	listener := raw.NewListener(host, port, i.expire, true)
+	i.listener = raw.NewListener(host, port, i.expire, true)
 
 	for {
+		select {
+		case <-i.quit:
+			return
+		default:
+		}
+
 		// Receiving TCPMessage object
-		m := listener.Receive()
+		m := i.listener.Receive()
 
 		i.data <- m
 	}
@@ -68,4 +77,9 @@ func (i *RAWInput) listen(address string) {
 
 func (i *RAWInput) String() string {
 	return "RAW Socket input: " + i.address
+}
+
+func (i *RAWInput) Close() {
+	i.listener.Close()
+	close(i.quit)
 }

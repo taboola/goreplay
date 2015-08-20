@@ -28,16 +28,19 @@ func TestRAWInput(t *testing.T) {
 
 
 	var respCounter, reqCounter int64
+	defer func(){
+		log.Println(reqCounter, respCounter)
+	}()
 
 	input := NewRAWInput(originAddr, testRawExpire)
+	defer input.Close()
+
 	output := NewTestOutput(func(data []byte) {
 		if data[0] == '1' {
 			atomic.AddInt64(&reqCounter, 1)
 		} else {
 			atomic.AddInt64(&respCounter, 1)
 		}
-
-		log.Println(reqCounter, respCounter)
 
 		wg.Done()
 	})
@@ -58,7 +61,6 @@ func TestRAWInput(t *testing.T) {
 	}
 
 	wg.Wait()
-
 	close(quit)
 }
 
@@ -80,6 +82,7 @@ func TestInputRAW100Expect(t *testing.T) {
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
 	input := NewRAWInput(originAddr, testRawExpire)
+	defer input.Close()
 
 	// We will use it to get content of raw HTTP request
 	testOutput := NewTestOutput(func(data []byte) {
@@ -142,6 +145,7 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 	input := NewRAWInput(originAddr, testRawExpire)
+	defer input.Close()
 
 	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
@@ -200,6 +204,7 @@ func TestInputRAWLargePayload(t *testing.T) {
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
 	input := NewRAWInput(originAddr, testRawExpire)
+	defer input.Close()
 
 	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		req.Body = http.MaxBytesReader(w, req.Body, 1*1024*1024)

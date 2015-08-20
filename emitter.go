@@ -32,8 +32,19 @@ func Start(stop chan int) {
 	for {
 		select {
 		case <-stop:
+			for _, in := range Plugins.Inputs {
+				if c, ok := in.(io.Closer); ok {
+					c.Close()
+				}
+			}
+
+			for _, out := range Plugins.Outputs {
+				if c, ok := out.(io.Closer); ok {
+					c.Close()
+				}
+			}
 			return
-		case <-time.After(1 * time.Second):
+		case <-time.After(time.Second):
 		}
 	}
 }

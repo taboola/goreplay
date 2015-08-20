@@ -117,6 +117,7 @@ func TestEchoMiddleware(t *testing.T) {
 
 	// Catch traffic from one service
 	input := NewRAWInput(from.Listener.Addr().String(), testRawExpire)
+	defer input.Close()
 
 	// And redirect to another
 	output := NewHTTPOutput(to.URL, &HTTPOutputConfig{Debug: false})
@@ -174,6 +175,7 @@ func TestTokenMiddleware(t *testing.T) {
 	fromAddr := strings.Replace(from.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 	// Catch traffic from one service
 	input := NewRAWInput(fromAddr, testRawExpire)
+	defer input.Close()
 
 	// And redirect to another
 	output := NewHTTPOutput(to.URL, &HTTPOutputConfig{Debug: true})
