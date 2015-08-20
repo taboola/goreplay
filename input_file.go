@@ -74,6 +74,10 @@ func (i *FileInput) emit() {
 			lastTime = ts
 		}
 
-		i.data <- buf
+		// scanner returs only pointer, so to remove data-race we have to allocate new array
+		newBuf := make([]byte, len(buf))
+		copy(newBuf, buf)
+
+		i.data <- newBuf
 	}
 }

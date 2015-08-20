@@ -62,7 +62,11 @@ func (o *TCPOutput) Write(data []byte) (n int, err error) {
 		return len(data), nil
 	}
 
-	o.buf <- data
+	// We have to copy, because sending data in multiple threads
+	newBuf := make([]byte, len(data))
+	copy(newBuf, data)
+
+	o.buf <- newBuf
 
 	if Settings.outputTCPStats {
 		o.bufStats.Write(len(o.buf))
