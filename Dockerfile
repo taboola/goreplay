@@ -1,6 +1,6 @@
-FROM google/golang:1.4
+FROM golang:1.5
 
-RUN cd /goroot/src/ && GOOS=linux GOARCH=386 ./make.bash --no-clean
+RUN cd /go/src/ && GOOS=linux GOARCH=386 ./make.bash --no-clean
 
 RUN apt-get update && apt-get install ruby vim-common -y
 
