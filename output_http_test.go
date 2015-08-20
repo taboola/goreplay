@@ -3,7 +3,6 @@ package main
 import (
 	"io"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	_ "net/http/httputil"
@@ -12,25 +11,13 @@ import (
 	"time"
 )
 
-func startHTTP(cb func(http.ResponseWriter, *http.Request)) net.Listener {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cb(w, r)
-	})
-
-	listener, _ := net.Listen("tcp", ":0")
-
-	go http.Serve(listener, handler)
-
-	return listener
-}
-
 func TestHTTPOutput(t *testing.T) {
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
 	input := NewTestInput()
 
-	listener := startHTTP(func(w http.ResponseWriter, req *http.Request) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.Header.Get("User-Agent") != "Gor" {
 			t.Error("Wrong header")
 		}
@@ -49,13 +36,14 @@ func TestHTTPOutput(t *testing.T) {
 		}
 
 		wg.Done()
-	})
+	}))
+	defer server.Close()
 
 	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
 	methods := HTTPMethods{[]byte("GET"), []byte("PUT"), []byte("POST")}
 	Settings.modifierConfig = HTTPModifierConfig{headers: headers, methods: methods}
 
-	output := NewHTTPOutput(listener.Addr().String(), &HTTPOutputConfig{Debug: true})
+	output := NewHTTPOutput(server.URL, &HTTPOutputConfig{Debug: true})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
@@ -82,18 +70,19 @@ func TestHTTPOutputKeepOriginalHost(t *testing.T) {
 
 	input := NewTestInput()
 
-	listener := startHTTP(func(w http.ResponseWriter, req *http.Request) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.Host != "custom-host.com" {
 			t.Error("Wrong header", req.Host)
 		}
 
 		wg.Done()
-	})
+	}))
+	defer server.Close()
 
 	headers := HTTPHeaders{HTTPHeader{"Host", "custom-host.com"}}
 	Settings.modifierConfig = HTTPModifierConfig{headers: headers}
 
-	output := NewHTTPOutput(listener.Addr().String(), &HTTPOutputConfig{Debug: false, OriginalHost: true})
+	output := NewHTTPOutput(server.URL, &HTTPOutputConfig{Debug: false, OriginalHost: true})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
@@ -140,13 +129,14 @@ func BenchmarkHTTPOutput(b *testing.B) {
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
-	listener := startHTTP(func(w http.ResponseWriter, req *http.Request) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(50 * time.Millisecond)
 		wg.Done()
-	})
+	}))
+	defer server.Close()
 
 	input := NewTestInput()
-	output := NewHTTPOutput(listener.Addr().String(), &HTTPOutputConfig{})
+	output := NewHTTPOutput(server.URL, &HTTPOutputConfig{})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}

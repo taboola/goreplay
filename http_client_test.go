@@ -75,6 +75,7 @@ func TestHTTPClientSend(t *testing.T) {
 
 		wg.Done()
 	}))
+	defer server.Close()
 
 	client := NewHTTPClient(server.URL, &HTTPClientConfig{Debug: true})
 
@@ -103,6 +104,7 @@ func TestHTTPClientResponseBuffer(t *testing.T) {
 
 		wg.Done()
 	}))
+	defer server.Close()
 
 	client := NewHTTPClient(server.URL, &HTTPClientConfig{Debug: false, ResponseBufferSize: 1024})
 
@@ -153,6 +155,7 @@ func TestHTTPClientHTTPSSend(t *testing.T) {
 
 		wg.Done()
 	}))
+	defer server.Close()
 
 	client := NewHTTPClient(server.URL, &HTTPClientConfig{})
 
@@ -246,6 +249,7 @@ func TestHTTPClientRedirect(t *testing.T) {
 
 		wg.Done()
 	}))
+	defer server.Close()
 
 	client := NewHTTPClient(server.URL, &HTTPClientConfig{FollowRedirects: 1, Debug: false})
 
@@ -277,6 +281,7 @@ func TestHTTPClientRedirectLimit(t *testing.T) {
 
 		wg.Done()
 	}))
+	defer server.Close()
 
 	client := NewHTTPClient(server.URL, &HTTPClientConfig{FollowRedirects: 2, Debug: false})
 
@@ -300,6 +305,7 @@ func TestHTTPClientHandleHTTP10(t *testing.T) {
 
 		wg.Done()
 	}))
+	defer server.Close()
 
 	client := NewHTTPClient(server.URL, &HTTPClientConfig{Debug: true})
 

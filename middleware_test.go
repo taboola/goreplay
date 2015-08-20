@@ -17,7 +17,7 @@ import (
 type fakeServiceCb func(string, int, []byte)
 
 // Simple service that generate token on request, and require this token for accesing to secure area
-func NewFakeSecureService(wg *sync.WaitGroup, cb fakeServiceCb) string {
+func NewFakeSecureService(wg *sync.WaitGroup, cb fakeServiceCb) *httptest.Server {
 	active_tokens := make([]string, 0)
 	var mu sync.Mutex
 
@@ -61,8 +61,7 @@ func NewFakeSecureService(wg *sync.WaitGroup, cb fakeServiceCb) string {
 		wg.Done()
 	}))
 
-	address := strings.Replace(server.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
-	return address
+	return server
 }
 
 func TestFakeSecureService(t *testing.T) {
@@ -70,12 +69,13 @@ func TestFakeSecureService(t *testing.T) {
 
 	wg := new(sync.WaitGroup)
 
-	addr := NewFakeSecureService(wg, func(path string, status int, resp []byte) {
+	server := NewFakeSecureService(wg, func(path string, status int, resp []byte) {
 	})
+	defer server.Close()
 
 	wg.Add(3)
 
-	client := NewHTTPClient("http://"+addr, &HTTPClientConfig{Debug: true})
+	client := NewHTTPClient(server.URL, &HTTPClientConfig{Debug: true})
 	resp, _ = client.Get("/token")
 	token = proto.Body(resp)
 
@@ -102,11 +102,14 @@ func TestEchoMiddleware(t *testing.T) {
 		w.Header().Set("RequestPath", r.URL.Path)
 		wg.Done()
 	}))
+	defer from.Close()
+
 	to := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Env", "test")
 		w.Header().Set("RequestPath", r.URL.Path)
 		wg.Done()
 	}))
+	defer to.Close()
 
 	quit := make(chan int)
 
@@ -150,6 +153,8 @@ func TestTokenMiddleware(t *testing.T) {
 	from := NewFakeSecureService(wg, func(path string, status int, tok []byte) {
 		time.Sleep(10 * time.Millisecond)
 	})
+	defer from.Close()
+
 	to := NewFakeSecureService(wg, func(path string, status int, tok []byte) {
 		switch path {
 		case "/secure":
@@ -160,16 +165,18 @@ func TestTokenMiddleware(t *testing.T) {
 
 		time.Sleep(10 * time.Millisecond)
 	})
+	defer to.Close()
 
 	quit := make(chan int)
 
 	Settings.middleware = "go run ./examples/middleware/token_modifier.go"
 
+	fromAddr := strings.Replace(from.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 	// Catch traffic from one service
-	input := NewRAWInput(from, testRawExpire)
+	input := NewRAWInput(fromAddr, testRawExpire)
 
 	// And redirect to another
-	output := NewHTTPOutput(to, &HTTPOutputConfig{Debug: true})
+	output := NewHTTPOutput(to.URL, &HTTPOutputConfig{Debug: true})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
@@ -184,7 +191,7 @@ func TestTokenMiddleware(t *testing.T) {
 	// Should receive 2 requests from original + 2 from replayed
 	wg.Add(4)
 
-	client := NewHTTPClient("http://"+from, &HTTPClientConfig{Debug: false})
+	client := NewHTTPClient(from.URL, &HTTPClientConfig{Debug: false})
 
 	// Sending traffic to original service
 	resp, _ = client.Get("/token")
