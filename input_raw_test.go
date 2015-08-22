@@ -26,9 +26,8 @@ func TestRAWInput(t *testing.T) {
 	defer origin.Close()
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
-
 	var respCounter, reqCounter int64
-	defer func(){
+	defer func() {
 		log.Println(reqCounter, respCounter)
 	}()
 

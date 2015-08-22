@@ -41,9 +41,9 @@ type HTTPOutput struct {
 	// aligned at 64bit. See https://github.com/golang/go/issues/599
 	activeWorkers int64
 
-	address   string
-	limit     int
-	queue     chan []byte
+	address string
+	limit   int
+	queue   chan []byte
 
 	responses chan response
 
@@ -173,7 +173,7 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 func (o *HTTPOutput) Read(data []byte) (int, error) {
 	resp := <-o.responses
 
-	Debug("[OUTPUT-HTTP] Received response", string(resp.payload))
+	Debug("[OUTPUT-HTTP] Received response:", string(resp.payload))
 
 	header := payloadHeader(ReplayedResponsePayload, resp.uuid, resp.roundTripTime)
 	copy(data[0:len(header)], header)

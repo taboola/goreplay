@@ -37,10 +37,13 @@ dbench:
 
 # Used mainly for debugging, because docker container do not have access to parent machine ports
 drun:
-	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-dummy=0 --output-http="http://localhost:9000" --input-raw :9000 --input-http :9000 --verbose --debug
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-dummy=0 --output-http="http://localhost:9000" --input-raw :9000 --input-http :9000 --verbose --debug --middleware "./examples/middleware/echo.sh"
+
+drun-2:
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-file="./fixtures/requests.gor" --output-dummy --verbose --debug --middleware "./examples/middleware/echo.sh"
 
 drecord:
-	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-dummy=0 --output-file=requests.gor --verbose
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-dummy=0 --output-file=requests.gor --verbose --debug
 
 dreplay:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-file=requests.bin --output-tcp=:9000 --verbose -h

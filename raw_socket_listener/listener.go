@@ -19,8 +19,8 @@ import (
 	"net"
 	"runtime/debug"
 	"strconv"
-	"time"
 	"strings"
+	"time"
 )
 
 // Listener handle traffic capture

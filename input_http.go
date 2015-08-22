@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"time"
 )
 
 // HTTPInput used for sending requests to Gor via http
@@ -27,9 +28,13 @@ func NewHTTPInput(address string) (i *HTTPInput) {
 
 func (i *HTTPInput) Read(data []byte) (int, error) {
 	buf := <-i.data
-	copy(data, buf)
 
-	return len(buf), nil
+	header := payloadHeader(RequestPayload, uuid(), time.Now().UnixNano())
+
+	copy(data[0:len(header)], header)
+	copy(data[len(header):], buf)
+
+	return len(buf) + len(header), nil
 }
 
 func (i *HTTPInput) handler(w http.ResponseWriter, r *http.Request) {

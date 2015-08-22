@@ -7,8 +7,8 @@ import (
 	"github.com/buger/gor/proto"
 	"log"
 	"strconv"
-	"time"
 	"sync"
+	"time"
 )
 
 // TCPMessage ensure that all TCP packets for given request is received, and processed in right sequence
