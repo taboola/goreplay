@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-const testRawExpire = time.Millisecond * 100
+const testRawExpire = time.Millisecond * 200
 
 func TestRAWInput(t *testing.T) {
 	wg := new(sync.WaitGroup)
