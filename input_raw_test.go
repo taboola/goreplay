@@ -27,9 +27,6 @@ func TestRAWInput(t *testing.T) {
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
 	var respCounter, reqCounter int64
-	defer func() {
-		log.Println(reqCounter, respCounter)
-	}()
 
 	input := NewRAWInput(originAddr, testRawExpire)
 	defer input.Close()
@@ -40,6 +37,8 @@ func TestRAWInput(t *testing.T) {
 		} else {
 			atomic.AddInt64(&respCounter, 1)
 		}
+
+		log.Println(reqCounter, respCounter)
 
 		wg.Done()
 	})
