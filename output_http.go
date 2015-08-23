@@ -5,6 +5,7 @@ import (
 	"log"
 	"sync/atomic"
 	"time"
+	"github.com/buger/gor/proto"
 )
 
 const initialDynamicWorkers = 10
@@ -186,8 +187,13 @@ func (o *HTTPOutput) sendRequest(client *HTTPClient, request []byte) {
 	meta := payloadMeta(request)
 	uuid := meta[1]
 
+	body := payloadBody(request)
+	if !proto.IsHTTPPayload(body) {
+		return
+	}
+
 	start := time.Now()
-	resp, err := client.Send(payloadBody(request))
+	resp, err := client.Send(body)
 	stop := time.Now()
 
 	if err != nil {

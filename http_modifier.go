@@ -30,6 +30,10 @@ func NewHTTPModifier(config *HTTPModifierConfig) *HTTPModifier {
 }
 
 func (m *HTTPModifier) Rewrite(payload []byte) (response []byte) {
+	if !proto.IsHTTPPayload(payload) {
+		return payload
+	}
+
 	if len(m.config.methods) > 0 {
 		method := proto.Method(payload)
 

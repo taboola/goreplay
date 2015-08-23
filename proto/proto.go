@@ -208,3 +208,18 @@ func Method(payload []byte) []byte {
 func Status(payload []byte) []byte {
 	return Path(payload)
 }
+
+var httpMethods []string = []string{
+	"GET ", "OPTI", "HEAD", "POST", "PUT ", "DELE", "TRAC", "CONN",
+}
+
+func IsHTTPPayload(payload []byte) bool {
+	method := string(payload[0:4])
+
+	for _, m := range httpMethods {
+		if method == m {
+			return true
+		}
+	}
+	return false
+}
