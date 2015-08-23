@@ -4,7 +4,7 @@ import java.io.InputStreamReader;
 
 import org.apache.commons.io.IOUtils;
 
-public class Echo {
+public class echo {
     public static void main(String[] args) {
         if(args != null){
             for(String arg : args){

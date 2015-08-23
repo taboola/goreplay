@@ -40,7 +40,7 @@ drun:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-dummy=0 --output-http="http://localhost:9000" --input-raw :9000 --input-http :9000 --verbose --debug --middleware "./examples/middleware/echo.sh"
 
 drun-2:
-	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-file="./fixtures/requests.gor" --output-dummy --verbose --debug --middleware "./examples/middleware/echo.sh"
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-file="./fixtures/requests.gor" --output-dummy=0 --verbose --debug --middleware "java -cp ./examples/middleware echo"
 
 drecord:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-dummy=0 --output-file=requests.gor --verbose --debug
