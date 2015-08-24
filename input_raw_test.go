@@ -79,7 +79,7 @@ func TestInputRAW100Expect(t *testing.T) {
 
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr, testRawExpire)
+	input := NewRAWInput(originAddr, time.Second)
 	defer input.Close()
 
 	// We will use it to get content of raw HTTP request
@@ -142,7 +142,7 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 	}))
 
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
-	input := NewRAWInput(originAddr, testRawExpire)
+	input := NewRAWInput(originAddr, time.Second)
 	defer input.Close()
 
 	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
