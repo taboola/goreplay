@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"io"
 	"log"
 	"net"
@@ -35,14 +34,12 @@ func TestTCPInput(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	msg := []byte("GET / HTTP/1.1\r\n\r\n")
+	msg := []byte("1 1 1\nGET / HTTP/1.1\r\n\r\n")
 
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
-
-		encoded := make([]byte, len(msg)*2)
-		hex.Encode(encoded, msg)
-		conn.Write(append(encoded, '\n'))
+		conn.Write(msg)
+		conn.Write([]byte(payloadSeparator))
 	}
 
 	wg.Wait()

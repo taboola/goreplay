@@ -1,9 +1,10 @@
 package main
 
 import (
-	"encoding/gob"
+	"bufio"
 	"log"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -11,7 +12,7 @@ import (
 type FileInput struct {
 	data        chan []byte
 	path        string
-	decoder     *gob.Decoder
+	file        *os.File
 	speedFactor float64
 }
 
@@ -35,7 +36,7 @@ func (i *FileInput) init(path string) {
 		log.Fatal(i, "Cannot open file %q. Error: %s", path, err)
 	}
 
-	i.decoder = gob.NewDecoder(file)
+	i.file = file
 }
 
 func (i *FileInput) Read(data []byte) (int, error) {
@@ -52,27 +53,33 @@ func (i *FileInput) String() string {
 func (i *FileInput) emit() {
 	var lastTime int64
 
-	for {
-		raw := new(RawRequest)
-		err := i.decoder.Decode(raw)
+	// reader := bufio.NewReader(conn)
+	scanner := bufio.NewScanner(i.file)
+	scanner.Split(payloadScanner)
 
-		if err != nil {
-			return
-		}
+	for scanner.Scan() {
+		buf := scanner.Bytes()
+		meta := payloadMeta(buf)
 
-		if lastTime != 0 {
-			timeDiff := raw.Timestamp - lastTime
+		if meta[0][0] == RequestPayload && lastTime != 0 {
+			ts, _ := strconv.ParseInt(string(meta[2]), 10, 64)
+			timeDiff := ts - lastTime
 
-			// We can speedup or slowdown execution based on speedFactor
 			if i.speedFactor != 1 {
-				timeDiff = int64(float64(raw.Timestamp-lastTime) / i.speedFactor)
+				timeDiff = int64(float64(timeDiff) / i.speedFactor)
 			}
 
 			time.Sleep(time.Duration(timeDiff))
+
+			lastTime = ts
 		}
 
-		lastTime = raw.Timestamp
+		// scanner returs only pointer, so to remove data-race we have to allocate new array
+		newBuf := make([]byte, len(buf))
+		copy(newBuf, buf)
 
-		i.data <- raw.Request
+		i.data <- newBuf
 	}
+
+	log.Println("FileInput: end of file")
 }

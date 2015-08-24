@@ -11,40 +11,56 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
 
-func TestRAWInput(t *testing.T) {
+const testRawExpire = time.Millisecond * 200
 
+func TestRAWInput(t *testing.T) {
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
-	listener := startHTTP(func(req *http.Request) {})
+	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	defer origin.Close()
+	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(listener.Addr().String())
+	var respCounter, reqCounter int64
+
+	input := NewRAWInput(originAddr, testRawExpire)
+	defer input.Close()
+
 	output := NewTestOutput(func(data []byte) {
+		if data[0] == '1' {
+			atomic.AddInt64(&reqCounter, 1)
+		} else {
+			atomic.AddInt64(&respCounter, 1)
+		}
+
+		if Settings.debug {
+			log.Println(reqCounter, respCounter)
+		}
+
 		wg.Done()
 	})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
 
-	address := strings.Replace(listener.Addr().String(), "[::]", "127.0.0.1", -1)
-
-	client := NewHTTPClient(address, &HTTPClientConfig{})
+	client := NewHTTPClient(origin.URL, &HTTPClientConfig{})
 
 	time.Sleep(time.Millisecond)
 
 	go Start(quit)
 
 	for i := 0; i < 100; i++ {
-		wg.Add(1)
+		// request + response
+		wg.Add(2)
 		client.Get("/")
 	}
 
 	wg.Wait()
-
 	close(quit)
 }
 
@@ -55,46 +71,54 @@ func TestInputRAW100Expect(t *testing.T) {
 	fileContent, _ := ioutil.ReadFile("README.md")
 
 	// Origing and Replay server initialization
-	origin := startHTTP(func(req *http.Request) {
-		defer req.Body.Close()
-		ioutil.ReadAll(req.Body)
+	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		ioutil.ReadAll(r.Body)
 
 		wg.Done()
-	})
+	}))
+	defer origin.Close()
 
-	originAddr := strings.Replace(origin.Addr().String(), "[::]", "127.0.0.1", -1)
+	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr)
+	input := NewRAWInput(originAddr, time.Second)
+	defer input.Close()
 
 	// We will use it to get content of raw HTTP request
 	testOutput := NewTestOutput(func(data []byte) {
-		if strings.Contains(string(data), "Expect: 100-continue") {
-			t.Error("Should not contain 100-continue header")
+		switch data[0] {
+		case RequestPayload:
+			if strings.Contains(string(data), "Expect: 100-continue") {
+				t.Error("Should not contain 100-continue header")
+			}
+			wg.Done()
+		case ResponsePayload:
+			wg.Done()
 		}
-		wg.Done()
 	})
 
-	listener := startHTTP(func(req *http.Request) {
-		defer req.Body.Close()
-		body, _ := ioutil.ReadAll(req.Body)
+	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		body, _ := ioutil.ReadAll(r.Body)
 
 		if !bytes.Equal(body, fileContent) {
-			buf, _ := httputil.DumpRequest(req, true)
+			buf, _ := httputil.DumpRequest(r, true)
 			t.Error("Wrong POST body:", string(buf))
 		}
 
 		wg.Done()
-	})
-	replayAddr := listener.Addr().String()
+	}))
+	defer replay.Close()
 
-	httpOutput := NewHTTPOutput(replayAddr, &HTTPOutputConfig{})
+	httpOutput := NewHTTPOutput(replay.URL, &HTTPOutputConfig{})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{testOutput, httpOutput}
 
 	go Start(quit)
 
-	wg.Add(3)
+	// Origin + Response/Request Test Output + Request Http Output
+	wg.Add(4)
 	curl := exec.Command("curl", "http://"+originAddr, "--data-binary", "@README.md")
 	err := curl.Run()
 	if err != nil {
@@ -112,31 +136,31 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 	fileContent, _ := ioutil.ReadFile("README.md")
 
 	// Origing and Replay server initialization
-	origin := startHTTP(func(req *http.Request) {
-		defer req.Body.Close()
-		ioutil.ReadAll(req.Body)
+	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		ioutil.ReadAll(r.Body)
 
 		wg.Done()
-	})
+	}))
 
-	originAddr := strings.Replace(origin.Addr().String(), "[::]", "127.0.0.1", -1)
+	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
+	input := NewRAWInput(originAddr, time.Second)
+	defer input.Close()
 
-	input := NewRAWInput(originAddr)
-
-	listener := startHTTP(func(req *http.Request) {
-		defer req.Body.Close()
-		body, _ := ioutil.ReadAll(req.Body)
+	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+		body, _ := ioutil.ReadAll(r.Body)
 
 		if !bytes.Equal(body, fileContent) {
-			buf, _ := httputil.DumpRequest(req, true)
+			buf, _ := httputil.DumpRequest(r, true)
 			t.Error("Wrong POST body:", string(buf))
 		}
 
 		wg.Done()
-	})
-	replayAddr := listener.Addr().String()
+	}))
+	defer replay.Close()
 
-	httpOutput := NewHTTPOutput(replayAddr, &HTTPOutputConfig{Debug: true})
+	httpOutput := NewHTTPOutput(replay.URL, &HTTPOutputConfig{Debug: true})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{httpOutput}
@@ -167,8 +191,7 @@ func TestInputRAWLargePayload(t *testing.T) {
 		log.Fatal("dd error:", err)
 	}
 
-	// Origing and Replay server initialization
-	origin := startHTTP(func(req *http.Request) {
+	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		defer req.Body.Close()
 		body, _ := ioutil.ReadAll(req.Body)
 
@@ -177,10 +200,11 @@ func TestInputRAWLargePayload(t *testing.T) {
 		}
 
 		wg.Done()
-	})
-	originAddr := strings.Replace(origin.Addr().String(), "[::]", "127.0.0.1", -1)
+	}))
+	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr)
+	input := NewRAWInput(originAddr, time.Second)
+	defer input.Close()
 
 	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		req.Body = http.MaxBytesReader(w, req.Body, 1*1024*1024)

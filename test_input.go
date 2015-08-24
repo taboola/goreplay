@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"time"
 )
 
 // TestInput used for testing purpose, it allows emitting requests on demand
@@ -20,9 +21,12 @@ func NewTestInput() (i *TestInput) {
 
 func (i *TestInput) Read(data []byte) (int, error) {
 	buf := <-i.data
-	copy(data, buf)
 
-	return len(buf), nil
+	header := payloadHeader(RequestPayload, uuid(), time.Now().UnixNano())
+	copy(data[0:len(header)], header)
+	copy(data[len(header):], buf)
+
+	return len(buf) + len(header), nil
 }
 
 // EmitGET emits GET request without headers

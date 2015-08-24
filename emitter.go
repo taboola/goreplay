@@ -1,21 +1,39 @@
 package main
 
 import (
+	"bytes"
 	"io"
 	"time"
 )
 
 // Start initialize loop for sending data from inputs to outputs
 func Start(stop chan int) {
-	for _, in := range Plugins.Inputs {
-		go CopyMulty(in, Plugins.Outputs...)
+	if Settings.middleware != "" {
+		middleware := NewMiddleware(Settings.middleware)
+
+		for _, in := range Plugins.Inputs {
+			middleware.ReadFrom(in)
+		}
+
+		// We going only to read responses, so using same ReadFrom method
+		for _, out := range Plugins.Outputs {
+			if r, ok := out.(io.Reader); ok {
+				middleware.ReadFrom(r)
+			}
+		}
+
+		go CopyMulty(middleware, Plugins.Outputs...)
+	} else {
+		for _, in := range Plugins.Inputs {
+			go CopyMulty(in, Plugins.Outputs...)
+		}
 	}
 
 	for {
 		select {
 		case <-stop:
 			return
-		case <-time.After(1 * time.Second):
+		case <-time.After(time.Second):
 		}
 	}
 }
@@ -28,20 +46,37 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 
 	for {
 		nr, er := src.Read(buf)
+
 		if nr > 0 && len(buf) > nr {
 			payload := buf[0:nr]
 
-			if modifier != nil {
-				payload = modifier.Rewrite(payload)
-
-				// If modifier tells to skip request
-				if len(payload) == 0 {
-					continue
-				}
+			_maxN := nr
+			if nr > 500 {
+				_maxN = 500
 			}
 
 			if Settings.debug {
-				Debug("[EMITTER] Sending payload, size:", len(payload), "First 500 bytes:", string(payload[0:500]))
+				Debug("[EMITTER] input:", string(payload[0:_maxN]))
+			}
+
+			if modifier != nil && isRequestPayload(payload) {
+				headSize := bytes.IndexByte(payload, '\n') + 1
+				body := payload[headSize:]
+				originalBodyLen := len(body)
+				body = modifier.Rewrite(body)
+
+				// If modifier tells to skip request
+				if len(body) == 0 {
+					continue
+				}
+
+				if originalBodyLen != len(body) {
+					payload = append(payload[:headSize], body...)
+				}
+
+				if Settings.debug {
+					Debug("[EMITTER] Rewrittern input:", len(payload), "First 500 bytes:", string(payload[0:_maxN]))
+				}
 			}
 
 			if Settings.splitOutput {

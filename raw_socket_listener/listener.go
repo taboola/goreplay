@@ -17,7 +17,10 @@ import (
 	"encoding/binary"
 	"log"
 	"net"
+	"runtime/debug"
 	"strconv"
+	"strings"
+	"time"
 )
 
 // Listener handle traffic capture
@@ -31,6 +34,8 @@ type Listener struct {
 	// To get ACK of second message we need to compute its Seq and wait for them message
 	seqWithData map[uint32]uint32
 
+	respAliases map[uint32]*request
+
 	// Messages ready to be send to client
 	packetsChan chan *TCPPacket
 
@@ -41,26 +46,47 @@ type Listener struct {
 	messageDelChan chan *TCPMessage
 
 	addr string // IP to listen
-	port int    // Port to listen
+	port uint16 // Port to listen
+
+	messageExpire time.Duration
+
+	captureResponse bool
+
+	conn net.PacketConn
+	quit chan bool
+}
+
+type request struct {
+	start int64
+	ack   uint32
 }
 
 // NewListener creates and initializes new Listener object
-func NewListener(addr string, port string) (rawListener *Listener) {
-	rawListener = &Listener{}
+func NewListener(addr string, port string, expire time.Duration, captureResponse bool) (l *Listener) {
+	l = &Listener{captureResponse: captureResponse}
 
-	rawListener.packetsChan = make(chan *TCPPacket, 10000)
-	rawListener.messagesChan = make(chan *TCPMessage, 10000)
-	rawListener.messageDelChan = make(chan *TCPMessage, 10000)
+	l.packetsChan = make(chan *TCPPacket, 10000)
+	l.messagesChan = make(chan *TCPMessage, 10000)
+	l.messageDelChan = make(chan *TCPMessage, 10000)
+	l.quit = make(chan bool)
 
-	rawListener.messages = make(map[string]*TCPMessage)
-	rawListener.ackAliases = make(map[uint32]uint32)
-	rawListener.seqWithData = make(map[uint32]uint32)
+	l.messages = make(map[string]*TCPMessage)
+	l.ackAliases = make(map[uint32]uint32)
+	l.seqWithData = make(map[uint32]uint32)
+	l.respAliases = make(map[uint32]*request)
 
-	rawListener.addr = addr
-	rawListener.port, _ = strconv.Atoi(port)
+	l.addr = addr
+	_port, _ := strconv.Atoi(port)
+	l.port = uint16(_port)
 
-	go rawListener.listen()
-	go rawListener.readRAWSocket()
+	if expire.Nanoseconds() == 0 {
+		expire = 2000 * time.Millisecond
+	}
+
+	l.messageExpire = expire
+
+	go l.listen()
+	go l.readRAWSocket()
 
 	return
 }
@@ -68,11 +94,19 @@ func NewListener(addr string, port string) (rawListener *Listener) {
 func (t *Listener) listen() {
 	for {
 		select {
+		case <-t.quit:
+			t.conn.Close()
+			return
 		// If message ready for deletion it means that its also complete or expired by timeout
 		case message := <-t.messageDelChan:
-			t.messagesChan <- message
 			delete(t.ackAliases, message.Ack)
 			delete(t.messages, message.ID)
+
+			if !message.IsIncoming {
+				delete(t.respAliases, message.Ack)
+			}
+
+			t.messagesChan <- message
 
 		// We need to use channels to process each packet to avoid data races
 		case packet := <-t.packetsChan:
@@ -82,21 +116,26 @@ func (t *Listener) listen() {
 }
 func (t *Listener) readRAWSocket() {
 	conn, e := net.ListenPacket("ip4:tcp", t.addr)
+	t.conn = conn
 
 	if e != nil {
 		log.Fatal(e)
 	}
 
-	defer conn.Close()
+	defer t.conn.Close()
 
 	for {
 		buf := make([]byte, 64*1024) // 64kb
 		// Note: ReadFrom receive messages without IP header
-		n, addr, err := conn.ReadFrom(buf)
+		n, addr, err := t.conn.ReadFrom(buf)
 
 		if err != nil {
-			log.Println("Error:", err)
-			continue
+			if strings.HasSuffix(err.Error(), "closed network connection") {
+				return
+			} else {
+				log.Println("Raw listener error:", err)
+				continue
+			}
 		}
 
 		if n > 0 {
@@ -106,18 +145,19 @@ func (t *Listener) readRAWSocket() {
 }
 
 func (t *Listener) parsePacket(addr net.Addr, buf []byte) {
-	if t.isIncomingDataPacket(buf) {
+	if t.isValidPacket(buf) {
 		t.packetsChan <- ParseTCPPacket(addr, buf)
 	}
 }
 
-func (t *Listener) isIncomingDataPacket(buf []byte) bool {
+func (t *Listener) isValidPacket(buf []byte) bool {
 	// To avoid full packet parsing every time, we manually parsing values needed for packet filtering
 	// http://en.wikipedia.org/wiki/Transmission_Control_Protocol
 	destPort := binary.BigEndian.Uint16(buf[2:4])
+	srcPort := binary.BigEndian.Uint16(buf[0:2])
 
 	// Because RAW_SOCKET can't be bound to port, we have to control it by ourself
-	if int(destPort) == t.port {
+	if destPort == t.port || (t.captureResponse && srcPort == t.port) {
 		// Get the 'data offset' (size of the TCP header in 32-bit words)
 		dataOffset := (buf[12] & 0xF0) >> 4
 
@@ -139,9 +179,16 @@ var bPOST = []byte("POST")
 //
 // For TCP message unique id is Acknowledgment number (see tcp_packet.go)
 func (t *Listener) processTCPPacket(packet *TCPPacket) {
-	defer func() { recover() }()
+	// Don't exit on panic
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("PANIC: pkg:", r, string(debug.Stack()))
+		}
+	}()
 
 	var message *TCPMessage
+
+	isIncoming := packet.DestPort == t.port
 
 	if parentAck, ok := t.seqWithData[packet.Seq]; ok {
 		t.ackAliases[packet.Ack] = parentAck
@@ -152,22 +199,49 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 		packet.Ack = alias
 	}
 
-	mID := packet.Addr.String() + strconv.Itoa(int(packet.SrcPort)) + strconv.Itoa(int(packet.Ack))
+	var responseRequest *request
+
+	if t.captureResponse && !isIncoming {
+		responseRequest, _ = t.respAliases[packet.Ack]
+	}
+
+	mID := packet.Addr.String() + strconv.Itoa(int(packet.DestPort)) + strconv.Itoa(int(packet.Ack))
+
 	message, ok := t.messages[mID]
 
 	if !ok {
 		// We sending messageDelChan channel, so message object can communicate with Listener and notify it if message completed
-		message = NewTCPMessage(mID, t.messageDelChan, packet.Ack)
+		message = NewTCPMessage(mID, t.messageDelChan, packet.Ack, &t.messageExpire, isIncoming)
 		t.messages[mID] = message
+
+		if !isIncoming && responseRequest != nil {
+			message.RequestStart = responseRequest.start
+			message.RequestAck = responseRequest.ack
+		}
 	}
 
+	// Handling Expect: 100-continue requests
 	if bytes.Equal(packet.Data[0:4], bPOST) {
+		// reading last 20 bytes (not counting CRLF): last header value (if no body presented)
 		if bytes.Equal(packet.Data[len(packet.Data)-24:len(packet.Data)-4], bExpect100ContinueCheck) {
 			t.seqWithData[packet.Seq+uint32(len(packet.Data))] = packet.Ack
 
 			// Removing `Expect: 100-continue` header
 			packet.Data = append(packet.Data[:len(packet.Data)-24], packet.Data[len(packet.Data)-2:]...)
 		}
+	}
+
+	if t.captureResponse && isIncoming {
+		message.mu.Lock()
+		// If message have multiple packets, delete previous alias
+		if len(message.packets) > 0 {
+			delete(t.respAliases, message.ResponseAck)
+		}
+		message.mu.Unlock()
+
+		responseAck := packet.Seq + uint32(len(packet.Data))
+		t.respAliases[responseAck] = &request{message.Start, message.Ack}
+		message.ResponseAck = responseAck
 	}
 
 	// Adding packet to message
@@ -177,4 +251,10 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 // Receive TCP messages from the listener channel
 func (t *Listener) Receive() *TCPMessage {
 	return <-t.messagesChan
+}
+
+func (t *Listener) Close() {
+	close(t.quit)
+	t.conn.Close()
+	return
 }

@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+#
+# `xxd` utility included into vim-common package
+# It allow hex decoding/encoding
+
+function log {
+    # Logging to stderr, because stdout/stdin used for data transfer
+    >&2 echo "[DEBUG][ECHO] $1"
+}
+
+while read line; do
+    decoded=$(echo -e "$line" | xxd -r -p)
+
+    header=$(echo -e "$decoded" | head -n +1)
+    payload=$(echo -e "$decoded" | tail -n +2)
+
+    encoded=$(echo -e "$header\n$payload" | xxd -p | tr -d "\\n")
+
+    log ""
+    log "==================================="
+
+    case ${header:0:1} in
+    "1")
+        log "Request type: Request"
+        ;;
+    "2")
+        log "Request type: Original Response"
+        ;;
+    "3")
+        log "Request type: Replayed Response"
+        ;;
+    *)
+        log "Unknown request type $header"
+    esac
+    echo "$encoded"
+
+    log "==================================="
+
+    log "Original data: $line"
+    log "Decoded request: $decoded"
+    log "Encoded data: $encoded"
+done;

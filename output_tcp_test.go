@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/hex"
 	"io"
 	"log"
 	"net"
@@ -50,13 +49,10 @@ func startTCP(cb func([]byte)) net.Listener {
 			go func() {
 				reader := bufio.NewReader(conn)
 				scanner := bufio.NewScanner(reader)
+				scanner.Split(payloadScanner)
 
 				for scanner.Scan() {
-					encodedPayload := scanner.Bytes()
-					// Hex encoding always 2x number of bytes
-					decoded := make([]byte, len(encodedPayload)/2)
-					hex.Decode(decoded, encodedPayload)
-					cb(decoded)
+					cb(scanner.Bytes())
 				}
 			}()
 		}

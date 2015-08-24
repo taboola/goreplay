@@ -18,11 +18,12 @@ var defaultPorts = map[string]string{
 }
 
 type HTTPClientConfig struct {
-	FollowRedirects int
-	Debug           bool
-	OriginalHost    bool
-	Timeout         time.Duration
-	ResponseBufferSize  int
+	FollowRedirects    int
+	Debug              bool
+	OriginalHost       bool
+	ConnectionTimeout  time.Duration
+	Timeout            time.Duration
+	ResponseBufferSize int
 }
 
 type HTTPClient struct {
@@ -52,7 +53,7 @@ func NewHTTPClient(baseURL string, config *HTTPClientConfig) *HTTPClient {
 	}
 
 	if config.ResponseBufferSize == 0 {
-		config.ResponseBufferSize = 512*1024 // 500kb
+		config.ResponseBufferSize = 512 * 1024 // 500kb
 	}
 
 	client := new(HTTPClient)
@@ -69,9 +70,9 @@ func (c *HTTPClient) Connect() (err error) {
 	c.Disconnect()
 
 	if !strings.Contains(c.host, ":") {
-		c.conn, err = net.Dial("tcp", c.host + ":80")
+		c.conn, err = net.DialTimeout("tcp", c.host+":80", c.config.ConnectionTimeout)
 	} else {
-		c.conn, err = net.Dial("tcp", c.host)
+		c.conn, err = net.DialTimeout("tcp", c.host, c.config.ConnectionTimeout)
 	}
 
 	if c.scheme == "https" {
@@ -91,7 +92,7 @@ func (c *HTTPClient) Disconnect() {
 	if c.conn != nil {
 		c.conn.Close()
 		c.conn = nil
-		Debug("Disconnected: ", c.baseURL)
+		Debug("[HTTP] Disconnected: ", c.baseURL)
 	}
 }
 
@@ -124,6 +125,7 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 		Debug("[HTTPClient] Connecting:", c.baseURL)
 		if err = c.Connect(); err != nil {
 			log.Println("[HTTPClient] Connection error:", err)
+			response = errorPayload(HTTP_CONNECTION_ERROR)
 			return
 		}
 	}
@@ -142,6 +144,7 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 
 	if _, err = c.conn.Write(data); err != nil {
 		Debug("[HTTPClient] Write error:", err, c.baseURL)
+		response = errorPayload(HTTP_TIMEOUT)
 		return
 	}
 
@@ -160,12 +163,11 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 
 	if err != nil {
 		Debug("[HTTPClient] Response read error", err, c.conn)
+		response = errorPayload(HTTP_TIMEOUT)
 		return
 	}
 
 	payload := c.respBuf[:n]
-
-	Debug("[HTTPClient] Received:", n)
 
 	if c.config.Debug {
 		Debug("[HTTPClient] Received:", string(payload))
@@ -198,4 +200,29 @@ func (c *HTTPClient) Get(path string) (response []byte, err error) {
 	payload := "GET " + path + " HTTP/1.1\r\n\r\n"
 
 	return c.Send([]byte(payload))
+}
+
+const (
+	// https://support.cloudflare.com/hc/en-us/articles/200171936-Error-520-Web-server-is-returning-an-unknown-error
+	HTTP_UNKNOWN_ERROR = "520"
+	// https://support.cloudflare.com/hc/en-us/articles/200171916-Error-521-Web-server-is-down
+	HTTP_CONNECTION_ERROR = "521"
+	// https://support.cloudflare.com/hc/en-us/articles/200171906-Error-522-Connection-timed-out
+	HTTP_CONNECTION_TIMEOUT = "522"
+	// https://support.cloudflare.com/hc/en-us/articles/200171946-Error-523-Origin-is-unreachable
+	HTTP_UNREACHABLE = "523"
+	// https://support.cloudflare.com/hc/en-us/articles/200171926-Error-524-A-timeout-occurred
+	HTTP_TIMEOUT = "524"
+)
+
+var errorPayloadTemplate = "HTTP/1.1 202 Accepted\r\nDate: Mon, 17 Aug 2015 14:10:11 GMT\r\nContent-Length: 0\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n"
+
+func errorPayload(errorCode string) []byte {
+	payload := make([]byte, len(errorPayloadTemplate))
+	copy(payload, errorPayloadTemplate)
+
+	copy(payload[29:58], []byte(time.Now().Format(time.RFC1123)))
+	copy(payload[9:12], errorCode)
+
+	return payload
 }

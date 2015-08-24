@@ -4,6 +4,7 @@ import (
 	"io"
 	"reflect"
 	"strings"
+	"time"
 )
 
 // InOutPlugins struct for holding references to plugins
@@ -55,11 +56,15 @@ func registerPlugin(constructor interface{}, options ...interface{}) {
 		pluginWrapper = plugin
 	}
 
-	if _, ok := plugin.(io.Reader); ok {
+	_, isR := plugin.(io.Reader)
+	_, isW := plugin.(io.Writer)
+
+	// Some of the output can be Readers as well because return responses
+	if isR && !isW {
 		Plugins.Inputs = append(Plugins.Inputs, pluginWrapper.(io.Reader))
 	}
 
-	if _, ok := plugin.(io.Writer); ok {
+	if isW {
 		Plugins.Outputs = append(Plugins.Outputs, pluginWrapper.(io.Writer))
 	}
 }
@@ -75,7 +80,7 @@ func InitPlugins() {
 	}
 
 	for _, options := range Settings.inputRAW {
-		registerPlugin(NewRAWInput, options)
+		registerPlugin(NewRAWInput, options, time.Duration(0))
 	}
 
 	for _, options := range Settings.inputTCP {

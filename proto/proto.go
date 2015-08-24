@@ -95,6 +95,12 @@ func AddHeader(payload, name, value []byte) []byte {
 	return byteutils.Insert(payload, mimeStart, header)
 }
 
+// Body returns request/response body
+func Body(payload []byte) []byte {
+	// 4 -> len(EMPTY_LINE)
+	return payload[MIMEHeadersEndPos(payload)+4:]
+}
+
 // Path takes payload and retuns request path: Split(firstLine, ' ')[1]
 func Path(payload []byte) []byte {
 	start := bytes.IndexByte(payload, ' ') + 1
@@ -201,4 +207,19 @@ func Method(payload []byte) []byte {
 // It happend to be in same position as request payload path
 func Status(payload []byte) []byte {
 	return Path(payload)
+}
+
+var httpMethods []string = []string{
+	"GET ", "OPTI", "HEAD", "POST", "PUT ", "DELE", "TRAC", "CONN",
+}
+
+func IsHTTPPayload(payload []byte) bool {
+	method := string(payload[0:4])
+
+	for _, m := range httpMethods {
+		if method == m {
+			return true
+		}
+	}
+	return false
 }

@@ -5,19 +5,25 @@ import (
 	"log"
 	"net"
 	"strings"
+	"time"
 )
 
 // RAWInput used for intercepting traffic for given address
 type RAWInput struct {
-	data    chan []byte
-	address string
+	data     chan *raw.TCPMessage
+	address  string
+	expire   time.Duration
+	quit     chan bool
+	listener *raw.Listener
 }
 
 // NewRAWInput constructor for RAWInput. Accepts address with port as argument.
-func NewRAWInput(address string) (i *RAWInput) {
+func NewRAWInput(address string, expire time.Duration) (i *RAWInput) {
 	i = new(RAWInput)
-	i.data = make(chan []byte)
+	i.data = make(chan *raw.TCPMessage)
 	i.address = address
+	i.expire = expire
+	i.quit = make(chan bool)
 
 	go i.listen(address)
 
@@ -25,14 +31,27 @@ func NewRAWInput(address string) (i *RAWInput) {
 }
 
 func (i *RAWInput) Read(data []byte) (int, error) {
-	buf := <-i.data
-	copy(data, buf)
+	msg := <-i.data
+	buf := msg.Bytes()
 
-	return len(buf), nil
+	var header []byte
+
+	if msg.IsIncoming {
+		header = payloadHeader(RequestPayload, msg.UUID(), msg.Start)
+	} else {
+		header = payloadHeader(ResponsePayload, msg.UUID(), msg.End-msg.RequestStart)
+	}
+
+	copy(data[0:len(header)], header)
+	copy(data[len(header):], buf)
+
+	return len(buf) + len(header), nil
 }
 
 func (i *RAWInput) listen(address string) {
 	address = strings.Replace(address, "[::]", "127.0.0.1", -1)
+
+	Debug("Listening for traffic on: " + address)
 
 	host, port, err := net.SplitHostPort(address)
 
@@ -40,16 +59,27 @@ func (i *RAWInput) listen(address string) {
 		log.Fatal("input-raw: error while parsing address", err)
 	}
 
-	listener := raw.NewListener(host, port)
+	i.listener = raw.NewListener(host, port, i.expire, true)
 
 	for {
-		// Receiving TCPMessage object
-		m := listener.Receive()
+		select {
+		case <-i.quit:
+			return
+		default:
+		}
 
-		i.data <- m.Bytes()
+		// Receiving TCPMessage object
+		m := i.listener.Receive()
+
+		i.data <- m
 	}
 }
 
 func (i *RAWInput) String() string {
 	return "RAW Socket input: " + i.address
+}
+
+func (i *RAWInput) Close() {
+	i.listener.Close()
+	close(i.quit)
 }

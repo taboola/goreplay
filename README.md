@@ -61,7 +61,7 @@ gor --input-tcp :28020 --output-http "http://staging.com"  --output-http "http:/
 ```
 
 ### HTTP output workers
-By default Gor creates dynamic pull of workers: it starts with 10 and create more http output workers when the http output queue length is greater than 10.  The number of workers created (N) is equal to the queue length at the time which it is checked and found to have a length greater than 10. The queue length is checked every time a message is written to the http output queue.  No more workers will be spawned until that request to spawn N workers is satisfied.  If a dynamic worker cannot process a message at that time, it will sleep for 100 milliseconds. If a dynamic worker cannot process a message for 2 seconds it dies.  
+By default Gor creates dynamic pull of workers: it starts with 10 and create more http output workers when the http output queue length is greater than 10.  The number of workers created (N) is equal to the queue length at the time which it is checked and found to have a length greater than 10. The queue length is checked every time a message is written to the http output queue.  No more workers will be spawned until that request to spawn N workers is satisfied.  If a dynamic worker cannot process a message at that time, it will sleep for 100 milliseconds. If a dynamic worker cannot process a message for 2 seconds it dies.
 You may specify fixed number of workers using  `--output-http-workers=20` option.
 
 ### Follow redirects
@@ -149,7 +149,7 @@ gor --input-raw :80 --output-http "http://staging.server" \
 ```
 
 ### Rewriting original request
-Gor supports built-in basic rewriting support, for complex logic see https://github.com/buger/gor/pull/162
+Gor supports some basic request rewriting support. For complex logic you can use middleware, see below.
 
 #### Rewrite URL based on a mapping
 ```
@@ -176,6 +176,74 @@ gor --input-raw :80 --output-http "http://staging.server" \
 Host header gets special treatment. By default Host get set to the value specified in --output-http. If you manually set --http-header "Host: anonther.com", Gor will not override Host value.
 
 If you app accepts traffic from multiple domain, and you want to keep original headers, there is specific `--http-original-host` with tells Gor do not touch Host header at all.
+
+### Middleware
+Middleware is a program that accepts request and response payload at STDIN and emits modified requests at STDOUT. You can implement any custom logic like stripping private data, advanced rewriting, support for oAuth and etc.
+
+```
+                   Original request      +--------------+
++-------------+----------STDIN---------->+              |
+|  Gor input  |                          |  Middleware  |
++-------------+----------STDIN---------->+              |
+                   Original response     +------+---+---+
+                                                |   ^
++-------------+    Modified request             v   |
+| Gor output  +<---------STDOUT-----------------+   |
++-----+-------+                                     |
+      |                                             |
+      |            Replayed response                |
+      +------------------STDIN----------------->----+
+```
+
+Middleware can be written in any language, see `examples/middleware` folder for examples.
+Middleware program should accept the fact that all communication with Gor is asynchronous, there is no guarantee that original request and response messages will come one after each other. Your app should take care of the state if logic depends on original or replayed response, see `examples/middleware/token_modifier.go` as example.
+
+Simple bash echo middleware (returns same request) will look like this:
+```bash
+while read line; do
+  echo $line
+end
+```
+
+Middleware can be enabled using `--middleware` option, by specifying path to executable file:
+```
+gor --input-raw :80 --middleware "/opt/middleware_executable" --output-http "http://staging.server"
+```
+
+#### Communication protocol
+All messages should be hex encoded, new line character specifieds the end of the message, eg. new message per line.
+
+Decoded payload consist of 2 parts: header and HTTP payload, separated by new line character.  
+
+Example request payload:
+
+```
+1 932079936fa4306fc308d67588178d17d823647c 1439818823587396305
+GET /a HTTP/1.1
+Host: 127.0.0.1
+
+```
+
+Example response payload:
+
+```
+2 8e091765ae902fef8a2b7d9dd960e9d52222bd8c 2782013
+HTTP/1.1 200 OK
+Date: Mon, 17 Aug 2015 13:40:23 GMT
+Content-Length: 0
+Content-Type: text/plain; charset=utf-8
+
+```
+
+Header contains request meta information separated by spaces. First value is payload type, possible values: `1` - request, `2` - original response, `3` - replayed response.
+Next goes request id: unique among all requests (sha1 of time and Ack), but remain same for original and replayed response, so you can create associations between request and responses. Third argument varies depending on payload type: for request - start time, for responses - round-trip time.
+
+HTTP payload is unmodified HTTP requests/responses intercepted from network. You can read more about request format [here](http://www.jmarshall.com/easy/http/), [here](https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol) and [here](http://www.w3.org/Protocols/rfc2616/rfc2616.html). You can operate with payload as you want, add headers, change path, and etc. Basically you just editing a string, just ensure that it is RCF compliant.
+
+At the end modified (or untouched) request should be emitted back to STDOUT, keeping original header, and hex-encoded. If you want to filter request, just not send it. Emitting responses back is required, even if you did not touch them.
+
+#### Advanced example
+Imagine that you have auth system that randomly generate access tokens, which used later for accessing secure content. Since there is no pre-defined token value, naive approach without middleware (or if middleware use only request payloads) will fail, because replayed server have own tokens, not synced with origin. To fix this, our middleware should take in account responses of replayed and origin server, store `originalToken -> replayedToken` aliases and rewrite all requests using this token to use replayed alias. See `examples/middleware/token_modifier.go` and `middleware_test.go#TestTokenMiddleware` as example of described scheme.
 
 ### Saving requests to file and replaying them
 You can save requests to file, and replay them later:

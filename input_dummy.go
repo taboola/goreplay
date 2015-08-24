@@ -21,6 +21,7 @@ func NewDummyInput(options string) (di *DummyInput) {
 
 func (i *DummyInput) Read(data []byte) (int, error) {
 	buf := <-i.data
+
 	copy(data, buf)
 
 	return len(buf), nil
@@ -32,7 +33,12 @@ func (i *DummyInput) emit() {
 	for {
 		select {
 		case <-ticker.C:
-			i.data <- []byte("GET / HTTP/1.1\r\n\r\n")
+			uuid := uuid()
+			reqh := payloadHeader(RequestPayload, uuid, time.Now().UnixNano())
+			i.data <- append(reqh, []byte("POST /pub/WWW/å HTTP/1.1\nHost: www.w3.org\r\nContent-Length: 7\r\n\r\na=1&b=2")...)
+
+			resh := payloadHeader(ResponsePayload, uuid, 1)
+			i.data <- append(resh, []byte("HTTP/1.1 200 OK\r\n\r\n")...)
 		}
 	}
 }

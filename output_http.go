@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/buger/gor/proto"
 	"io"
 	"log"
 	"sync/atomic"
@@ -8,6 +9,12 @@ import (
 )
 
 const initialDynamicWorkers = 10
+
+type response struct {
+	payload       []byte
+	uuid          []byte
+	roundTripTime int64
+}
 
 // HTTPOutputConfig struct for holding http output configuration
 type HTTPOutputConfig struct {
@@ -22,6 +29,8 @@ type HTTPOutputConfig struct {
 	OriginalHost bool
 
 	Debug bool
+
+	TrackResponses bool
 }
 
 // HTTPOutput plugin manage pool of workers which send request to replayed server
@@ -37,6 +46,8 @@ type HTTPOutput struct {
 	limit   int
 	queue   chan []byte
 
+	responses chan response
+
 	needWorker chan int
 
 	config *HTTPOutputConfig
@@ -49,7 +60,6 @@ type HTTPOutput struct {
 // NewHTTPOutput constructor for HTTPOutput
 // Initialize workers
 func NewHTTPOutput(address string, config *HTTPOutputConfig) io.Writer {
-
 	o := new(HTTPOutput)
 
 	o.address = address
@@ -60,6 +70,7 @@ func NewHTTPOutput(address string, config *HTTPOutputConfig) io.Writer {
 	}
 
 	o.queue = make(chan []byte, 100)
+	o.responses = make(chan response, 100)
 	o.needWorker = make(chan int, 1)
 
 	// Initial workers count
@@ -72,6 +83,10 @@ func NewHTTPOutput(address string, config *HTTPOutputConfig) io.Writer {
 	if o.config.elasticSearch != "" {
 		o.elasticSearch = new(ESPlugin)
 		o.elasticSearch.Init(o.config.elasticSearch)
+	}
+
+	if len(Settings.middleware) > 0 {
+		o.config.TrackResponses = true
 	}
 
 	go o.workerMaster()
@@ -132,6 +147,10 @@ func (o *HTTPOutput) startWorker() {
 }
 
 func (o *HTTPOutput) Write(data []byte) (n int, err error) {
+	if !isRequestPayload(data) {
+		return len(data), nil
+	}
+
 	buf := make([]byte, len(data))
 	copy(buf, data)
 
@@ -152,13 +171,37 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 	return len(data), nil
 }
 
+func (o *HTTPOutput) Read(data []byte) (int, error) {
+	resp := <-o.responses
+
+	Debug("[OUTPUT-HTTP] Received response:", string(resp.payload))
+
+	header := payloadHeader(ReplayedResponsePayload, resp.uuid, resp.roundTripTime)
+	copy(data[0:len(header)], header)
+	copy(data[len(header):], resp.payload)
+
+	return len(resp.payload) + len(header), nil
+}
+
 func (o *HTTPOutput) sendRequest(client *HTTPClient, request []byte) {
+	meta := payloadMeta(request)
+	uuid := meta[1]
+
+	body := payloadBody(request)
+	if !proto.IsHTTPPayload(body) {
+		return
+	}
+
 	start := time.Now()
-	resp, err := client.Send(request)
+	resp, err := client.Send(body)
 	stop := time.Now()
 
 	if err != nil {
 		log.Println("Request error:", err)
+	}
+
+	if o.config.TrackResponses {
+		o.responses <- response{resp, uuid, stop.UnixNano() - start.UnixNano()}
 	}
 
 	if o.elasticSearch != nil {
