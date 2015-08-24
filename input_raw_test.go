@@ -38,7 +38,9 @@ func TestRAWInput(t *testing.T) {
 			atomic.AddInt64(&respCounter, 1)
 		}
 
-		log.Println(reqCounter, respCounter)
+		if Settings.debug {
+			log.Println(reqCounter, respCounter)
+		}
 
 		wg.Done()
 	})
