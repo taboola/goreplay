@@ -179,6 +179,9 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 }
 
 func TestInputRAWLargePayload(t *testing.T) {
+	Settings.verbose = true
+	Settings.debug = true
+
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
@@ -201,7 +204,7 @@ func TestInputRAWLargePayload(t *testing.T) {
 	}))
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr, testRawExpire)
+	input := NewRAWInput(originAddr, time.Second)
 	defer input.Close()
 
 	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
