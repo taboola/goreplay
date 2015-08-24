@@ -179,9 +179,6 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 }
 
 func TestInputRAWLargePayload(t *testing.T) {
-	Settings.verbose = true
-	Settings.debug = true
-
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
