@@ -46,7 +46,6 @@ func NewTCPMessage(ID string, delChan chan *TCPMessage, Ack uint32, expire *time
 	msg.Start = time.Now().UnixNano()
 	msg.packetsChan = make(chan *TCPPacket)
 	msg.delChan = delChan // used for notifying that message completed or expired
-	msg.timer = time.NewTimer(0)
 
 	go msg.listen()
 
@@ -69,6 +68,10 @@ func (t *TCPMessage) listen() {
 
 // Timeout notifies message to stop listening, close channel and message ready to be sent
 func (t *TCPMessage) Timeout() {
+	if t.timer != nil {
+		t.timer.Stop()
+	}
+
 	select {
 	// In some cases Timeout can be called multiple times (do not know how yet)
 	// Ensure that we did not close channel 2 times
@@ -139,12 +142,14 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 		t.Timeout()
 	} else {
 		// If more then 1 packet, wait for more, and set expiration
-		if len(t.packets) == 1 {
+		if len(t.packets) > 1 {
 			// Every time we receive packet we reset this timer
 			t.timer = time.AfterFunc(*t.expire, t.Timeout)
 		} else {
 			// Reset message timeout timer
-			t.timer.Reset(*t.expire)
+			if t.timer != nil {
+				t.timer.Reset(*t.expire)
+			}
 		}
 	}
 }
