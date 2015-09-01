@@ -124,8 +124,9 @@ func (t *Listener) readRAWSocket() {
 
 	defer t.conn.Close()
 
+	buf := make([]byte, 64*1024) // 64kb
+
 	for {
-		buf := make([]byte, 64*1024) // 64kb
 		// Note: ReadFrom receive messages without IP header
 		n, addr, err := t.conn.ReadFrom(buf)
 
@@ -139,14 +140,15 @@ func (t *Listener) readRAWSocket() {
 		}
 
 		if n > 0 {
-			go t.parsePacket(addr, buf[:n])
-		}
-	}
-}
+			if t.isValidPacket(buf[:n]) {
+				newBuf := make([]byte, n)
+				copy(newBuf, buf[:n])
 
-func (t *Listener) parsePacket(addr net.Addr, buf []byte) {
-	if t.isValidPacket(buf) {
-		t.packetsChan <- ParseTCPPacket(addr, buf)
+				go func(newBuf []byte){
+					t.packetsChan <- ParseTCPPacket(addr, newBuf)
+				}(newBuf)
+			}
+		}
 	}
 }
 
@@ -232,12 +234,10 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 	}
 
 	if t.captureResponse && isIncoming {
-		message.mu.Lock()
 		// If message have multiple packets, delete previous alias
 		if len(message.packets) > 0 {
 			delete(t.respAliases, message.ResponseAck)
 		}
-		message.mu.Unlock()
 
 		responseAck := packet.Seq + uint32(len(packet.Data))
 		t.respAliases[responseAck] = &request{message.Start, message.Ack}
@@ -245,7 +245,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 	}
 
 	// Adding packet to message
-	message.packetsChan <- packet
+	message.AddPacket(packet)
 }
 
 // Receive TCP messages from the listener channel

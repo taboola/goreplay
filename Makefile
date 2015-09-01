@@ -13,6 +13,10 @@ release-x86:
 dbuild:
 	docker build -t gor .
 
+
+profile:
+	go build && ./gor --output-http="http://localhost:9000" --input-dummy 0 --input-raw :9000 --input-http :9000 --memprofile=./mem.out --cpuprofile=./cpu.out --stats --output-http-stats --output-http-timeout 100ms
+
 dlint:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i --env GORACE="halt_on_error=1" gor golint $(PKG)
 
@@ -20,7 +24,7 @@ drace:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i --env GORACE="halt_on_error=1" gor go test ./... $(ARGS) -v -race -timeout 15s
 
 dtest:
-	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go test ./... $(ARGS) -v -timeout 60s
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go test ./ -timeout 60s $(ARGS) -v
 
 dcover:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i --env GORACE="halt_on_error=1" gor go test $(ARGS) -race -v -timeout 15s -coverprofile=coverage.out
@@ -40,7 +44,7 @@ drun:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-dummy=0 --output-http="http://localhost:9000" --input-raw :9000 --input-http :9000 --verbose --debug --middleware "./examples/middleware/echo.sh"
 
 drun-2:
-	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-file="./fixtures/requests.gor" --output-dummy=0 --verbose --debug --middleware "java -cp ./examples/middleware echo"
+	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-http :9001 --output-dummy=0
 
 drecord:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-dummy=0 --output-file=requests.gor --verbose --debug
