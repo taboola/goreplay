@@ -1,14 +1,14 @@
 package main
 
 import (
+	"github.com/buger/gor/proto"
 	"io"
+	"log"
 	"net/http"
+	"os/exec"
 	"strings"
 	"sync"
 	"testing"
-	"os/exec"
-	"log"
-	"github.com/buger/gor/proto"
 )
 
 func TestHTTPInput(t *testing.T) {
@@ -36,7 +36,6 @@ func TestHTTPInput(t *testing.T) {
 
 	close(quit)
 }
-
 
 func TestInputHTTPLargePayload(t *testing.T) {
 	wg := new(sync.WaitGroup)

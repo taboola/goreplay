@@ -144,7 +144,7 @@ func (t *Listener) readRAWSocket() {
 				newBuf := make([]byte, n)
 				copy(newBuf, buf[:n])
 
-				go func(newBuf []byte){
+				go func(newBuf []byte) {
 					t.packetsChan <- ParseTCPPacket(addr, newBuf)
 				}(newBuf)
 			}

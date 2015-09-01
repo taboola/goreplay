@@ -2,9 +2,9 @@ package main
 
 import (
 	"log"
+	"runtime"
 	"strconv"
 	"time"
-	"runtime"
 )
 
 const (

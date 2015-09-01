@@ -133,7 +133,7 @@ func TestEchoMiddleware(t *testing.T) {
 	// Should receive 2 requests from original + 2 from replayed
 	client := NewHTTPClient(from.URL, &HTTPClientConfig{Debug: false})
 
-	for i:=0; i<10; i++ {
+	for i := 0; i < 10; i++ {
 		wg.Add(4)
 		// Request should be echoed
 		client.Get("/a")

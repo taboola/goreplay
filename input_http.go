@@ -45,9 +45,9 @@ func (i *HTTPInput) handler(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, http.StatusText(200), 200)
 
 	select {
-		case i.data <- buf:
-		default:
-			Debug("[INPUT-HTTP] Dropping requests because output can't process them fast enough")
+	case i.data <- buf:
+	default:
+		Debug("[INPUT-HTTP] Dropping requests because output can't process them fast enough")
 	}
 }
 
