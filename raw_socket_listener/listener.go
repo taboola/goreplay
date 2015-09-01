@@ -236,12 +236,10 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 	}
 
 	if t.captureResponse && isIncoming {
-		message.mu.Lock()
 		// If message have multiple packets, delete previous alias
 		if len(message.packets) > 0 {
 			delete(t.respAliases, message.ResponseAck)
 		}
-		message.mu.Unlock()
 
 		responseAck := packet.Seq + uint32(len(packet.Data))
 		t.respAliases[responseAck] = &request{message.Start, message.Ack}

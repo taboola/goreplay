@@ -49,9 +49,11 @@ func NewTCPMessage(ID string, delChan chan *TCPMessage, Ack uint32, expire *time
 
 // Timeout notifies message to stop listening, close channel and message ready to be sent
 func (t *TCPMessage) Timeout() {
+	t.mu.Lock()
 	if t.timer != nil {
 		t.timer.Stop()
 	}
+	t.mu.Unlock()
 
 	// Notify RAWListener that message is ready to be send to replay server
 	// Responses without requests gets discarded
@@ -81,9 +83,6 @@ func (t *TCPMessage) Size() (size int) {
 // AddPacket to the message and ensure packet uniqueness
 // TCP allows that packet can be re-send multiple times
 func (t *TCPMessage) AddPacket(packet *TCPPacket) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
 	packetFound := false
 
 	for _, pkt := range t.packets {
@@ -109,6 +108,7 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 	if !t.isMultipart() {
 		t.Timeout()
 	} else {
+		t.mu.Lock()
 		// If more then 1 packet, wait for more, and set expiration
 		if len(t.packets) == 1 {
 			// Every time we receive packet we reset this timer
@@ -119,6 +119,7 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 				t.timer.Reset(*t.expire)
 			}
 		}
+		t.mu.Unlock()
 	}
 }
 
