@@ -140,17 +140,15 @@ func (t *Listener) readRAWSocket() {
 		}
 
 		if n > 0 {
-			newBuf := make([]byte, n)
-			copy(newBuf, buf[:n])
+			if t.isValidPacket(buf[:n]) {
+				newBuf := make([]byte, n)
+				copy(newBuf, buf[:n])
 
-			go t.parsePacket(addr, newBuf)
+				go func(newBuf []byte){
+					t.packetsChan <- ParseTCPPacket(addr, newBuf)
+				}(newBuf)
+			}
 		}
-	}
-}
-
-func (t *Listener) parsePacket(addr net.Addr, buf []byte) {
-	if t.isValidPacket(buf) {
-		t.packetsChan <- ParseTCPPacket(addr, buf)
 	}
 }
 
