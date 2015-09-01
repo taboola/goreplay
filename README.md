@@ -348,7 +348,7 @@ https://github.com/buger/gor/releases
   gor --input-raw :8080 --output-http staging.com --http-allow-method GET --http-allow-method OPTIONS
   -http-allow-url=[]: A regexp to match requests against. Filter get matched agains full url with domain. Anything else will be dropped:
    gor --input-raw :8080 --output-http staging.com --http-allow-url ^www.
-  -http-diallow-url=[]: A regexp to match requests against. Filter get matched agains full url with domain. Anything else will be dropped:
+  -http-disallow-url=[]: A regexp to match requests against. Filter get matched agains full url with domain. Anything else will be forwarded:
    gor --input-raw :8080 --output-http staging.com --http-disallow-url ^www.
   -http-header-limiter=[]: Takes a fraction of requests, consistently taking or rejecting a request based on the FNV32-1A hash of a specific header:
    gor --input-raw :8080 --output-http staging.com --http-header-imiter user-id:25%
