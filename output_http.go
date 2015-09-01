@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/buger/gor/proto"
 	"io"
-	"log"
 	"sync/atomic"
 	"time"
 )
@@ -69,8 +68,8 @@ func NewHTTPOutput(address string, config *HTTPOutputConfig) io.Writer {
 		o.queueStats = NewGorStat("output_http")
 	}
 
-	o.queue = make(chan []byte, 100)
-	o.responses = make(chan response, 100)
+	o.queue = make(chan []byte, 1000)
+	o.responses = make(chan response, 1000)
 	o.needWorker = make(chan int, 1)
 
 	// Initial workers count
@@ -197,7 +196,7 @@ func (o *HTTPOutput) sendRequest(client *HTTPClient, request []byte) {
 	stop := time.Now()
 
 	if err != nil {
-		log.Println("Request error:", err)
+		Debug("Request error:", err)
 	}
 
 	if o.config.TrackResponses {

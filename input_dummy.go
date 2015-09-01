@@ -35,10 +35,10 @@ func (i *DummyInput) emit() {
 		case <-ticker.C:
 			uuid := uuid()
 			reqh := payloadHeader(RequestPayload, uuid, time.Now().UnixNano())
-			i.data <- append(reqh, []byte("POST /pub/WWW/å HTTP/1.1\nHost: www.w3.org\r\nContent-Length: 7\r\n\r\na=1&b=2")...)
+			i.data <- append(reqh, []byte("POST /pub/WWW/å HTTP/1.1\r\nHost: www.w3.org\r\nUser-Agent: Go 1.1 package http\r\nAccept-Encoding: gzip\r\nContent-Length: 7\r\n\r\na=1&b=2")...)
 
 			resh := payloadHeader(ResponsePayload, uuid, 1)
-			i.data <- append(resh, []byte("HTTP/1.1 200 OK\r\n\r\n")...)
+			i.data <- append(resh, []byte("HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n")...)
 		}
 	}
 }

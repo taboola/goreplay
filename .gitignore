@@ -8,3 +8,7 @@
 *.gz
 
 *.class
+
+*.test
+
+gor

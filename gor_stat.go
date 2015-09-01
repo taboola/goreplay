@@ -4,6 +4,7 @@ import (
 	"log"
 	"strconv"
 	"time"
+	"runtime"
 )
 
 const (
@@ -27,7 +28,7 @@ func NewGorStat(statName string) (s *GorStat) {
 	s.count = 0
 
 	if Settings.stats {
-		log.Println(s.statName + ":latest,mean,max,count,count/second")
+		log.Println(s.statName + ":latest,mean,max,count,count/second,gcount")
 		go s.reportStats()
 	}
 	return
@@ -54,7 +55,7 @@ func (s *GorStat) Reset() {
 }
 
 func (s *GorStat) String() string {
-	return s.statName + ":" + strconv.Itoa(s.latest) + "," + strconv.Itoa(s.mean) + "," + strconv.Itoa(s.max) + "," + strconv.Itoa(s.count) + "," + strconv.Itoa(s.count/rate)
+	return s.statName + ":" + strconv.Itoa(s.latest) + "," + strconv.Itoa(s.mean) + "," + strconv.Itoa(s.max) + "," + strconv.Itoa(s.count) + "," + strconv.Itoa(s.count/rate) + "," + strconv.Itoa(runtime.NumGoroutine())
 }
 
 func (s *GorStat) reportStats() {

@@ -60,10 +60,10 @@ func profileCPU(cpuprofile string) {
 		}
 		pprof.StartCPUProfile(f)
 
-		time.AfterFunc(60*time.Second, func() {
+		time.AfterFunc(30*time.Second, func() {
 			pprof.StopCPUProfile()
 			f.Close()
-			log.Println("Stop profiling after 60 seconds")
+			log.Println("Stop profiling after 30 seconds")
 		})
 	}
 }
@@ -74,7 +74,7 @@ func profileMEM(memprofile string) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		time.AfterFunc(60*time.Second, func() {
+		time.AfterFunc(30*time.Second, func() {
 			pprof.WriteHeapProfile(f)
 			f.Close()
 		})

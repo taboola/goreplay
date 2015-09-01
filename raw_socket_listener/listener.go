@@ -124,8 +124,9 @@ func (t *Listener) readRAWSocket() {
 
 	defer t.conn.Close()
 
+	buf := make([]byte, 64*1024) // 64kb
+
 	for {
-		buf := make([]byte, 64*1024) // 64kb
 		// Note: ReadFrom receive messages without IP header
 		n, addr, err := t.conn.ReadFrom(buf)
 
@@ -139,7 +140,10 @@ func (t *Listener) readRAWSocket() {
 		}
 
 		if n > 0 {
-			go t.parsePacket(addr, buf[:n])
+			newBuf := make([]byte, n)
+			copy(newBuf, buf[:n])
+
+			go t.parsePacket(addr, newBuf)
 		}
 	}
 }
@@ -245,7 +249,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 	}
 
 	// Adding packet to message
-	message.packetsChan <- packet
+	message.AddPacket(packet)
 }
 
 // Receive TCP messages from the listener channel

@@ -131,17 +131,18 @@ func TestEchoMiddleware(t *testing.T) {
 	time.Sleep(time.Millisecond)
 
 	// Should receive 2 requests from original + 2 from replayed
-	wg.Add(4)
-
 	client := NewHTTPClient(from.URL, &HTTPClientConfig{Debug: false})
 
-	// Request should be echoed
-	client.Get("/a")
-	client.Get("/b")
+	for i:=0; i<10; i++ {
+		wg.Add(4)
+		// Request should be echoed
+		client.Get("/a")
+		client.Get("/b")
+	}
 
 	wg.Wait()
 	close(quit)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	Settings.middleware = ""
 }

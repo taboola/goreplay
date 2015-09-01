@@ -31,8 +31,6 @@ type TCPMessage struct {
 
 	timer *time.Timer // Used for expire check
 
-	packetsChan chan *TCPPacket
-
 	delChan chan *TCPMessage
 
 	expire *time.Duration
@@ -44,26 +42,9 @@ type TCPMessage struct {
 func NewTCPMessage(ID string, delChan chan *TCPMessage, Ack uint32, expire *time.Duration, IsIncoming bool) (msg *TCPMessage) {
 	msg = &TCPMessage{ID: ID, Ack: Ack, expire: expire, IsIncoming: IsIncoming}
 	msg.Start = time.Now().UnixNano()
-	msg.packetsChan = make(chan *TCPPacket)
 	msg.delChan = delChan // used for notifying that message completed or expired
 
-	go msg.listen()
-
 	return
-}
-
-func (t *TCPMessage) listen() {
-	for {
-		select {
-		case packet, more := <-t.packetsChan:
-			if more {
-				t.AddPacket(packet)
-			} else {
-				// Stop loop if channel closed
-				return
-			}
-		}
-	}
 }
 
 // Timeout notifies message to stop listening, close channel and message ready to be sent
@@ -72,23 +53,10 @@ func (t *TCPMessage) Timeout() {
 		t.timer.Stop()
 	}
 
-	select {
-	// In some cases Timeout can be called multiple times (do not know how yet)
-	// Ensure that we did not close channel 2 times
-	case packet, ok := <-t.packetsChan:
-		if ok {
-			t.AddPacket(packet)
-			t.Timeout()
-		} else {
-			return
-		}
-	default:
-		close(t.packetsChan)
-		// Notify RAWListener that message is ready to be send to replay server
-		// Responses without requests gets discarded
-		if t.IsIncoming || t.RequestStart != 0 {
-			t.delChan <- t
-		}
+	// Notify RAWListener that message is ready to be send to replay server
+	// Responses without requests gets discarded
+	if t.IsIncoming || t.RequestStart != 0 {
+		t.delChan <- t
 	}
 }
 
@@ -142,7 +110,7 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 		t.Timeout()
 	} else {
 		// If more then 1 packet, wait for more, and set expiration
-		if len(t.packets) > 1 {
+		if len(t.packets) == 1 {
 			// Every time we receive packet we reset this timer
 			t.timer = time.AfterFunc(*t.expire, t.Timeout)
 		} else {

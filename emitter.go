@@ -48,7 +48,7 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 		nr, er := src.Read(buf)
 
 		if nr > 0 && len(buf) > nr {
-			payload := buf[0:nr]
+			payload := buf[:nr]
 
 			_maxN := nr
 			if nr > 500 {
@@ -56,7 +56,7 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 			}
 
 			if Settings.debug {
-				Debug("[EMITTER] input:", string(payload[0:_maxN]))
+				Debug("[EMITTER] input:", string(payload[0:_maxN]), nr, "from:", src)
 			}
 
 			if modifier != nil && isRequestPayload(payload) {
