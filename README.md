@@ -61,11 +61,11 @@ gor --input-tcp :28020 --output-http "http://staging.com"  --output-http "http:/
 ```
 
 ### HTTP output workers
-By default Gor creates dynamic pull of workers: it starts with 10 and create more http output workers when the http output queue length is greater than 10.  The number of workers created (N) is equal to the queue length at the time which it is checked and found to have a length greater than 10. The queue length is checked every time a message is written to the http output queue.  No more workers will be spawned until that request to spawn N workers is satisfied.  If a dynamic worker cannot process a message at that time, it will sleep for 100 milliseconds. If a dynamic worker cannot process a message for 2 seconds it dies.
+By default Gor creates a dynamic pool of workers: it starts with 10 and creates more http output workers when the http output queue length is greater than 10.  The number of workers created (N) is equal to the queue length at the time which it is checked and found to have a length greater than 10. The queue length is checked every time a message is written to the http output queue.  No more workers will be spawned until that request to spawn N workers is satisfied.  If a dynamic worker cannot process a message at that time, it will sleep for 100 milliseconds. If a dynamic worker cannot process a message for 2 seconds it dies.
 You may specify fixed number of workers using  `--output-http-workers=20` option.
 
 ### Follow redirects
-By default Gor will ignore all redirects since they are handled by clients using your app, but in scenarios when your replayed environment introduce new redirects, you can enable them like this: 
+By default Gor will ignore all redirects since they are handled by clients using your app, but in scenarios where your replayed environment introduces new redirects, you can enable them like this: 
 ```
 gor --input-tcp replay.local:28020 --output-http http://staging.com --output-http-redirects 2
 ```
@@ -78,10 +78,10 @@ gor --input-tcp replay.local:28020 --output-http http://staging.com --output-htt
 ```
 
 ### Rate limiting
-Rate limiting can be useful if you want forward only part of production traffic and not overload your staging environment. There is 2 strategies: dropping random requests or dropping fraction of requests based on Header or URL param value. 
+Rate limiting can be useful if you only want to forward parts of production traffic and not overload your staging environment. There are 2 strategies: dropping random requests or dropping fractions of requests based on Header or URL param value. 
 
 #### Dropping random requests
-Every input and output support random rate limiting.
+Every input and output supports random rate limiting.
 There are 2 limiting algorithms: absolute or percentage based. 
 
 Absolute: If for current second it reached specified requests limit - disregard the rest, on next second counter reseted.
