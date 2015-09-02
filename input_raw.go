@@ -37,9 +37,9 @@ func (i *RAWInput) Read(data []byte) (int, error) {
 	var header []byte
 
 	if msg.IsIncoming {
-		header = payloadHeader(RequestPayload, msg.UUID(), msg.Start)
+		header = payloadHeader(RequestPayload, msg.UUID(), msg.Start.UnixNano())
 	} else {
-		header = payloadHeader(ResponsePayload, msg.UUID(), msg.End-msg.RequestStart)
+		header = payloadHeader(ResponsePayload, msg.UUID(), msg.End.UnixNano()-msg.RequestStart.UnixNano())
 	}
 
 	copy(data[0:len(header)], header)

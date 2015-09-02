@@ -7,7 +7,6 @@ import (
 	"github.com/buger/gor/proto"
 	"log"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -21,45 +20,23 @@ type TCPMessage struct {
 	ID           string // Message ID
 	Ack          uint32
 	ResponseAck  uint32
-	RequestStart int64
+	RequestStart time.Time
 	RequestAck   uint32
-	Start        int64
-	End          int64
+	Start        time.Time
+	End          time.Time
 	IsIncoming   bool
 
 	packets []*TCPPacket
 
-	timer *time.Timer // Used for expire check
-
 	delChan chan *TCPMessage
-
-	expire *time.Duration
-
-	mu sync.Mutex
 }
 
 // NewTCPMessage pointer created from a Acknowledgment number and a channel of messages readuy to be deleted
-func NewTCPMessage(ID string, delChan chan *TCPMessage, Ack uint32, expire *time.Duration, IsIncoming bool) (msg *TCPMessage) {
-	msg = &TCPMessage{ID: ID, Ack: Ack, expire: expire, IsIncoming: IsIncoming}
-	msg.Start = time.Now().UnixNano()
-	msg.delChan = delChan // used for notifying that message completed or expired
+func NewTCPMessage(ID string, Ack uint32, IsIncoming bool) (msg *TCPMessage) {
+	msg = &TCPMessage{ID: ID, Ack: Ack, IsIncoming: IsIncoming}
+	msg.Start = time.Now()
 
 	return
-}
-
-// Timeout notifies message to stop listening, close channel and message ready to be sent
-func (t *TCPMessage) Timeout() {
-	t.mu.Lock()
-	if t.timer != nil {
-		t.timer.Stop()
-	}
-	t.mu.Unlock()
-
-	// Notify RAWListener that message is ready to be send to replay server
-	// Responses without requests gets discarded
-	if t.IsIncoming || t.RequestStart != 0 {
-		t.delChan <- t
-	}
 }
 
 // Bytes return message content
@@ -73,7 +50,9 @@ func (t *TCPMessage) Bytes() (output []byte) {
 
 // Size returns total size of message
 func (t *TCPMessage) Size() (size int) {
-	for _, p := range t.packets {
+	size += len(proto.Body(t.packets[0].Data))
+
+	for _, p := range t.packets[1:] {
 		size += len(p.Data)
 	}
 
@@ -102,29 +81,12 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 			t.packets = append([]*TCPPacket{packet}, t.packets...)
 		}
 
-		t.End = time.Now().UnixNano()
-	}
-
-	if !t.isMultipart() {
-		t.Timeout()
-	} else {
-		t.mu.Lock()
-		// If more then 1 packet, wait for more, and set expiration
-		if len(t.packets) == 1 {
-			// Every time we receive packet we reset this timer
-			t.timer = time.AfterFunc(*t.expire, t.Timeout)
-		} else {
-			// Reset message timeout timer
-			if t.timer != nil {
-				t.timer.Reset(*t.expire)
-			}
-		}
-		t.mu.Unlock()
+		t.End = time.Now()
 	}
 }
 
 // isMultipart returns true if message contains from multiple tcp packets
-func (t *TCPMessage) isMultipart() bool {
+func (t *TCPMessage) IsMultipart() bool {
 	if len(t.packets) > 1 {
 		return true
 	}
@@ -143,7 +105,7 @@ func (t *TCPMessage) isMultipart() bool {
 					l, _ := strconv.Atoi(string(length))
 
 					// If content-length equal current body length
-					if l > 0 && l == len(proto.Body(payload)) {
+					if l > 0 && l == t.Size() {
 						return false
 					}
 				}
@@ -158,7 +120,7 @@ func (t *TCPMessage) isMultipart() bool {
 			l, _ := strconv.Atoi(string(length))
 
 			// If content-length equal current body length
-			if l > 0 && l == len(proto.Body(payload)) {
+			if l > 0 && l == t.Size() {
 				return false
 			}
 		}
@@ -171,10 +133,10 @@ func (t *TCPMessage) UUID() []byte {
 	var key []byte
 
 	if t.IsIncoming {
-		key = strconv.AppendInt(key, t.Start, 10)
+		key = strconv.AppendInt(key, t.Start.UnixNano(), 10)
 		key = strconv.AppendUint(key, uint64(t.Ack), 10)
 	} else {
-		key = strconv.AppendInt(key, t.RequestStart, 10)
+		key = strconv.AppendInt(key, t.RequestStart.UnixNano(), 10)
 		key = strconv.AppendUint(key, uint64(t.RequestAck), 10)
 	}
 
