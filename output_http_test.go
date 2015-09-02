@@ -17,7 +17,7 @@ func TestHTTPOutput(t *testing.T) {
 
 	input := NewTestInput()
 
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.Header.Get("User-Agent") != "Gor" {
 			t.Error("Wrong header")
 		}
