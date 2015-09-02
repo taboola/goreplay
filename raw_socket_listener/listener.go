@@ -42,9 +42,6 @@ type Listener struct {
 	// Messages ready to be send to client
 	messagesChan chan *TCPMessage
 
-	// Used for notifications about completed or expired messages
-	messageDelChan chan *TCPMessage
-
 	addr string // IP to listen
 	port uint16 // Port to listen
 
@@ -57,7 +54,7 @@ type Listener struct {
 }
 
 type request struct {
-	start int64
+	start time.Time
 	ack   uint32
 }
 
@@ -67,7 +64,6 @@ func NewListener(addr string, port string, expire time.Duration, captureResponse
 
 	l.packetsChan = make(chan *TCPPacket, 10000)
 	l.messagesChan = make(chan *TCPMessage, 10000)
-	l.messageDelChan = make(chan *TCPMessage, 10000)
 	l.quit = make(chan bool)
 
 	l.messages = make(map[string]*TCPMessage)
@@ -92,28 +88,44 @@ func NewListener(addr string, port string, expire time.Duration, captureResponse
 }
 
 func (t *Listener) listen() {
+	gcTicker := time.Tick(t.messageExpire / 2)
+
 	for {
 		select {
 		case <-t.quit:
 			t.conn.Close()
 			return
-		// If message ready for deletion it means that its also complete or expired by timeout
-		case message := <-t.messageDelChan:
-			delete(t.ackAliases, message.Ack)
-			delete(t.messages, message.ID)
-
-			if !message.IsIncoming {
-				delete(t.respAliases, message.Ack)
-			}
-
-			t.messagesChan <- message
-
 		// We need to use channels to process each packet to avoid data races
 		case packet := <-t.packetsChan:
 			t.processTCPPacket(packet)
+
+		case <- gcTicker:
+			now := time.Now()
+
+			for _, message := range t.messages {
+				if now.Sub(message.Start) >= t.messageExpire {
+					t.dispatchMessage(message)
+				}
+			}
 		}
 	}
 }
+
+func (t *Listener) dispatchMessage(message *TCPMessage) {
+	delete(t.ackAliases, message.Ack)
+	delete(t.messages, message.ID)
+
+	if !message.IsIncoming {
+		delete(t.respAliases, message.Ack)
+
+		// Do not track responses which have no associated requests
+		if message.RequestAck == 0 {
+			return
+		}
+	}
+	t.messagesChan <- message
+}
+
 func (t *Listener) readRAWSocket() {
 	conn, e := net.ListenPacket("ip4:tcp", t.addr)
 	t.conn = conn
@@ -212,8 +224,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 	message, ok := t.messages[mID]
 
 	if !ok {
-		// We sending messageDelChan channel, so message object can communicate with Listener and notify it if message completed
-		message = NewTCPMessage(mID, t.messageDelChan, packet.Ack, &t.messageExpire, isIncoming)
+		message = NewTCPMessage(mID, packet.Ack, isIncoming)
 		t.messages[mID] = message
 
 		if !isIncoming && responseRequest != nil {
@@ -246,6 +257,11 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 
 	// Adding packet to message
 	message.AddPacket(packet)
+
+	// If message contains only single packet immediately dispatch it
+	if !message.IsMultipart() {
+		t.dispatchMessage(message)
+	}
 }
 
 // Receive TCP messages from the listener channel

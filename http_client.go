@@ -53,7 +53,7 @@ func NewHTTPClient(baseURL string, config *HTTPClientConfig) *HTTPClient {
 	}
 
 	if config.ResponseBufferSize == 0 {
-		config.ResponseBufferSize = 512 * 1024 // 500kb
+		config.ResponseBufferSize = 100 * 1024 // 100kb
 	}
 
 	client := new(HTTPClient)

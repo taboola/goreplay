@@ -214,6 +214,10 @@ var httpMethods []string = []string{
 }
 
 func IsHTTPPayload(payload []byte) bool {
+	if len(payload) < 4 {
+		return false
+	}
+
 	method := string(payload[0:4])
 
 	for _, m := range httpMethods {
