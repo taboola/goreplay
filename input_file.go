@@ -61,15 +61,18 @@ func (i *FileInput) emit() {
 		buf := scanner.Bytes()
 		meta := payloadMeta(buf)
 
-		if meta[0][0] == RequestPayload && lastTime != 0 {
+		if meta[0][0] == RequestPayload {
 			ts, _ := strconv.ParseInt(string(meta[2]), 10, 64)
-			timeDiff := ts - lastTime
 
-			if i.speedFactor != 1 {
-				timeDiff = int64(float64(timeDiff) / i.speedFactor)
+			if lastTime != 0 {
+				timeDiff := ts - lastTime
+
+				if i.speedFactor != 1 {
+					timeDiff = int64(float64(timeDiff) / i.speedFactor)
+				}
+
+				time.Sleep(time.Duration(timeDiff))
 			}
-
-			time.Sleep(time.Duration(timeDiff))
 
 			lastTime = ts
 		}
