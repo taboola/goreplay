@@ -196,7 +196,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 	// Don't exit on panic
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println("PANIC: pkg:", r, string(debug.Stack()))
+			log.Println("PANIC: pkg:", r, packet, string(debug.Stack()))
 		}
 	}()
 
