@@ -8,24 +8,37 @@ import (
 
 // Start initialize loop for sending data from inputs to outputs
 func Start(stop chan int) {
+	var readers []io.Reader
+	var writers []io.Writer
+
+	for _, plugin := range Plugins {
+		pluginWrapper := plugin
+
+		if l, ok := plugin.(*Limiter); ok {
+			plugin = l.plugin
+		}
+
+		if _, isR := plugin.(io.Reader); isR {
+			readers = append(readers, pluginWrapper.(io.Reader))
+		}
+
+		if _, isW := plugin.(io.Writer); isW {
+			writers = append(writers, pluginWrapper.(io.Writer))
+		}
+	}
+
+
 	if Settings.middleware != "" {
 		middleware := NewMiddleware(Settings.middleware)
 
-		for _, in := range Plugins.Inputs {
-			middleware.ReadFrom(in)
+		for _, reader := range readers {
+			middleware.ReadFrom(reader)
 		}
 
-		// We going only to read responses, so using same ReadFrom method
-		for _, out := range Plugins.Outputs {
-			if r, ok := out.(io.Reader); ok {
-				middleware.ReadFrom(r)
-			}
-		}
-
-		go CopyMulty(middleware, Plugins.Outputs...)
+		go CopyMulty(middleware, writers...)
 	} else {
-		for _, in := range Plugins.Inputs {
-			go CopyMulty(in, Plugins.Outputs...)
+		for _, in := range readers {
+			go CopyMulty(in, writers...)
 		}
 	}
 

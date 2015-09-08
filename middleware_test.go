@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"github.com/buger/gor/proto"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -122,8 +121,7 @@ func TestEchoMiddleware(t *testing.T) {
 	// And redirect to another
 	output := NewHTTPOutput(to.URL, &HTTPOutputConfig{Debug: false})
 
-	Plugins.Inputs = []io.Reader{input}
-	Plugins.Outputs = []io.Writer{output}
+	testPlugins(input, output)
 
 	// Start Gor
 	go Start(quit)
@@ -181,8 +179,7 @@ func TestTokenMiddleware(t *testing.T) {
 	// And redirect to another
 	output := NewHTTPOutput(to.URL, &HTTPOutputConfig{Debug: true})
 
-	Plugins.Inputs = []io.Reader{input}
-	Plugins.Outputs = []io.Writer{output}
+	testPlugins(input, output)
 
 	// Start Gor
 	go Start(quit)

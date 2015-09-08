@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -45,8 +44,7 @@ func TestHTTPOutput(t *testing.T) {
 
 	output := NewHTTPOutput(server.URL, &HTTPOutputConfig{Debug: true})
 
-	Plugins.Inputs = []io.Reader{input}
-	Plugins.Outputs = []io.Writer{output}
+	testPlugins(input, output)
 
 	go Start(quit)
 
@@ -84,8 +82,7 @@ func TestHTTPOutputKeepOriginalHost(t *testing.T) {
 
 	output := NewHTTPOutput(server.URL, &HTTPOutputConfig{Debug: false, OriginalHost: true})
 
-	Plugins.Inputs = []io.Reader{input}
-	Plugins.Outputs = []io.Writer{output}
+	testPlugins(input, output)
 
 	go Start(quit)
 
@@ -111,8 +108,7 @@ func TestOutputHTTPSSL(t *testing.T) {
 	input := NewTestInput()
 	output := NewHTTPOutput(server.URL, &HTTPOutputConfig{})
 
-	Plugins.Inputs = []io.Reader{input}
-	Plugins.Outputs = []io.Writer{output}
+	testPlugins(input, output)
 
 	go Start(quit)
 
@@ -138,8 +134,7 @@ func BenchmarkHTTPOutput(b *testing.B) {
 	input := NewTestInput()
 	output := NewHTTPOutput(server.URL, &HTTPOutputConfig{})
 
-	Plugins.Inputs = []io.Reader{input}
-	Plugins.Outputs = []io.Writer{output}
+	testPlugins(input, output)
 
 	go Start(quit)
 
