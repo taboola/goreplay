@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"github.com/buger/gor/proto"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -112,7 +113,7 @@ func TestEchoMiddleware(t *testing.T) {
 
 	quit := make(chan int)
 
-	Settings.middleware = MultiOption{"./examples/middleware/echo.sh", "./examples/middleware/echo.sh"}
+	Middleware = []io.ReadWriter{NewExternalMiddleware("./examples/middleware/echo.sh"), NewExternalMiddleware("./examples/middleware/echo.sh")}
 
 	// Catch traffic from one service
 	input := NewRAWInput(from.Listener.Addr().String(), testRawExpire)
@@ -142,7 +143,7 @@ func TestEchoMiddleware(t *testing.T) {
 	close(quit)
 	time.Sleep(200 * time.Millisecond)
 
-	Settings.middleware = MultiOption{}
+	Middleware = []io.ReadWriter{}
 }
 
 func TestTokenMiddleware(t *testing.T) {
@@ -169,7 +170,7 @@ func TestTokenMiddleware(t *testing.T) {
 
 	quit := make(chan int)
 
-	Settings.middleware = MultiOption{"go run ./examples/middleware/token_modifier.go"}
+	Middleware = []io.ReadWriter{NewExternalMiddleware("go run ./examples/middleware/token_modifier.go")}
 
 	fromAddr := strings.Replace(from.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 	// Catch traffic from one service
@@ -177,7 +178,7 @@ func TestTokenMiddleware(t *testing.T) {
 	defer input.Close()
 
 	// And redirect to another
-	output := NewHTTPOutput(to.URL, &HTTPOutputConfig{Debug: true})
+	output := NewHTTPOutput(to.URL, &HTTPOutputConfig{Debug: false})
 
 	testPlugins(input, output)
 
@@ -209,5 +210,6 @@ func TestTokenMiddleware(t *testing.T) {
 	wg.Wait()
 	close(quit)
 	time.Sleep(100 * time.Millisecond)
-	Settings.middleware = MultiOption{}
+
+	Middleware = []io.ReadWriter{}
 }

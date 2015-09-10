@@ -7,10 +7,9 @@ import (
 	"time"
 )
 
-type plugins []interface{}
-
 // Plugins holds all the plugin objects
-var Plugins plugins
+var Plugins []interface{}
+var Middleware []io.ReadWriter
 
 // extractLimitOptions detects if plugin get called with limiter support
 // Returns address and limit
@@ -100,6 +99,10 @@ func InitPlugins() {
 
 	for _, options := range Settings.outputHTTP {
 		registerPlugin(NewHTTPOutput, options, &Settings.outputHTTPConfig)
+	}
+
+	for _, cmd := range Settings.middleware {
+		Middleware = append(Middleware, NewExternalMiddleware(cmd))
 	}
 }
 
