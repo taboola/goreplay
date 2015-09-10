@@ -151,7 +151,10 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 		return len(data), nil
 	}
 
-	o.queue <- data
+	buf := make([]byte, len(data))
+	copy(buf, data)
+
+	o.queue <- buf
 
 	if o.config.stats {
 		o.queueStats.Write(len(o.queue))

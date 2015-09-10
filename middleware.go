@@ -42,7 +42,6 @@ func NewExternalMiddleware(command string) *ExternalMiddleware {
 	}
 
 	go m.read()
-	go m.write()
 
 	go func() {
 		err := cmd.Start()
@@ -55,26 +54,6 @@ func NewExternalMiddleware(command string) *ExternalMiddleware {
 	}()
 
 	return m
-}
-
-func (m *ExternalMiddleware) write() {
-	dst := make([]byte, 5*1024*1024*2)
-
-	for {
-		select {
-		case buf := <-m.input:
-			hex.Encode(dst, buf)
-			dst[len(buf)*2] = '\n'
-
-			m.mu.Lock()
-			m.Stdin.Write(dst[0 : len(buf)*2+1])
-			m.mu.Unlock()
-
-			if Settings.debug {
-				Debug("[MIDDLEWARE-MASTER] Sending:", string(buf))
-			}
-		}
-	}
 }
 
 func (m *ExternalMiddleware) read() {
@@ -109,7 +88,18 @@ func (m *ExternalMiddleware) Read(data []byte) (int, error) {
 }
 
 func (m *ExternalMiddleware) Write(data []byte) (int, error) {
-	m.input <- data
+	dst := make([]byte, len(data) * 2 + 1)
+
+	hex.Encode(dst, data)
+	dst[len(dst)-1] = '\n'
+
+	m.mu.Lock()
+	m.Stdin.Write(dst)
+	m.mu.Unlock()
+
+	if Settings.debug {
+		Debug("[MIDDLEWARE-MASTER] Sending:", string(data))
+	}
 
 	return len(data), nil
 }

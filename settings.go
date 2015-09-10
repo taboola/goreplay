@@ -139,3 +139,11 @@ func Debug(args ...interface{}) {
 		fmt.Println(args...)
 	}
 }
+
+func stringLimit(buf []byte) string {
+	if len(buf) > 500 {
+		return string(buf[:500])
+	}
+
+	return string(buf)
+}
