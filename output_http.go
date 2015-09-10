@@ -3,9 +3,9 @@ package main
 import (
 	"github.com/buger/gor/proto"
 	"io"
+	_ "log"
 	"sync/atomic"
 	"time"
-	_ "log"
 )
 
 const initialDynamicWorkers = 10

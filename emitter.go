@@ -27,14 +27,27 @@ func Start(stop chan int) {
 		}
 	}
 
-	if len(Settings.middleware) > 0 {
-		middleware := NewMiddleware(Settings.middleware[0])
+	middlewares := make([]io.ReadWriter, 0)
 
+	for _, cmd := range Settings.middleware {
+		middlewares = append(middlewares, NewExternalMiddleware(cmd))
+	}
+
+	if len(middlewares) > 0 {
+		// All readers report to first middleware in pipeline
 		for _, reader := range readers {
-			go CopyMulty(reader, middleware)
+			go CopyMulty(reader, middlewares[0])
 		}
 
-		go CopyMulty(middleware, writers...)
+		// Middleware pipeline
+		for i, mw := range middlewares {
+			if i < len(middlewares)-1 {
+				go CopyMulty(mw, middlewares[i+1])
+			}
+		}
+
+		// Last middleware in pipeline report to writers
+		go CopyMulty(middlewares[len(middlewares)-1], writers...)
 	} else {
 		for _, in := range readers {
 			go CopyMulty(in, writers...)

@@ -1,10 +1,10 @@
 package main
 
 import (
+	"io"
 	"reflect"
 	"strings"
 	"time"
-	"io"
 )
 
 type plugins []interface{}

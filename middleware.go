@@ -12,10 +12,10 @@ import (
 	"sync"
 )
 
-type Middleware struct {
+type ExternalMiddleware struct {
 	command string
 
-	input chan []byte
+	input  chan []byte
 	output chan []byte
 
 	mu sync.Mutex
@@ -24,8 +24,8 @@ type Middleware struct {
 	Stdout io.Reader
 }
 
-func NewMiddleware(command string) *Middleware {
-	m := new(Middleware)
+func NewExternalMiddleware(command string) *ExternalMiddleware {
+	m := new(ExternalMiddleware)
 	m.command = command
 
 	m.input = make(chan []byte, 1000)
@@ -57,12 +57,12 @@ func NewMiddleware(command string) *Middleware {
 	return m
 }
 
-func (m *Middleware) write() {
+func (m *ExternalMiddleware) write() {
 	dst := make([]byte, 5*1024*1024*2)
 
 	for {
 		select {
-		case buf := <- m.input:
+		case buf := <-m.input:
 			hex.Encode(dst, buf)
 			dst[len(buf)*2] = '\n'
 
@@ -77,7 +77,7 @@ func (m *Middleware) write() {
 	}
 }
 
-func (m *Middleware) read() {
+func (m *ExternalMiddleware) read() {
 	scanner := bufio.NewScanner(m.Stdout)
 
 	for scanner.Scan() {
@@ -101,19 +101,19 @@ func (m *Middleware) read() {
 	return
 }
 
-func (m *Middleware) Read(data []byte) (int, error) {
+func (m *ExternalMiddleware) Read(data []byte) (int, error) {
 	buf := <-m.output
 	copy(data, buf)
 
 	return len(buf), nil
 }
 
-func (m *Middleware) Write(data []byte) (int, error) {
+func (m *ExternalMiddleware) Write(data []byte) (int, error) {
 	m.input <- data
 
 	return len(data), nil
 }
 
-func (m *Middleware) String() string {
+func (m *ExternalMiddleware) String() string {
 	return fmt.Sprintf("Modifying traffic using '%s' command", m.command)
 }

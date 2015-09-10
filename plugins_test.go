@@ -12,7 +12,6 @@ func TestPluginsRegistration(t *testing.T) {
 	Settings.inputFile = MultiOption{"/dev/null"}
 	Settings.outputHTTP = MultiOption{"www.example.com|10"}
 
-
 	InitPlugins()
 
 	if len(Plugins) != 4 {

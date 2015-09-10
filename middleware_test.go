@@ -112,7 +112,7 @@ func TestEchoMiddleware(t *testing.T) {
 
 	quit := make(chan int)
 
-	Settings.middleware = MultiOption{"./examples/middleware/echo.sh"}
+	Settings.middleware = MultiOption{"./examples/middleware/echo.sh", "./examples/middleware/echo.sh"}
 
 	// Catch traffic from one service
 	input := NewRAWInput(from.Listener.Addr().String(), testRawExpire)
