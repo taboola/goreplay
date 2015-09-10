@@ -112,7 +112,7 @@ func TestEchoMiddleware(t *testing.T) {
 
 	quit := make(chan int)
 
-	Settings.middleware = "./examples/middleware/echo.sh"
+	Settings.middleware = MultiOption{"./examples/middleware/echo.sh"}
 
 	// Catch traffic from one service
 	input := NewRAWInput(from.Listener.Addr().String(), testRawExpire)
@@ -142,7 +142,7 @@ func TestEchoMiddleware(t *testing.T) {
 	close(quit)
 	time.Sleep(200 * time.Millisecond)
 
-	Settings.middleware = ""
+	Settings.middleware = MultiOption{}
 }
 
 func TestTokenMiddleware(t *testing.T) {
@@ -169,7 +169,7 @@ func TestTokenMiddleware(t *testing.T) {
 
 	quit := make(chan int)
 
-	Settings.middleware = "go run ./examples/middleware/token_modifier.go"
+	Settings.middleware = MultiOption{"go run ./examples/middleware/token_modifier.go"}
 
 	fromAddr := strings.Replace(from.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 	// Catch traffic from one service
@@ -209,5 +209,5 @@ func TestTokenMiddleware(t *testing.T) {
 	wg.Wait()
 	close(quit)
 	time.Sleep(100 * time.Millisecond)
-	Settings.middleware = ""
+	Settings.middleware = MultiOption{}
 }

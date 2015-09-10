@@ -27,8 +27,8 @@ func Start(stop chan int) {
 		}
 	}
 
-	if Settings.middleware != "" {
-		middleware := NewMiddleware(Settings.middleware)
+	if len(Settings.middleware) > 0 {
+		middleware := NewMiddleware(Settings.middleware[0])
 
 		for _, reader := range readers {
 			go CopyMulty(reader, middleware)
