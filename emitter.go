@@ -27,12 +27,11 @@ func Start(stop chan int) {
 		}
 	}
 
-
 	if Settings.middleware != "" {
 		middleware := NewMiddleware(Settings.middleware)
 
 		for _, reader := range readers {
-			middleware.ReadFrom(reader)
+			go CopyMulty(reader, middleware)
 		}
 
 		go CopyMulty(middleware, writers...)
@@ -61,7 +60,8 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 		nr, er := src.Read(buf)
 
 		if nr > 0 && len(buf) > nr {
-			payload := buf[:nr]
+			payload := make([]byte, nr)
+			copy(payload, buf[:nr])
 
 			_maxN := nr
 			if nr > 500 {
@@ -85,6 +85,11 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 
 				if originalBodyLen != len(body) {
 					payload = append(payload[:headSize], body...)
+				}
+
+				_maxN = len(payload)
+				if len(payload) > 500 {
+					_maxN = 500
 				}
 
 				if Settings.debug {

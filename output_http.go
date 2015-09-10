@@ -5,6 +5,7 @@ import (
 	"io"
 	"sync/atomic"
 	"time"
+	_ "log"
 )
 
 const initialDynamicWorkers = 10
@@ -150,10 +151,7 @@ func (o *HTTPOutput) Write(data []byte) (n int, err error) {
 		return len(data), nil
 	}
 
-	buf := make([]byte, len(data))
-	copy(buf, data)
-
-	o.queue <- buf
+	o.queue <- data
 
 	if o.config.stats {
 		o.queueStats.Write(len(o.queue))

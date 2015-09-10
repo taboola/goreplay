@@ -15,7 +15,8 @@ import (
 type Middleware struct {
 	command string
 
-	data chan []byte
+	input chan []byte
+	output chan []byte
 
 	mu sync.Mutex
 
@@ -26,7 +27,9 @@ type Middleware struct {
 func NewMiddleware(command string) *Middleware {
 	m := new(Middleware)
 	m.command = command
-	m.data = make(chan []byte, 1000)
+
+	m.input = make(chan []byte, 1000)
+	m.output = make(chan []byte, 1000)
 
 	commands := strings.Split(command, " ")
 	cmd := exec.Command(commands[0], commands[1:]...)
@@ -38,7 +41,8 @@ func NewMiddleware(command string) *Middleware {
 		cmd.Stderr = os.Stderr
 	}
 
-	go m.read(m.Stdout)
+	go m.read()
+	go m.write()
 
 	go func() {
 		err := cmd.Start()
@@ -53,35 +57,28 @@ func NewMiddleware(command string) *Middleware {
 	return m
 }
 
-func (m *Middleware) ReadFrom(plugin io.Reader) {
-	Debug("[MIDDLEWARE-MASTER] Starting reading from", plugin)
-	go m.copy(m.Stdin, plugin)
-}
-
-func (m *Middleware) copy(to io.Writer, from io.Reader) {
-	buf := make([]byte, 5*1024*1024)
-	dst := make([]byte, len(buf)*2)
+func (m *Middleware) write() {
+	dst := make([]byte, 5*1024*1024*2)
 
 	for {
-		nr, _ := from.Read(buf)
-		if nr > 0 && len(buf) > nr {
-
-			hex.Encode(dst, buf[0:nr])
-			dst[nr*2] = '\n'
+		select {
+		case buf := <- m.input:
+			hex.Encode(dst, buf)
+			dst[len(buf)*2] = '\n'
 
 			m.mu.Lock()
-			to.Write(dst[0 : nr*2+1])
+			m.Stdin.Write(dst[0 : len(buf)*2+1])
 			m.mu.Unlock()
 
 			if Settings.debug {
-				Debug("[MIDDLEWARE-MASTER] Sending:", string(buf[0:nr]), "From:", from)
+				Debug("[MIDDLEWARE-MASTER] Sending:", string(buf))
 			}
 		}
 	}
 }
 
-func (m *Middleware) read(from io.Reader) {
-	scanner := bufio.NewScanner(from)
+func (m *Middleware) read() {
+	scanner := bufio.NewScanner(m.Stdout)
 
 	for scanner.Scan() {
 		bytes := scanner.Bytes()
@@ -94,7 +91,7 @@ func (m *Middleware) read(from io.Reader) {
 			Debug("[MIDDLEWARE-MASTER] Received:", string(buf))
 		}
 
-		m.data <- buf
+		m.output <- buf
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -105,10 +102,16 @@ func (m *Middleware) read(from io.Reader) {
 }
 
 func (m *Middleware) Read(data []byte) (int, error) {
-	buf := <-m.data
+	buf := <-m.output
 	copy(data, buf)
 
 	return len(buf), nil
+}
+
+func (m *Middleware) Write(data []byte) (int, error) {
+	m.input <- data
+
+	return len(data), nil
 }
 
 func (m *Middleware) String() string {
