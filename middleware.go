@@ -15,7 +15,6 @@ import (
 type ExternalMiddleware struct {
 	command string
 
-	input  chan []byte
 	output chan []byte
 
 	mu sync.Mutex
@@ -28,7 +27,6 @@ func NewExternalMiddleware(command string) *ExternalMiddleware {
 	m := new(ExternalMiddleware)
 	m.command = command
 
-	m.input = make(chan []byte, 1000)
 	m.output = make(chan []byte, 1000)
 
 	commands := strings.Split(command, " ")
@@ -88,7 +86,7 @@ func (m *ExternalMiddleware) Read(data []byte) (int, error) {
 }
 
 func (m *ExternalMiddleware) Write(data []byte) (int, error) {
-	dst := make([]byte, len(data) * 2 + 1)
+	dst := make([]byte, len(data)*2+1)
 
 	hex.Encode(dst, data)
 	dst[len(dst)-1] = '\n'

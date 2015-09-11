@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -40,7 +41,7 @@ func TestHTTPOutput(t *testing.T) {
 
 	headers := HTTPHeaders{HTTPHeader{"User-Agent", "Gor"}}
 	methods := HTTPMethods{[]byte("GET"), []byte("PUT"), []byte("POST")}
-	Settings.modifierConfig = HTTPModifierConfig{headers: headers, methods: methods}
+	Middleware = []io.ReadWriter{NewHTTPModifier(&HTTPModifierConfig{headers: headers, methods: methods})}
 
 	output := NewHTTPOutput(server.URL, &HTTPOutputConfig{Debug: true})
 
@@ -59,7 +60,7 @@ func TestHTTPOutput(t *testing.T) {
 
 	close(quit)
 
-	Settings.modifierConfig = HTTPModifierConfig{}
+	Middleware = []io.ReadWriter{}
 }
 
 func TestHTTPOutputKeepOriginalHost(t *testing.T) {
@@ -78,7 +79,7 @@ func TestHTTPOutputKeepOriginalHost(t *testing.T) {
 	defer server.Close()
 
 	headers := HTTPHeaders{HTTPHeader{"Host", "custom-host.com"}}
-	Settings.modifierConfig = HTTPModifierConfig{headers: headers}
+	Middleware = []io.ReadWriter{NewHTTPModifier(&HTTPModifierConfig{headers: headers})}
 
 	output := NewHTTPOutput(server.URL, &HTTPOutputConfig{Debug: false, OriginalHost: true})
 
@@ -93,7 +94,7 @@ func TestHTTPOutputKeepOriginalHost(t *testing.T) {
 
 	close(quit)
 
-	Settings.modifierConfig = HTTPModifierConfig{}
+	Middleware = []io.ReadWriter{}
 }
 
 func TestOutputHTTPSSL(t *testing.T) {

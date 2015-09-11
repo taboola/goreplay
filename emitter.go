@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"io"
 	"time"
 )
@@ -61,7 +60,6 @@ func Start(stop chan int) {
 func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 	buf := make([]byte, 5*1024*1024)
 	wIndex := 0
-	modifier := NewHTTPModifier(&Settings.modifierConfig)
 
 	for {
 		nr, er := src.Read(buf)
@@ -69,32 +67,11 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 		if nr > 0 && len(buf) > nr {
 			payload := buf[:nr]
 
-
 			if Settings.debug {
 				Debug("[EMITTER] input:", stringLimit(payload), nr, "from:", src)
 			}
 
-			if modifier != nil && isRequestPayload(payload) {
-				headSize := bytes.IndexByte(payload, '\n') + 1
-				body := payload[headSize:]
-				originalBodyLen := len(body)
-				body = modifier.Rewrite(body)
-
-				// If modifier tells to skip request
-				if len(body) == 0 {
-					continue
-				}
-
-				if originalBodyLen != len(body) {
-					payload = append(payload[:headSize], body...)
-				}
-
-				if Settings.debug {
-					Debug("[EMITTER] Rewrittern input:", len(payload), "First 500 bytes:", stringLimit(payload))
-				}
-			}
-
-			if Settings.splitOutput {
+			if Settings.splitOutput && len(writers) > 1 {
 				// Simple round robin
 				writers[wIndex].Write(payload)
 
@@ -108,8 +85,8 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 					dst.Write(payload)
 				}
 			}
-
 		}
+
 		if er == io.EOF {
 			break
 		}

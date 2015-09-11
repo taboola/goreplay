@@ -101,6 +101,10 @@ func InitPlugins() {
 		registerPlugin(NewHTTPOutput, options, &Settings.outputHTTPConfig)
 	}
 
+	if !Settings.modifierConfig.IsEmpty() {
+		Middleware = append(Middleware, NewHTTPModifier(&Settings.modifierConfig))
+	}
+
 	for _, cmd := range Settings.middleware {
 		Middleware = append(Middleware, NewExternalMiddleware(cmd))
 	}
