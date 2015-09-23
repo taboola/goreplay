@@ -9,18 +9,36 @@ func TestHeader(t *testing.T) {
 	var payload, val []byte
 	var headerStart int
 
+	// Value with space at start
 	payload = []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 
 	if val = Header(payload, []byte("Content-Length")); !bytes.Equal(val, []byte("7")) {
 		t.Error("Should find header value")
 	}
 
+	// Value without space at start
 	payload = []byte("POST /post HTTP/1.1\r\nContent-Length:7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 
 	if val = Header(payload, []byte("Content-Length")); !bytes.Equal(val, []byte("7")) {
 		t.Error("Should find header value without space after :")
 	}
 
+	// Value is empty
+	payload = []byte("GET /p HTTP/1.1\r\nCookie:\r\nHost: www.w3.org\r\n\r\n")
+
+	if val = Header(payload, []byte("Cookie")); len(val) > 0 {
+		t.Error("Should return empty value")
+	}
+
+	// Wrong delimeter
+	payload = []byte("GET /p HTTP/1.1\r\nCookie: 123\nHost: www.w3.org\r\n\r\n")
+
+	if val = Header(payload, []byte("Cookie")); !bytes.Equal(val, []byte("123")) {
+		t.Error("Should handle wrong header delimeter")
+	}
+
+
+	// Header not found
 	if _, headerStart, _, _ = header(payload, []byte("Not-Found")); headerStart != -1 {
 		t.Error("Should not found header")
 	}
