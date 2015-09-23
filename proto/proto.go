@@ -55,7 +55,13 @@ func header(payload []byte, name []byte) (value []byte, headerStart, valueStart,
 	if payload[valueStart] == ' ' {          // Ignore empty space after ':'
 		valueStart++
 	}
-	headerEnd = valueStart + bytes.IndexByte(payload[valueStart:], '\r')
+
+	headerEnd = valueStart + bytes.IndexByte(payload[valueStart:], '\n')
+
+	if payload[headerEnd - 1] == '\r' {
+		headerEnd -= 1
+	}
+
 	value = payload[valueStart:headerEnd]
 
 	return
