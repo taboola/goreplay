@@ -53,4 +53,4 @@ dreplay:
 	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go run $(SOURCE) --input-file=requests.bin --output-tcp=:9000 --verbose -h
 
 dbash:
-	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor /bin/bash
+	docker run -v `pwd`:$(SOURCE_PATH) -p 0.0.0.0:8000:8000 -t -i gor /bin/bash

@@ -75,6 +75,7 @@ func (t *TCPPacket) String() string {
 	}
 
 	return strings.Join([]string{
+		"Addr: " + t.Addr.String(),
 		"Source port: " + strconv.Itoa(int(t.SrcPort)),
 		"Dest port:" + strconv.Itoa(int(t.DestPort)),
 		"Sequence:" + strconv.Itoa(int(t.Seq)),
