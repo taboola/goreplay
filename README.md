@@ -2,8 +2,7 @@
 
 ## About
 
-Gor is a simple http traffic replication tool written in Go.
-Its main goal is to replay traffic from production servers to staging and dev environments.
+Gor is an open-source tool for capturing and replaying live HTTP traffic into a test environment in order to continuously test your system with real data. It can be used to increase confidence in code deployments, configuration changes and infrastructure changes.
 
 
 Now you can test your code on real user sessions in an automated and repeatable fashion.
