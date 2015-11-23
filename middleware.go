@@ -47,7 +47,11 @@ func NewMiddleware(command string) *Middleware {
 			log.Fatal(err)
 		}
 
-		cmd.Wait()
+		err = cmd.Wait()
+
+		if err != nil {
+			log.Fatal(err)
+		}
 	}()
 
 	return m
