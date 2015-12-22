@@ -12,10 +12,36 @@ import (
 	"time"
 )
 
+func TestInputFileWithGET(t *testing.T) {
+
+	input := NewTestInput()
+	rg := NewRequestGenerator([]io.Reader{input},func() {input.EmitGET()})
+
+	// Given a capture file with a GET request
+	expectedCaptureFile := CreateCaptureFileWithOneRequest(rg)
+	defer expectedCaptureFile.TearDown()
+
+	// When the request is read from the capture file
+	readCapture, err := ReadFromCaptureFile(expectedCaptureFile.file)
+
+	// The read request should match the original request
+	if err != nil {
+		t.Error(err)
+	} else {
+		if !expectedCaptureFile.DataEquals(readCapture) {
+			t.Error("Request read back from file should match")
+		}
+	}
+
+}
+
 func TestInputFileWithPayloadLargerThan64Kb(t *testing.T) {
 
+	input := NewTestInput()
+	rg := NewRequestGenerator([]io.Reader{input},func() {input.EmitSizedPOST(64 * 1024)})
+
 	// Given a capture file with a request over 64Kb
-	expectedCaptureFile := CreateCaptureFileWithOneRequest()
+	expectedCaptureFile := CreateCaptureFileWithOneRequest(rg)
 	defer expectedCaptureFile.TearDown()
 
 	// When the request is read from the capture file
@@ -50,11 +76,23 @@ func (expectedCaptureFile *CaptureFile) TearDown() {
 	}
 }
 
+type RequestGenerator struct {
+	inputs []io.Reader
+	emit func()
+}
+
+func NewRequestGenerator(inputs []io.Reader, emit func()) (rg *RequestGenerator) {
+	rg = new(RequestGenerator)
+	rg.inputs = inputs
+	rg.emit = emit
+	return
+}
+
 func (expectedCaptureFile *CaptureFile) DataEquals(other []byte) bool {
 	return bytes.Equal(expectedCaptureFile.data, other)
 }
 
-func CreateCaptureFileWithOneRequest() *CaptureFile {
+func CreateCaptureFileWithOneRequest(requestGenerator *RequestGenerator) *CaptureFile {
 
 	f, err := ioutil.TempFile("", "testmainconf")
 	if err != nil {
@@ -64,8 +102,6 @@ func CreateCaptureFileWithOneRequest() *CaptureFile {
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
-	input := NewTestInput()
-
 	var buffer bytes.Buffer
 	output := NewTestOutput(func(data []byte) {
 		buffer.Write(data)
@@ -74,13 +110,13 @@ func CreateCaptureFileWithOneRequest() *CaptureFile {
 
 	output_file := NewFileOutput(f.Name())
 
-	Plugins.Inputs = []io.Reader{input}
+	Plugins.Inputs = requestGenerator.inputs
 	Plugins.Outputs = []io.Writer{output, output_file}
 
 	wg.Add(1)
 	go Start(quit)
 
-	input.EmitSizedPOST(64 * 1024)
+	requestGenerator.emit()
 	wg.Wait()
 
 	close(quit)
