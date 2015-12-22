@@ -53,6 +53,18 @@ func (i *TestInput) EmitLargePOST() {
 	rs := base64.URLEncoding.EncodeToString(rb)
 
 	i.data <- []byte("POST / HTTP/1.1\nHost: www.w3.org\nContent-Length:5242880\r\n\r\n" + rs)
+	Debug("Sent large POST")
+}
+
+// Emit a POST with a payload set to a supplied size
+func (i *TestInput) EmitSizedPOST(payloadSize int) {
+	rb := make([]byte, payloadSize)
+	rand.Read(rb)
+
+	rs := base64.URLEncoding.EncodeToString(rb)
+
+	i.data <- []byte("POST / HTTP/1.1\nHost: www.w3.org\nContent-Length:5242880\r\n\r\n" + rs)
+	Debug("Sent large POST")
 }
 
 // EmitOPTIONS emits OPTIONS request, similar to GET
