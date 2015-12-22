@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"io"
 	"log"
 	"os"
 	"strconv"
@@ -53,35 +55,48 @@ func (i *FileInput) String() string {
 func (i *FileInput) emit() {
 	var lastTime int64
 
-	// reader := bufio.NewReader(conn)
-	scanner := bufio.NewScanner(i.file)
-	scanner.Split(payloadScanner)
+	payloadSeparatorAsBytes := []byte(payloadSeparator)
+	reader := bufio.NewReader(i.file)
+	var buffer bytes.Buffer
 
-	for scanner.Scan() {
-		buf := scanner.Bytes()
-		meta := payloadMeta(buf)
+	for {
+		line, err := reader.ReadBytes('\n')
 
-		if len(meta) > 2 && meta[0][0] == RequestPayload {
-			ts, _ := strconv.ParseInt(string(meta[2]), 10, 64)
-
-			if lastTime != 0 {
-				timeDiff := ts - lastTime
-
-				if i.speedFactor != 1 {
-					timeDiff = int64(float64(timeDiff) / i.speedFactor)
-				}
-
-				time.Sleep(time.Duration(timeDiff))
+		if err != nil {
+			if err != io.EOF {
+				log.Fatal(err)
 			}
+			break
 
-			lastTime = ts
 		}
 
-		// scanner returs only pointer, so to remove data-race we have to allocate new array
-		newBuf := make([]byte, len(buf))
-		copy(newBuf, buf)
+		if bytes.Equal(payloadSeparatorAsBytes[1:], line) {
+			asBytes := buffer.Bytes()[:buffer.Len()-1]
+			buffer.Reset()
 
-		i.data <- newBuf
+			meta := payloadMeta(asBytes)
+
+			if len(meta) > 2 && meta[0][0] == RequestPayload {
+				ts, _ := strconv.ParseInt(string(meta[2]), 10, 64)
+
+				if lastTime != 0 {
+					timeDiff := ts - lastTime
+
+					if i.speedFactor != 1 {
+						timeDiff = int64(float64(timeDiff) / i.speedFactor)
+					}
+
+					time.Sleep(time.Duration(timeDiff))
+				}
+
+				lastTime = ts
+			}
+
+			i.data <- asBytes
+		} else {
+			buffer.Write(line)
+		}
+
 	}
 
 	log.Printf("FileInput: end of file '%s'\n", i.path)
