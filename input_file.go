@@ -84,5 +84,5 @@ func (i *FileInput) emit() {
 		i.data <- newBuf
 	}
 
-	log.Println("FileInput: end of file")
+	log.Printf("FileInput: end of file '%s'\n",i.path)
 }
