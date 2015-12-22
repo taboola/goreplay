@@ -15,7 +15,7 @@ import (
 func TestInputFileWithGET(t *testing.T) {
 
 	input := NewTestInput()
-	rg := NewRequestGenerator([]io.Reader{input},func() {input.EmitGET()})
+	rg := NewRequestGenerator([]io.Reader{input}, func() { input.EmitGET() })
 
 	// Given a capture file with a GET request
 	expectedCaptureFile := CreateCaptureFileWithOneRequest(rg)
@@ -38,7 +38,7 @@ func TestInputFileWithGET(t *testing.T) {
 func TestInputFileWithPayloadLargerThan64Kb(t *testing.T) {
 
 	input := NewTestInput()
-	rg := NewRequestGenerator([]io.Reader{input},func() {input.EmitSizedPOST(64 * 1024)})
+	rg := NewRequestGenerator([]io.Reader{input}, func() { input.EmitSizedPOST(64 * 1024) })
 
 	// Given a capture file with a request over 64Kb
 	expectedCaptureFile := CreateCaptureFileWithOneRequest(rg)
@@ -78,7 +78,7 @@ func (expectedCaptureFile *CaptureFile) TearDown() {
 
 type RequestGenerator struct {
 	inputs []io.Reader
-	emit func()
+	emit   func()
 }
 
 func NewRequestGenerator(inputs []io.Reader, emit func()) (rg *RequestGenerator) {
