@@ -15,20 +15,23 @@ import (
 func TestInputFileWithGET(t *testing.T) {
 
 	input := NewTestInput()
-	rg := NewRequestGenerator([]io.Reader{input}, func() { input.EmitGET() })
+	rg := NewRequestGenerator([]io.Reader{input}, func() { input.EmitGET() }, 1)
+	readPayloads := [][]byte{}
 
 	// Given a capture file with a GET request
-	expectedCaptureFile := CreateCaptureFileWithOneRequest(rg)
+	expectedCaptureFile := CreateCaptureFile(rg)
 	defer expectedCaptureFile.TearDown()
 
 	// When the request is read from the capture file
-	readCapture, err := ReadFromCaptureFile(expectedCaptureFile.file)
+	err := ReadFromCaptureFile(expectedCaptureFile.file, 1, func(data []byte) {
+		readPayloads = append(readPayloads, Duplicate(data))
+	})
 
 	// The read request should match the original request
 	if err != nil {
 		t.Error(err)
 	} else {
-		if !expectedCaptureFile.DataEquals(readCapture) {
+		if !expectedCaptureFile.PayloadsEqual(readPayloads) {
 			t.Error("Request read back from file should match")
 		}
 	}
@@ -38,20 +41,52 @@ func TestInputFileWithGET(t *testing.T) {
 func TestInputFileWithPayloadLargerThan64Kb(t *testing.T) {
 
 	input := NewTestInput()
-	rg := NewRequestGenerator([]io.Reader{input}, func() { input.EmitSizedPOST(64 * 1024) })
+	rg := NewRequestGenerator([]io.Reader{input}, func() { input.EmitSizedPOST(64 * 1024) }, 1)
+	readPayloads := [][]byte{}
 
 	// Given a capture file with a request over 64Kb
-	expectedCaptureFile := CreateCaptureFileWithOneRequest(rg)
+	expectedCaptureFile := CreateCaptureFile(rg)
 	defer expectedCaptureFile.TearDown()
 
 	// When the request is read from the capture file
-	readCapture, err := ReadFromCaptureFile(expectedCaptureFile.file)
+	err := ReadFromCaptureFile(expectedCaptureFile.file, 1, func(data []byte) {
+		readPayloads = append(readPayloads, Duplicate(data))
+	})
 
 	// The read request should match the original request
 	if err != nil {
 		t.Error(err)
 	} else {
-		if !expectedCaptureFile.DataEquals(readCapture) {
+		if !expectedCaptureFile.PayloadsEqual(readPayloads) {
+			t.Error("Request read back from file should match")
+		}
+	}
+
+}
+
+func TestInputFileWithGETAndPOST(t *testing.T) {
+
+	input := NewTestInput()
+	rg := NewRequestGenerator([]io.Reader{input}, func() {
+		input.EmitGET()
+		input.EmitPOST()
+	}, 2)
+	readPayloads := [][]byte{}
+
+	// Given a capture file with a GET request
+	expectedCaptureFile := CreateCaptureFile(rg)
+	defer expectedCaptureFile.TearDown()
+
+	// When the requests are read from the capture file
+	err := ReadFromCaptureFile(expectedCaptureFile.file, 2, func(data []byte) {
+		readPayloads = append(readPayloads, Duplicate(data))
+	})
+
+	// The read requests should match the original request
+	if err != nil {
+		t.Error(err)
+	} else {
+		if !expectedCaptureFile.PayloadsEqual(readPayloads) {
 			t.Error("Request read back from file should match")
 		}
 	}
@@ -59,11 +94,11 @@ func TestInputFileWithPayloadLargerThan64Kb(t *testing.T) {
 }
 
 type CaptureFile struct {
-	data []byte
+	data [][]byte
 	file *os.File
 }
 
-func NewExpectedCaptureFile(data []byte, file *os.File) *CaptureFile {
+func NewExpectedCaptureFile(data [][]byte, file *os.File) *CaptureFile {
 	ecf := new(CaptureFile)
 	ecf.file = file
 	ecf.data = data
@@ -79,33 +114,51 @@ func (expectedCaptureFile *CaptureFile) TearDown() {
 type RequestGenerator struct {
 	inputs []io.Reader
 	emit   func()
+	wg     *sync.WaitGroup
 }
 
-func NewRequestGenerator(inputs []io.Reader, emit func()) (rg *RequestGenerator) {
+func NewRequestGenerator(inputs []io.Reader, emit func(), count int) (rg *RequestGenerator) {
 	rg = new(RequestGenerator)
 	rg.inputs = inputs
 	rg.emit = emit
+	rg.wg = new(sync.WaitGroup)
+	rg.wg.Add(count)
 	return
 }
 
-func (expectedCaptureFile *CaptureFile) DataEquals(other []byte) bool {
-	return bytes.Equal(expectedCaptureFile.data, other)
+func (expectedCaptureFile *CaptureFile) PayloadsEqual(other [][]byte) bool {
+
+	if len(expectedCaptureFile.data) != len(other) {
+		return false
+	}
+
+	for i, payload := range other {
+
+		if !bytes.Equal(expectedCaptureFile.data[i], payload) {
+			return false
+		}
+
+	}
+
+	return true
+
 }
 
-func CreateCaptureFileWithOneRequest(requestGenerator *RequestGenerator) *CaptureFile {
+func CreateCaptureFile(requestGenerator *RequestGenerator) *CaptureFile {
 
 	f, err := ioutil.TempFile("", "testmainconf")
 	if err != nil {
 		panic(err)
 	}
 
-	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
-	var buffer bytes.Buffer
+	readPayloads := [][]byte{}
 	output := NewTestOutput(func(data []byte) {
-		buffer.Write(data)
-		wg.Done()
+
+		readPayloads = append(readPayloads, Duplicate(data))
+
+		requestGenerator.wg.Done()
 	})
 
 	output_file := NewFileOutput(f.Name())
@@ -113,35 +166,32 @@ func CreateCaptureFileWithOneRequest(requestGenerator *RequestGenerator) *Captur
 	Plugins.Inputs = requestGenerator.inputs
 	Plugins.Outputs = []io.Writer{output, output_file}
 
-	wg.Add(1)
 	go Start(quit)
 
 	requestGenerator.emit()
-	wg.Wait()
+	requestGenerator.wg.Wait()
 
 	close(quit)
 
-	return NewExpectedCaptureFile(buffer.Bytes(), f)
+	return NewExpectedCaptureFile(readPayloads, f)
 
 }
 
-func ReadFromCaptureFile(captureFile *os.File) (read []byte, err error) {
+func ReadFromCaptureFile(captureFile *os.File, count int, callback writeCallback) (err error) {
 
 	quit := make(chan int)
 	wg := new(sync.WaitGroup)
 
-	var buffer2 bytes.Buffer
-
 	input := NewFileInput(captureFile.Name())
 	output := NewTestOutput(func(data []byte) {
-		buffer2.Write(data)
+		callback(data)
 		wg.Done()
 	})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
 
-	wg.Add(1)
+	wg.Add(count)
 	go Start(quit)
 
 	done := make(chan int, 1)
@@ -152,7 +202,7 @@ func ReadFromCaptureFile(captureFile *os.File) (read []byte, err error) {
 
 	select {
 	case <-done:
-		read = buffer2.Bytes()
+		break
 	case <-time.After(2 * time.Second):
 		err = errors.New("Timed out")
 	}
@@ -160,4 +210,11 @@ func ReadFromCaptureFile(captureFile *os.File) (read []byte, err error) {
 
 	return
 
+}
+
+func Duplicate(data []byte) (duplicate []byte) {
+	duplicate = make([]byte, len(data))
+	copy(duplicate, data)
+
+	return
 }
