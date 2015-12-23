@@ -56,7 +56,7 @@ func (i *TestInput) EmitLargePOST() {
 	Debug("Sent large POST")
 }
 
-// Emit a POST with a payload set to a supplied size
+// EmitSizedPOST emit a POST with a payload set to a supplied size
 func (i *TestInput) EmitSizedPOST(payloadSize int) {
 	rb := make([]byte, payloadSize)
 	rand.Read(rb)

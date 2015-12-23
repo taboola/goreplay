@@ -161,10 +161,10 @@ func CreateCaptureFile(requestGenerator *RequestGenerator) *CaptureFile {
 		requestGenerator.wg.Done()
 	})
 
-	output_file := NewFileOutput(f.Name())
+	outputFile := NewFileOutput(f.Name())
 
 	Plugins.Inputs = requestGenerator.inputs
-	Plugins.Outputs = []io.Writer{output, output_file}
+	Plugins.Outputs = []io.Writer{output, outputFile}
 
 	go Start(quit)
 
