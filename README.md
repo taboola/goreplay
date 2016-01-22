@@ -380,7 +380,8 @@ https://github.com/buger/gor/releases
   gor --input-raw :80 --output-http http://staging.com
   -output-http-elasticsearch="": Send request and response stats to ElasticSearch:
   gor --input-raw :8080 --output-http staging.com --output-http-elasticsearch 'es_host:api_port/index_name'
-  -output-http-header-filter=[]: WARNING: `--output-http-header-filter` DEPRECATED, use `--http-allow-header` instead  -output-http-redirects=0: Enable how often redirects should be followed.
+  -output-http-header-filter=[]: WARNING: `--output-http-header-filter` DEPRECATED, use `--http-allow-header` instead
+  -output-http-redirects=0: Enable how often redirects should be followed.
   -output-http-stats=false: Report http output queue stats to console every 5 seconds. Remember to include also `--stats`
   -output-http-workers=0: Gor uses dynamic worker scaling by default.  Enter a number to run a set number of workers.
   -output-tcp=[]: Used for internal communication between Gor instances. Example:
