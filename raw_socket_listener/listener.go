@@ -99,12 +99,18 @@ func (t *Listener) listen() {
 		case packet := <-t.packetsChan:
 			t.processTCPPacket(packet)
 
-		case <- gcTicker:
+		case <-gcTicker:
 			now := time.Now()
 
 			for _, message := range t.messages {
 				if now.Sub(message.Start) >= t.messageExpire {
 					t.dispatchMessage(message)
+				}
+			}
+
+			for key, alias := range t.respAliases {
+				if now.Sub(alias.start) >= t.messageExpire {
+					delete(t.respAliases, key)
 				}
 			}
 		}
