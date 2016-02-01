@@ -441,7 +441,7 @@ Typical linux shell has a small open files soft limit at 1024. You can easily ra
   
   ulimit -n 64000
 
-More about ulimit: http://blog.thecodingmachine.com/content/solving-too-many-open-files-exception-red5-or-any-other-application
+More about ulimit: http://www.thecodingmachine.com/solving-the-too-many-open-files-exception-in-red5-or-any-other-application/
 
 ### The CPU average across my load-balanced targets is higher than the source
 If you are replaying traffic from multiple listeners to a load-balanced target and you use sticky sessions, you may observe that the target servers have a higher CPU load than the listener servers. This may be because the sticky session cookie of the original load balancer is not honored by the target load balancer thus resulting in requests that would normally hit the same target server hitting different servers on the backend thus reducing some caching benefits gained via the load balancing.  Try running just one listener against one replay target and see if the CPU utilization comparison is more accurate.
