@@ -59,7 +59,7 @@ func (i *RAWInput) listen(address string) {
 		log.Fatal("input-raw: error while parsing address", err)
 	}
 
-	i.listener = raw.NewListener(host, port, i.expire, true)
+	i.listener = raw.NewListener(host, port, i.expire)
 
 	for {
 		select {

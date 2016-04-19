@@ -86,6 +86,8 @@ func TestInputRAW100Expect(t *testing.T) {
 
 	// We will use it to get content of raw HTTP request
 	testOutput := NewTestOutput(func(data []byte) {
+		log.Println("Received", string(data[:100]))
+
 		switch data[0] {
 		case RequestPayload:
 			if strings.Contains(string(data), "Expect: 100-continue") {
