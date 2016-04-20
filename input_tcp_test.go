@@ -51,7 +51,7 @@ func BenchmarkTCPInput(b *testing.B) {
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
-	input := NewTCPInput(":0")
+	input := NewTCPInput("127.0.0.1:0")
 	output := NewTestOutput(func(data []byte) {
 		wg.Done()
 	})
