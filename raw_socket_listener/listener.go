@@ -114,7 +114,7 @@ func (t *Listener) listen() {
 
 			t.processTCPPacket(packet)
 
-		case <- gcTicker:
+		case <-gcTicker:
 			now := time.Now()
 
 			for _, message := range t.messages {
@@ -272,7 +272,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 	if len(packet.Data) > 4 && bytes.Equal(packet.Data[0:4], bPOST) {
 		// reading last 20 bytes (not counting CRLF): last header value (if no body presented)
 		if bytes.Equal(packet.Data[len(packet.Data)-24:len(packet.Data)-4], bExpect100ContinueCheck) {
-			seq := packet.Seq+uint32(len(packet.Data))
+			seq := packet.Seq + uint32(len(packet.Data))
 			t.seqWithData[seq] = packet.Ack
 
 			// In case if sequence packet came first

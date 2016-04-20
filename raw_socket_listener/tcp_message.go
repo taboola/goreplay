@@ -170,4 +170,3 @@ func (t *TCPMessage) UUID() []byte {
 
 	return uuid
 }
-
