@@ -194,15 +194,15 @@ func TestTokenMiddleware(t *testing.T) {
 	// Should receive 2 requests from original + 2 from replayed
 	wg.Add(4)
 
-	client := NewHTTPClient(from.URL, &HTTPClientConfig{Debug: false})
+	client := NewHTTPClient(from.URL, &HTTPClientConfig{Debug: true})
 
 	// Sending traffic to original service
 	resp, _ = client.Get("/token")
 	token = proto.Body(resp)
 
 	// When delay is too smal, middleware does not always rewrite requests in time
-	// Hopefuly client will have delay more then 10ms :)
-	time.Sleep(10 * time.Millisecond)
+	// Hopefuly client will have delay more then 100ms :)
+	time.Sleep(100 * time.Millisecond)
 
 	resp, _ = client.Get("/secure?token=" + string(token))
 	if !bytes.Equal(proto.Status(resp), []byte("202")) {

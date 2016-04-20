@@ -58,7 +58,7 @@ func header(payload []byte, name []byte) (value []byte, headerStart, valueStart,
 
 	headerEnd = valueStart + bytes.IndexByte(payload[valueStart:], '\n')
 
-	if payload[headerEnd - 1] == '\r' {
+	if payload[headerEnd-1] == '\r' {
 		headerEnd -= 1
 	}
 
