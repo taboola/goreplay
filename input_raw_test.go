@@ -68,13 +68,12 @@ func TestInputRAW100Expect(t *testing.T) {
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
-	fileContent, _ := ioutil.ReadFile("README.md")
+	fileContent, _ := ioutil.ReadFile("LICENSE.txt")
 
 	// Origing and Replay server initialization
 	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		ioutil.ReadAll(r.Body)
-
 		wg.Done()
 	}))
 	defer origin.Close()
@@ -119,7 +118,7 @@ func TestInputRAW100Expect(t *testing.T) {
 
 	// Origin + Response/Request Test Output + Request Http Output
 	wg.Add(4)
-	curl := exec.Command("curl", "http://"+originAddr, "--data-binary", "@README.md")
+	curl := exec.Command("curl", "http://"+originAddr, "--data-binary", "@LICENSE.txt")
 	err := curl.Run()
 	if err != nil {
 		log.Fatal(err)

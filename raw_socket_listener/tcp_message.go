@@ -18,6 +18,7 @@ import (
 // Message is received if we didn't receive any packets for 2000ms
 type TCPMessage struct {
 	ID           string // Message ID
+	Seq          uint32
 	Ack          uint32
 	ResponseAck  uint32
 	RequestStart time.Time
@@ -32,8 +33,8 @@ type TCPMessage struct {
 }
 
 // NewTCPMessage pointer created from a Acknowledgment number and a channel of messages readuy to be deleted
-func NewTCPMessage(ID string, Ack uint32, IsIncoming bool) (msg *TCPMessage) {
-	msg = &TCPMessage{ID: ID, Ack: Ack, IsIncoming: IsIncoming}
+func NewTCPMessage(ID string, Seq, Ack uint32, IsIncoming bool) (msg *TCPMessage) {
+	msg = &TCPMessage{ID: ID, Seq: Seq, Ack: Ack, IsIncoming: IsIncoming}
 	msg.Start = time.Now()
 
 	return
@@ -48,11 +49,28 @@ func (t *TCPMessage) Bytes() (output []byte) {
 	return output
 }
 
-// Size returns total size of message
-func (t *TCPMessage) Size() (size int) {
+// Size returns total body size
+func (t *TCPMessage) BodySize() (size int) {
+	if len(t.packets) == 0 {
+		return 0
+	}
+
 	size += len(proto.Body(t.packets[0].Data))
 
 	for _, p := range t.packets[1:] {
+		size += len(p.Data)
+	}
+
+	return
+}
+
+// Size returns total size of message
+func (t *TCPMessage) Size() (size int) {
+	if len(t.packets) == 0 {
+		return 0
+	}
+
+	for _, p := range t.packets {
 		size += len(p.Data)
 	}
 
@@ -86,18 +104,14 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 }
 
 // isMultipart returns true if message contains from multiple tcp packets
-func (t *TCPMessage) IsMultipart() bool {
-	if len(t.packets) > 1 {
-		return true
-	}
-
+func (t *TCPMessage) IsFinished() bool {
 	payload := t.packets[0].Data
 	m := payload[:4]
 
 	if t.IsIncoming {
 		// If one GET, OPTIONS, or HEAD request
 		if bytes.Equal(m, []byte("GET ")) || bytes.Equal(m, []byte("OPTI")) || bytes.Equal(m, []byte("HEAD")) {
-			return false
+			return true
 		} else {
 			// Sometimes header comes after the body :(
 			if bytes.Equal(m, []byte("POST")) || bytes.Equal(m, []byte("PUT ")) || bytes.Equal(m, []byte("PATC")) {
@@ -105,28 +119,38 @@ func (t *TCPMessage) IsMultipart() bool {
 					l, _ := strconv.Atoi(string(length))
 
 					// If content-length equal current body length
-					if l > 0 && l == t.Size() {
-						return false
+					if l > 0 && l == t.BodySize() {
+						return true
 					}
 				}
 			}
 		}
 	} else {
+		// Request not found
+		// Can be because response came first or request request was just missing
+		if t.RequestAck == 0 {
+			return false
+		}
+
 		if length := proto.Header(payload, []byte("Content-Length")); len(length) > 0 {
 			if length[0] == '0' {
-				return false
+				return true
 			}
 
 			l, _ := strconv.Atoi(string(length))
 
 			// If content-length equal current body length
-			if l > 0 && l == t.Size() {
-				return false
+			if l > 0 && l == t.BodySize() {
+				return true
+			}
+		} else {
+			if enc := proto.Header(payload, []byte("Transfer-Encoding")); len(enc) == 0 {
+				return true
 			}
 		}
 	}
 
-	return true
+	return false
 }
 
 func (t *TCPMessage) UUID() []byte {
@@ -146,3 +170,4 @@ func (t *TCPMessage) UUID() []byte {
 
 	return uuid
 }
+

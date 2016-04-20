@@ -18,7 +18,5 @@ ADD . /go/src/github.com/buger/gor/
 
 RUN javac -cp /tmp/commons-io-2.4/commons-io-2.4.jar ./examples/middleware/echo.java
 
-RUN apt-get install graphviz -y
-
 RUN go get -u github.com/golang/lint/golint
 RUN go get
