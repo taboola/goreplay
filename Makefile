@@ -5,10 +5,10 @@ RUN = docker run -v `pwd`:$(SOURCE_PATH) -p 0.0.0.0:8000:8000 -t -i gor
 release: release-x86 release-x64
 
 release-x64:
-	docker run -v `pwd`:$(SOURCE_PATH) -t -i gor go build -ldflags "-X main.VERSION=$(VERSION)"&& tar -czf gor_$(VERSION)_x64.tar.gz gor && rm gor
+	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=amd64 --env CGO_ENABLED=0 -i gor go build -ldflags "-X main.VERSION=$(VERSION)"&& tar -czf gor_$(VERSION)_x64.tar.gz gor && rm gor
 
 release-x86:
-	docker run -v `pwd`:$(SOURCE_PATH) -t -i --env GOOS=linux --env GOARCH=386 --env CGO_ENABLED=0 -i gor go build -ldflags "-X main.VERSION=$(VERSION)" && tar -czf gor_$(VERSION)_x86.tar.gz gor && rm gor
+	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=386 --env CGO_ENABLED=0 -i gor go build -ldflags "-X main.VERSION=$(VERSION)" && tar -czf gor_$(VERSION)_x86.tar.gz gor && rm gor
 
 build:
 	docker build -t gor .

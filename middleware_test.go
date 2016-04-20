@@ -148,7 +148,6 @@ func TestEchoMiddleware(t *testing.T) {
 }
 
 func TestTokenMiddleware(t *testing.T) {
-	Settings.verbose = true
 	var resp, token []byte
 
 	wg := new(sync.WaitGroup)
