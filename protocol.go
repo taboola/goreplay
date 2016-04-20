@@ -67,8 +67,8 @@ func payloadBody(payload []byte) []byte {
 
 func payloadMeta(payload []byte) [][]byte {
 	headerSize := bytes.IndexByte(payload, '\n')
-        if headerSize < 0 {
-                headerSize = 0;
+	if headerSize < 0 {
+		headerSize = 0
 	}
 	return bytes.Split(payload[:headerSize], []byte{' '})
 }

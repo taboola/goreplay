@@ -34,7 +34,7 @@ cover:
 	go tool cover -html=coverage.out
 
 fmt:
-	$(RUN) go fmt ./...
+	$(RUN) gofmt -w -s ./..
 
 vet:
 	$(RUN) go vet
