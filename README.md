@@ -485,7 +485,8 @@ To achieve the top most performance you should tune the source server system lim
 * [Optionlab](http://www.opinionlab.com) - Optimize customer experience and drive engagement across multiple channels
 * [TubeMogul](http://tubemogul.com) - Software for Brand Advertising
 * [Videology](http://www.videologygroup.com/) - Video advertising platform
-* [Granify](http://granify.com) - Intersection of artificial intelligence and e-commerce, providing a SaaS solution that enables online retailers to maximise their sales
+* [ForeksMobile](http://foreksmobile.com/) -  One of the leading financial application development company in Turkey
+* [Granify](http://granify.com) - AI backed SaaS solution that enables online retailers to maximise their sales
 * And many more!
 
 If you are using Gor we are happy add you to the list and share your story, just write to: leonsbox@gmail.com
