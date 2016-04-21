@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/buger/gor.png?branch=master)](https://travis-ci.org/buger/gor)
+[![Build Status](https://travis-ci.org/buger/gor.png?branch=master)](https://travis-ci.org/buger/gor) [![codebeat](https://codebeat.co/badges/6427d589-a78e-416c-a546-d299b4089893)](https://codebeat.co/projects/github-com-buger-gor) [![Go Report Card](https://goreportcard.com/badge/github.com/buger/gor)](https://goreportcard.com/report/github.com/buger/gor)
 
 ## About
 
@@ -380,7 +380,8 @@ https://github.com/buger/gor/releases
   gor --input-raw :80 --output-http http://staging.com
   -output-http-elasticsearch="": Send request and response stats to ElasticSearch:
   gor --input-raw :8080 --output-http staging.com --output-http-elasticsearch 'es_host:api_port/index_name'
-  -output-http-header-filter=[]: WARNING: `--output-http-header-filter` DEPRECATED, use `--http-allow-header` instead  -output-http-redirects=0: Enable how often redirects should be followed.
+  -output-http-header-filter=[]: WARNING: `--output-http-header-filter` DEPRECATED, use `--http-allow-header` instead
+  -output-http-redirects=0: Enable how often redirects should be followed.
   -output-http-stats=false: Report http output queue stats to console every 5 seconds. Remember to include also `--stats`
   -output-http-workers=0: Gor uses dynamic worker scaling by default.  Enter a number to run a set number of workers.
   -output-tcp=[]: Used for internal communication between Gor instances. Example:
@@ -441,7 +442,7 @@ Typical linux shell has a small open files soft limit at 1024. You can easily ra
   
   ulimit -n 64000
 
-More about ulimit: http://blog.thecodingmachine.com/content/solving-too-many-open-files-exception-red5-or-any-other-application
+More about ulimit: http://www.thecodingmachine.com/solving-the-too-many-open-files-exception-in-red5-or-any-other-application/
 
 ### The CPU average across my load-balanced targets is higher than the source
 If you are replaying traffic from multiple listeners to a load-balanced target and you use sticky sessions, you may observe that the target servers have a higher CPU load than the listener servers. This may be because the sticky session cookie of the original load balancer is not honored by the target load balancer thus resulting in requests that would normally hit the same target server hitting different servers on the backend thus reducing some caching benefits gained via the load balancing.  Try running just one listener against one replay target and see if the CPU utilization comparison is more accurate.

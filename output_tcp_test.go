@@ -35,7 +35,7 @@ func TestTCPOutput(t *testing.T) {
 }
 
 func startTCP(cb func([]byte)) net.Listener {
-	listener, err := net.Listen("tcp", ":0")
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
 
 	if err != nil {
 		log.Fatal("Can't start:", err)

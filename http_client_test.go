@@ -173,7 +173,7 @@ func TestHTTPClientServerInstantDisconnect(t *testing.T) {
 
 	GETPayload := []byte("GET / HTTP/1.1\r\n\r\n")
 
-	ln, _ := net.Listen("tcp", ":0")
+	ln, _ := net.Listen("tcp", "127.0.0.1:0")
 	defer ln.Close()
 
 	go func() {
@@ -202,7 +202,7 @@ func TestHTTPClientServerNoKeepAlive(t *testing.T) {
 
 	GETPayload := []byte("GET / HTTP/1.1\r\n\r\n")
 
-	ln, _ := net.Listen("tcp", ":0")
+	ln, _ := net.Listen("tcp", "127.0.0.1:0")
 	defer ln.Close()
 
 	go func() {
@@ -349,7 +349,7 @@ func TestHTTPClientErrors(t *testing.T) {
 	}
 
 	// Connecting but io timeout on read
-	ln, _ := net.Listen("tcp", ":0")
+	ln, _ := net.Listen("tcp", "127.0.0.1:0")
 	client = NewHTTPClient("http://"+ln.Addr().String(), &HTTPClientConfig{Debug: true, Timeout: 10 * time.Millisecond})
 	defer ln.Close()
 
@@ -362,7 +362,7 @@ func TestHTTPClientErrors(t *testing.T) {
 	}
 
 	// Response read error read tcp [::1]:51128: connection reset by peer &{{0xc20802a000}}
-	ln1, _ := net.Listen("tcp", ":0")
+	ln1, _ := net.Listen("tcp", "127.0.0.1:0")
 	go func() {
 		ln1.Accept()
 	}()
@@ -378,7 +378,7 @@ func TestHTTPClientErrors(t *testing.T) {
 		t.Error("Should throw error")
 	}
 
-	ln2, _ := net.Listen("tcp", ":0")
+	ln2, _ := net.Listen("tcp", "127.0.0.1:0")
 	go func() {
 		buf := make([]byte, 64*1024)
 		conn, _ := ln2.Accept()

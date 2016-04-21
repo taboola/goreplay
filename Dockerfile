@@ -1,6 +1,4 @@
-FROM google/golang:1.4
-
-RUN cd /goroot/src/ && GOOS=linux GOARCH=386 ./make.bash --no-clean
+FROM golang:latest
 
 RUN apt-get update && apt-get install ruby vim-common -y
 
@@ -15,12 +13,10 @@ RUN apt-get install oracle-java8-installer -y
 RUN wget http://apache-mirror.rbc.ru/pub/apache//commons/io/binaries/commons-io-2.4-bin.tar.gz -P /tmp
 RUN tar xzf /tmp/commons-io-2.4-bin.tar.gz -C /tmp
 
-WORKDIR /gopath/src/github.com/buger/gor/
-ADD . /gopath/src/github.com/buger/gor/
+WORKDIR /go/src/github.com/buger/gor/
+ADD . /go/src/github.com/buger/gor/
 
 RUN javac -cp /tmp/commons-io-2.4/commons-io-2.4.jar ./examples/middleware/echo.java
-
-RUN apt-get install graphviz -y
 
 RUN go get -u github.com/golang/lint/golint
 RUN go get
