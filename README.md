@@ -478,11 +478,14 @@ To achieve the top most performance you should tune the source server system lim
 
 ## Companies using Gor
 
-* [Granify](http://granify.com)
 * [GOV.UK](https://www.gov.uk) ([Government Digital Service](http://digital.cabinetoffice.gov.uk/))
-* [theguardian.com](http://theguardian.com)
-* [TomTom](http://www.tomtom.com/)
-* [3SCALE](http://www.3scale.net/)
-* [Optionlab](http://www.opinionlab.com)
-* [TubeMogul] (http://tubemogul.com)
-* To add your company drop me a line to github.com/buger or leonsbox@gmail.com
+* [theguardian.com](http://theguardian.com) - Most popular online newspaper in the UK
+* [TomTom](http://www.tomtom.com/) - Global leader in navigation, traffic and map products, GPS Sport Watches and fleet management solutions.
+* [3SCALE](http://www.3scale.net/) - API infrastructure to manage your APIs for internal or external users
+* [Optionlab](http://www.opinionlab.com) - Optimize customer experience and drive engagement across multiple channels
+* [TubeMogul](http://tubemogul.com) - Software for Brand Advertising
+* [Videology](http://www.videologygroup.com/) - Video advertising platform
+* [Granify](http://granify.com) - Intersection of artificial intelligence and e-commerce, providing a SaaS solution that enables online retailers to maximise their sales
+* And many more!
+
+If you are using Gor we are happy add you to the list and share your story, just write to: leonsbox@gmail.com
