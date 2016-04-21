@@ -478,7 +478,7 @@ To achieve the top most performance you should tune the source server system lim
 
 ## Companies using Gor
 
-* [GOV.UK](https://www.gov.uk) UK Government Digital Service
+* [GOV.UK](https://www.gov.uk) - UK Government Digital Service
 * [theguardian.com](http://theguardian.com) - Most popular online newspaper in the UK
 * [TomTom](http://www.tomtom.com/) - Global leader in navigation, traffic and map products, GPS Sport Watches and fleet management solutions.
 * [3SCALE](http://www.3scale.net/) - API infrastructure to manage your APIs for internal or external users
