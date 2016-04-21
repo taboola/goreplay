@@ -70,11 +70,12 @@ func (t *TCPPacket) ParseBasic() {
 // String output for a TCP Packet
 func (t *TCPPacket) String() string {
 	maxLen := len(t.Data)
-	if maxLen > 500 {
-		maxLen = 500
+	if maxLen > 200 {
+		maxLen = 200
 	}
 
 	return strings.Join([]string{
+		"Addr: " + t.Addr.String(),
 		"Source port: " + strconv.Itoa(int(t.SrcPort)),
 		"Dest port:" + strconv.Itoa(int(t.DestPort)),
 		"Sequence:" + strconv.Itoa(int(t.Seq)),
@@ -98,9 +99,3 @@ func (t *TCPPacket) String() string {
 		"Data:" + string(t.Data[:maxLen]),
 	}, "\n")
 }
-
-type sortBySeq []*TCPPacket
-
-func (a sortBySeq) Len() int           { return len(a) }
-func (a sortBySeq) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a sortBySeq) Less(i, j int) bool { return a[i].Seq < a[j].Seq }

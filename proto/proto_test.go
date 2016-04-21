@@ -37,7 +37,6 @@ func TestHeader(t *testing.T) {
 		t.Error("Should handle wrong header delimeter")
 	}
 
-
 	// Header not found
 	if _, headerStart, _, _ = header(payload, []byte("Not-Found")); headerStart != -1 {
 		t.Error("Should not found header")
