@@ -14,6 +14,13 @@ Here is basic workflow: The listener server catches http traffic and sends it to
 ![Diagram](http://i.imgur.com/9mqj2SK.png)
 
 
+## Want to Upgrade?
+
+I also sell Gor Pro, extensions to Gor which provide more features, a commercial-friendly license and allow you to support high quality open source development all at the same time. Please see the Gor [homepage](http://gortool.com) for more detail.
+
+Subscribe to the [quarterly newsletter](https://tinyletter.com/gor) to stay informed about the latest features and changes to Gor and its bigger siblings.
+
+
 ## Examples
 
 ### Capture traffic from port
