@@ -122,6 +122,12 @@ func (t *Listener) listen() {
 					t.dispatchMessage(message)
 				}
 			}
+
+			for key, alias := range t.respAliases {
+				if now.Sub(alias.start) >= t.messageExpire {
+					delete(t.respAliases, key)
+				}
+			}
 		}
 	}
 }
