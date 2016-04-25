@@ -50,7 +50,7 @@ func (o *TCPOutput) worker() {
 		_, err := conn.Write([]byte(payloadSeparator))
 
 		if err != nil {
-			log.Println("Worker failed on write, exitings and starting new worker")
+			log.Println("Worker failed on write, exitings and starting new worker:", err)
 			go o.worker()
 			break
 		}
