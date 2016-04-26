@@ -10,6 +10,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"time"
+	"strconv"
 )
 
 var defaultPorts = map[string]string{
@@ -198,6 +199,14 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 
 func (c *HTTPClient) Get(path string) (response []byte, err error) {
 	payload := "GET " + path + " HTTP/1.1\r\n\r\n"
+
+	return c.Send([]byte(payload))
+}
+
+func (c *HTTPClient) Post(path string, body []byte) (response []byte, err error) {
+	payload := "POST " + path + " HTTP/1.1\r\n"
+	payload += "Content-Length: " + strconv.Itoa(len(body)) + "\r\n\r\n"
+	payload += string(body)
 
 	return c.Send([]byte(payload))
 }

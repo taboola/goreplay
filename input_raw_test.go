@@ -15,6 +15,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+	"math/rand"
 )
 
 const testRawExpire = time.Millisecond * 200
@@ -239,5 +240,64 @@ func TestInputRAWLargePayload(t *testing.T) {
 	}
 
 	wg.Wait()
+	close(quit)
+}
+
+func BenchmarkRAWInput(b *testing.B) {
+	quit := make(chan int)
+
+	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	defer origin.Close()
+	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
+
+	var respCounter, reqCounter int64
+
+	input := NewRAWInput(originAddr, testRawExpire)
+	defer input.Close()
+
+	output := NewTestOutput(func(data []byte) {
+		if data[0] == '1' {
+			atomic.AddInt64(&reqCounter, 1)
+		} else {
+			atomic.AddInt64(&respCounter, 1)
+		}
+
+		// log.Println("Captured ", reqCounter, "requests and ", respCounter, " responses")
+	})
+
+	Plugins.Inputs = []io.Reader{input}
+	Plugins.Outputs = []io.Writer{output}
+
+	time.Sleep(time.Millisecond)
+
+	go Start(quit)
+
+	emitted := 0
+	fileContent, _ := ioutil.ReadFile("LICENSE.txt")
+
+	for i := 0; i < b.N; i++ {
+		wg := new(sync.WaitGroup)
+		wg.Add(10 * 100)
+		emitted += 10*100
+		for w := 0; w < 100; w++ {
+			go func(){
+				client := NewHTTPClient(origin.URL, &HTTPClientConfig{})
+				for i := 0; i < 10; i++ {
+					if rand.Int63n(2) == 0 {
+						client.Post("/", fileContent)
+					} else {
+						client.Get("/")
+					}
+					time.Sleep(time.Duration(rand.Int63n(50)) * time.Millisecond)
+					wg.Done()
+				}
+			}()
+		}
+		wg.Wait()
+	}
+
+	time.Sleep(201 * time.Millisecond)
+	log.Println("Emitted ", emitted, ", Captured ", reqCounter, "requests and ", respCounter, " responses")
+
 	close(quit)
 }
