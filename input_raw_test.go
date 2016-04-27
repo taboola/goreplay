@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 	"math/rand"
+	"strconv"
 )
 
 const testRawExpire = time.Millisecond * 200
@@ -30,7 +31,7 @@ func TestRAWInput(t *testing.T) {
 
 	var respCounter, reqCounter int64
 
-	input := NewRAWInput(originAddr, testRawExpire)
+	input := NewRAWInput(originAddr, ENGINE_PCAP, testRawExpire)
 	defer input.Close()
 
 	output := NewTestOutput(func(data []byte) {
@@ -52,9 +53,8 @@ func TestRAWInput(t *testing.T) {
 
 	client := NewHTTPClient(origin.URL, &HTTPClientConfig{})
 
-	time.Sleep(time.Millisecond)
-
 	go Start(quit)
+	time.Sleep(100 * time.Millisecond)
 
 	for i := 0; i < 100; i++ {
 		// request + response
@@ -82,7 +82,7 @@ func TestInputRAW100Expect(t *testing.T) {
 
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr, time.Second)
+	input := NewRAWInput(originAddr, ENGINE_PCAP, time.Second)
 	defer input.Close()
 
 	// We will use it to get content of raw HTTP request
@@ -117,6 +117,7 @@ func TestInputRAW100Expect(t *testing.T) {
 	Plugins.Outputs = []io.Writer{testOutput, httpOutput}
 
 	go Start(quit)
+	time.Sleep(100 * time.Millisecond)
 
 	// Origin + Response/Request Test Output + Request Http Output
 	wg.Add(4)
@@ -145,7 +146,7 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 	}))
 
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
-	input := NewRAWInput(originAddr, time.Second)
+	input := NewRAWInput(originAddr, ENGINE_PCAP, time.Second)
 	defer input.Close()
 
 	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -167,6 +168,7 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 	Plugins.Outputs = []io.Writer{httpOutput}
 
 	go Start(quit)
+	time.Sleep(100 * time.Millisecond)
 
 	wg.Add(2)
 
@@ -188,9 +190,10 @@ func TestInputRAWLargePayload(t *testing.T) {
 	}
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
+	sizeKb := 100
 
 	// Generate 100kb file
-	dd := exec.Command("dd", "if=/dev/urandom", "of=/tmp/large", "bs=1KB", "count=100")
+	dd := exec.Command("dd", "if=/dev/urandom", "of=/tmp/large", "bs=1KB", "count=" + strconv.Itoa(sizeKb))
 	err := dd.Run()
 	if err != nil {
 		log.Fatal("dd error:", err)
@@ -200,7 +203,7 @@ func TestInputRAWLargePayload(t *testing.T) {
 		defer req.Body.Close()
 		body, _ := ioutil.ReadAll(req.Body)
 
-		if len(body) != 100*1000 {
+		if len(body) != sizeKb*1000 {
 			t.Error("File size should be 1mb:", len(body))
 		}
 
@@ -208,7 +211,7 @@ func TestInputRAWLargePayload(t *testing.T) {
 	}))
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr, time.Second)
+	input := NewRAWInput(originAddr, ENGINE_PCAP, time.Second)
 	defer input.Close()
 
 	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -217,7 +220,7 @@ func TestInputRAWLargePayload(t *testing.T) {
 		n, _ := req.Body.Read(buf)
 		body := buf[0:n]
 
-		if len(body) != 100*1000 {
+		if len(body) != sizeKb*1000 {
 			t.Error("File size should be 100000 bytes:", len(body))
 		}
 
@@ -231,6 +234,8 @@ func TestInputRAWLargePayload(t *testing.T) {
 	Plugins.Outputs = []io.Writer{httpOutput}
 
 	go Start(quit)
+
+	time.Sleep(100 * time.Millisecond)
 
 	wg.Add(2)
 	curl := exec.Command("curl", "http://"+originAddr, "--header", "Transfer-Encoding: chunked", "--data-binary", "@/tmp/large")
@@ -252,7 +257,7 @@ func BenchmarkRAWInput(b *testing.B) {
 
 	var respCounter, reqCounter int64
 
-	input := NewRAWInput(originAddr, testRawExpire)
+	input := NewRAWInput(originAddr, ENGINE_PCAP, testRawExpire)
 	defer input.Close()
 
 	output := NewTestOutput(func(data []byte) {
@@ -296,7 +301,7 @@ func BenchmarkRAWInput(b *testing.B) {
 		wg.Wait()
 	}
 
-	time.Sleep(201 * time.Millisecond)
+	time.Sleep(400 * time.Millisecond)
 	log.Println("Emitted ", emitted, ", Captured ", reqCounter, "requests and ", respCounter, " responses")
 
 	close(quit)

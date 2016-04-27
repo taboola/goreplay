@@ -116,7 +116,7 @@ func TestEchoMiddleware(t *testing.T) {
 	Settings.middleware = "./examples/middleware/echo.sh"
 
 	// Catch traffic from one service
-	input := NewRAWInput(from.Listener.Addr().String(), testRawExpire)
+	input := NewRAWInput(from.Listener.Addr().String(), ENGINE_PCAP, testRawExpire)
 	defer input.Close()
 
 	// And redirect to another
@@ -176,7 +176,7 @@ func TestTokenMiddleware(t *testing.T) {
 
 	fromAddr := strings.Replace(from.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 	// Catch traffic from one service
-	input := NewRAWInput(fromAddr, testRawExpire)
+	input := NewRAWInput(fromAddr, ENGINE_PCAP, testRawExpire)
 	defer input.Close()
 
 	// And redirect to another

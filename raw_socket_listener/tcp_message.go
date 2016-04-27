@@ -95,8 +95,15 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 		// Packets not always captured in same Seq order, and sometimes we need to prepend
 		if len(t.packets) == 0 || packet.Seq > t.packets[len(t.packets)-1].Seq {
 			t.packets = append(t.packets, packet)
-		} else {
+		} else if packet.Seq < t.packets[0].Seq {
 			t.packets = append([]*TCPPacket{packet}, t.packets...)
+		} else { // insert somewhere in the middle...
+			for i, p := range t.packets {
+				if packet.Seq < p.Seq {
+					t.packets = append(t.packets[:i], append([]*TCPPacket{packet}, t.packets[i:]...)...)
+					break
+				}
+			}
 		}
 
 		t.End = time.Now()

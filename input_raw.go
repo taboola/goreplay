@@ -14,15 +14,22 @@ type RAWInput struct {
 	address  string
 	expire   time.Duration
 	quit     chan bool
+	engine   int
 	listener *raw.Listener
 }
 
+const (
+	ENGINE_RAW_SOCKET = 1 << iota
+	ENGINE_PCAP
+)
+
 // NewRAWInput constructor for RAWInput. Accepts address with port as argument.
-func NewRAWInput(address string, expire time.Duration) (i *RAWInput) {
+func NewRAWInput(address string, engine int, expire time.Duration) (i *RAWInput) {
 	i = new(RAWInput)
 	i.data = make(chan *raw.TCPMessage)
 	i.address = address
 	i.expire = expire
+	i.engine = engine
 	i.quit = make(chan bool)
 
 	go i.listen(address)
@@ -59,7 +66,7 @@ func (i *RAWInput) listen(address string) {
 		log.Fatal("input-raw: error while parsing address", err)
 	}
 
-	i.listener = raw.NewListener(host, port, i.expire)
+	i.listener = raw.NewListener(host, port, i.engine, i.expire)
 
 	for {
 		select {
