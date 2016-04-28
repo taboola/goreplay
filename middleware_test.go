@@ -130,7 +130,7 @@ func TestEchoMiddleware(t *testing.T) {
 	go Start(quit)
 
 	// Wait till middleware initialization
-	time.Sleep(100*time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 
 	// Should receive 2 requests from original + 2 from replayed
 	client := NewHTTPClient(from.URL, &HTTPClientConfig{Debug: false})

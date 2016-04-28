@@ -5,18 +5,18 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
-	"math/rand"
-	"strconv"
 )
 
 const testRawExpire = time.Millisecond * 200
@@ -193,7 +193,7 @@ func TestInputRAWLargePayload(t *testing.T) {
 	sizeKb := 100
 
 	// Generate 100kb file
-	dd := exec.Command("dd", "if=/dev/urandom", "of=/tmp/large", "bs=1KB", "count=" + strconv.Itoa(sizeKb))
+	dd := exec.Command("dd", "if=/dev/urandom", "of=/tmp/large", "bs=1KB", "count="+strconv.Itoa(sizeKb))
 	err := dd.Run()
 	if err != nil {
 		log.Fatal("dd error:", err)
@@ -284,9 +284,9 @@ func BenchmarkRAWInput(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		wg := new(sync.WaitGroup)
 		wg.Add(10 * 100)
-		emitted += 10*100
+		emitted += 10 * 100
 		for w := 0; w < 100; w++ {
-			go func(){
+			go func() {
 				client := NewHTTPClient(origin.URL, &HTTPClientConfig{})
 				for i := 0; i < 10; i++ {
 					if rand.Int63n(2) == 0 {
