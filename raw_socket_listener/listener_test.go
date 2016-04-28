@@ -214,7 +214,7 @@ func testChunkedSequence(t *testing.T, listener *Listener, packets... *TCPPacket
             resp = r
         }
         break
-    case <-time.After(11 * time.Millisecond):
+    case <-time.After(25 * time.Millisecond):
         t.Error("Should return request after expire time")
         return
     }
@@ -226,7 +226,7 @@ func testChunkedSequence(t *testing.T, listener *Listener, packets... *TCPPacket
             resp = r
         }
         break
-    case <-time.After(11 * time.Millisecond):
+    case <-time.After(25 * time.Millisecond):
         t.Error("Should return request after expire time")
         return
     }
@@ -247,7 +247,7 @@ func testChunkedSequence(t *testing.T, listener *Listener, packets... *TCPPacket
         t.Error("Resp and Req UUID should be equal", string(resp.UUID()), string(req.UUID()))
     }
 
-    time.Sleep(11 * time.Millisecond)
+    time.Sleep(5 * time.Millisecond)
 
     if len(listener.messages) != 0 {
         t.Error("Messages non empty:", listener.messages)
@@ -271,7 +271,7 @@ func permutation(n int, list []*TCPPacket) []*TCPPacket {
 
 // Response comes before Request
 func TestRawListenerChunkedWrongOrder(t *testing.T) {
-    listener := NewListener("", "0", ENGINE_PCAP, 5*time.Millisecond)
+    listener := NewListener("", "0", ENGINE_PCAP, 10*time.Millisecond)
     defer listener.Close()
 
     reqPacket1 := buildPacket(true, 1, 1, []byte("POST / HTTP/1.1\r\nTransfer-Encoding: chunked\r\nExpect: 100-continue\r\n\r\n"))
