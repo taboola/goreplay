@@ -25,6 +25,9 @@ race:
 	$(RUN) go test ./... $(ARGS) -v -race -timeout 15s
 
 test:
+	$(RUN) go test ./. -timeout 30s $(ARGS) -v
+
+test_all:
 	$(RUN) go test ./... -timeout 30s $(ARGS) -v
 
 testone:

@@ -83,7 +83,7 @@ func (i *RAWInput) listen(address string) {
 }
 
 func (i *RAWInput) String() string {
-	return "RAW Socket input: " + i.address
+	return "Intercepting traffic from: " + i.address
 }
 
 func (i *RAWInput) Close() {

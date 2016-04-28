@@ -45,7 +45,7 @@ func main() {
 		buf := make([]byte, len(encoded)/2)
 		hex.Decode(buf, encoded)
 
-		go process(buf)
+		process(buf)
 	}
 }
 

@@ -107,7 +107,11 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 			}
 		}
 
-		t.End = time.Now()
+		if t.IsIncoming {
+			t.End = time.Now()
+		} else {
+			t.End = time.Now().Add(time.Millisecond)
+		}
 	}
 }
 
