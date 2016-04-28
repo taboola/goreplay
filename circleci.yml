@@ -1,0 +1,7 @@
+dependencies:
+  pre:
+    - sudo apt-get install libpcap-dev -y
+
+test:
+  override:
+    GORACE='halt_on_error=1' sudo -E go test ./... -v -timeout 120s -race
