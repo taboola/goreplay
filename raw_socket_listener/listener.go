@@ -23,6 +23,7 @@ import (
 	"time"
 	"fmt"
 	"github.com/google/gopacket/pcap"
+	_ "github.com/google/gopacket/layers"
 	"github.com/google/gopacket"
 	"io"
 )
@@ -125,25 +126,26 @@ func (t *Listener) listen() {
 			return
 		// We need to use channels to process each packet to avoid data races
 		case packet := <-t.packetsChan:
+			// log.Println(packet)
 			t.processTCPPacket(packet)
 
 		case <-gcTicker:
 			now := time.Now()
+			// log.Println("GC")
 
 			// Dispatch requests before responses
 			for _, message := range t.messages {
 				if !message.IsIncoming {
 					continue
 				}
-				if now.Sub(message.Start) >= t.messageExpire {
-					log.Println("GC dispatch req")
+				if now.Sub(message.End) >= t.messageExpire {
 					t.dispatchMessage(message)
 				}
 			}
 
 			for _, message := range t.messages {
-				if now.Sub(message.Start) >= t.messageExpire {
-					log.Println("GC dispatch resp")
+				if now.Sub(message.End) >= t.messageExpire {
+					// log.Println("GC dispatch resp", len(message.packets))
 					t.dispatchMessage(message)
 				}
 			}
@@ -155,13 +157,15 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 	delete(t.ackAliases, message.Ack)
 	delete(t.messages, message.ID)
 
-	log.Println("Dispatching, message", message.Seq, message.Ack, string(message.Bytes()))
+	// log.Println("Dispatching, message", message.Seq, message.Ack, string(message.Bytes()))
 
 	if message.IsIncoming {
 		// If there were response before request
+		// log.Println("Looking for Response: ", t.respWithoutReq, message.ResponseAck)
 		if respID, ok := t.respWithoutReq[message.ResponseAck]; ok {
 			if resp, rok := t.messages[respID]; rok {
 				if resp.RequestAck == 0 {
+					// log.Println("FOUND RESPONSE")
 					resp.RequestAck = message.Ack
 					resp.RequestStart = message.Start
 
@@ -172,12 +176,19 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 			}
 		}
 	} else {
+		if message.RequestAck == 0 {
+			if responseRequest, ok := t.respAliases[message.Ack]; ok {
+				message.RequestStart = responseRequest.start
+				message.RequestAck = responseRequest.ack
+			}
+		}
+
 		delete(t.respAliases, message.Ack)
 		delete(t.respWithoutReq, message.Ack)
 
 		// Do not track responses which have no associated requests
 		if message.RequestAck == 0 {
-			log.Println("Can't dispatch resp", message.Seq, message.Ack, string(message.Bytes()))
+			// log.Println("Can't dispatch resp", message.Seq, message.Ack, string(message.Bytes()))
 			return
 		}
 	}
@@ -353,7 +364,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 		}
 	}()
 
-	log.Println("Processing packet:", packet.Ack, packet.Seq, string(packet.Data))
+	// log.Println("Processing packet:", packet.Ack, packet.Seq, string(packet.Data))
 
 	var message *TCPMessage
 
@@ -361,18 +372,18 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 
 	// Seek for 100-expect chunks
 	if parentAck, ok := t.seqWithData[packet.Seq]; ok {
-		log.Println("Found data package with Ack:", packet.Ack)
+		// log.Println("Found data package with Ack:", packet.Ack)
 		// In case if non-first data chunks comes first
 		for _id, m := range t.messages {
-			log.Println("Message ack:", m.Ack, m.packets[0].Addr, packet.Addr)
+			// log.Println("Message ack:", m.Ack, m.packets[0].Addr, packet.Addr)
 			if m.Ack == packet.Ack && m.packets[0].Addr == packet.Addr {
+				delete(t.messages, _id)
+
 				for _, pkt := range m.packets {
 					pkt.Ack = parentAck
 					// Re-queue this packets
-					t.packetsChan <- pkt
+					t.processTCPPacket(pkt)
 				}
-
-				delete(t.messages, _id)
 			}
 		}
 
@@ -388,6 +399,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 	var responseRequest *request
 
 	if !isIncoming {
+		// log.Println("RESP ALIASES:", t.respAliases)
 		responseRequest, _ = t.respAliases[packet.Ack]
 	}
 
@@ -417,7 +429,9 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 			t.seqWithData[seq] = packet.Ack
 
 			// In case if sequence packet came first
+			// log.Println("Looking for sequences:", seq, t.messages)
 			for _id, m := range t.messages {
+				// log.Println("SeqSEQ", m.Seq, len(m.packets))
 				if m.Seq == seq {
 					t.ackAliases[m.Ack] = packet.Ack
 
@@ -431,6 +445,8 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 
 			// Removing `Expect: 100-continue` header
 			packet.Data = append(packet.Data[:len(packet.Data)-24], packet.Data[len(packet.Data)-2:]...)
+
+			// log.Println(string(packet.Data))
 		}
 	}
 
@@ -443,9 +459,9 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 			delete(t.respAliases, message.ResponseAck)
 		}
 
-		prevPacket := message.packets[len(message.packets)-1]
+		lastPacket := message.packets[len(message.packets) - 1]
 
-		responseAck := prevPacket.Seq + uint32(message.BodySize())
+		responseAck := lastPacket.Seq + uint32(len(lastPacket.Data))
 		t.respAliases[responseAck] = &request{message.Start, message.Ack}
 
 		message.ResponseAck = responseAck
@@ -454,7 +470,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 
 	// If message contains only single packet immediately dispatch it
 	if message.IsFinished() && isIncoming {
-		log.Println("Quick dispatch", string(message.Bytes()))
+		// log.Println("Quick dispatch", string(message.Bytes()))
 		t.dispatchMessage(message)
 	}
 }

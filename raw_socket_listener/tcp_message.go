@@ -97,6 +97,7 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 			t.packets = append(t.packets, packet)
 		} else if packet.Seq < t.packets[0].Seq {
 			t.packets = append([]*TCPPacket{packet}, t.packets...)
+			t.Seq = packet.Seq // Message Seq should indicated starting seq
 		} else { // insert somewhere in the middle...
 			for i, p := range t.packets {
 				if packet.Seq < p.Seq {

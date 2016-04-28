@@ -70,7 +70,7 @@ func TestInputRAW100Expect(t *testing.T) {
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
-	fileContent, _ := ioutil.ReadFile("LICENSE.txt")
+	fileContent, _ := ioutil.ReadFile("COMM-LICENSE")
 
 	// Origing and Replay server initialization
 	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -121,7 +121,7 @@ func TestInputRAW100Expect(t *testing.T) {
 
 	// Origin + Response/Request Test Output + Request Http Output
 	wg.Add(4)
-	curl := exec.Command("curl", "http://"+originAddr, "--data-binary", "@LICENSE.txt")
+	curl := exec.Command("curl", "http://"+originAddr, "--data-binary", "@COMM-LICENSE")
 	err := curl.Run()
 	if err != nil {
 		log.Fatal(err)
@@ -211,17 +211,18 @@ func TestInputRAWLargePayload(t *testing.T) {
 	}))
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr, ENGINE_PCAP, time.Second)
+	input := NewRAWInput(originAddr, ENGINE_PCAP, testRawExpire)
 	defer input.Close()
 
 	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		req.Body = http.MaxBytesReader(w, req.Body, 1*1024*1024)
-		buf := make([]byte, 1*1024*1024)
-		n, _ := req.Body.Read(buf)
-		body := buf[0:n]
+		body, _ := ioutil.ReadAll(req.Body)
+		// // req.Body = http.MaxBytesReader(w, req.Body, 1*1024*1024)
+		// // buf := make([]byte, 1*1024*1024)
+		// n, _ := req.Body.Read(buf)
+		// body := buf[0:n]
 
 		if len(body) != sizeKb*1000 {
-			t.Error("File size should be 100000 bytes:", len(body))
+			t.Errorf("File size should be %d bytes: %d", sizeKb*1000, len(body))
 		}
 
 		wg.Done()
@@ -238,7 +239,7 @@ func TestInputRAWLargePayload(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	wg.Add(2)
-	curl := exec.Command("curl", "http://"+originAddr, "--header", "Transfer-Encoding: chunked", "--data-binary", "@/tmp/large")
+	curl := exec.Command("curl", "http://"+originAddr, "--header", "Transfer-Encoding: chunked", "--header", "Expect:", "--data-binary", "@/tmp/large")
 	err = curl.Run()
 	if err != nil {
 		log.Fatal("curl error:", err)
@@ -278,7 +279,7 @@ func BenchmarkRAWInput(b *testing.B) {
 	go Start(quit)
 
 	emitted := 0
-	fileContent, _ := ioutil.ReadFile("LICENSE.txt")
+	fileContent, _ := ioutil.ReadFile("COMM-LICENSE")
 
 	for i := 0; i < b.N; i++ {
 		wg := new(sync.WaitGroup)
