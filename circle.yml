@@ -4,4 +4,4 @@ dependencies:
 
 test:
   override:
-    - GORACE='halt_on_error=1' sudo /usr/local/go/bin/go test ./... -v -timeout 120s -race
+    - GORACE='halt_on_error=1' sudo -E /usr/local/go/bin/go test ./... -v -timeout 120s -race
