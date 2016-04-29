@@ -141,6 +141,7 @@ func TestEchoMiddleware(t *testing.T) {
 		client.Get("/a")
 		time.Sleep(time.Millisecond)
 		client.Get("/b")
+		time.Sleep(time.Millisecond)
 	}
 
 	wg.Wait()
