@@ -86,7 +86,7 @@ func (m *Middleware) copy(to io.Writer, from io.Reader) {
 
 func (m *Middleware) read(from io.Reader) {
 	reader := bufio.NewReader(from)
-    var line []byte
+	var line []byte
 	var e error
 
 	for {

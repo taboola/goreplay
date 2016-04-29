@@ -41,7 +41,7 @@ type AppSettings struct {
 	inputFile  MultiOption
 	outputFile MultiOption
 
-	inputRAW MultiOption
+	inputRAW       MultiOption
 	inputRAWEngine string
 
 	middleware string

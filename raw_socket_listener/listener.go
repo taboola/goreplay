@@ -66,7 +66,7 @@ type Listener struct {
 }
 
 type request struct {
-	id string
+	id    string
 	start time.Time
 	ack   uint32
 }
