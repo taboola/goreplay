@@ -41,15 +41,6 @@ It's recommended to use separate server for replaying traffic, but if you have e
 sudo gor --input-raw :80 --output-http "http://staging.com"
 ```
 
-### Guarantee of replay and HTTP input
-Due to how traffic interception works, there is chance of missing requests. If you want guarantee that requests will be replayed you can use http input, but it will require changes in your app as well. 
-
-```
-sudo gor --input-http :28019 --output-http "http://staging.com"
-```
-
-Then in your application you should send copy (e.g. like reverse proxy) all incoming requests to Gor http input. 
-
 ## Configuration
 
 ### Forward to multiple addresses
@@ -281,6 +272,13 @@ gor --input-raw :80 --output-http "http://user:pass@staging .com"
 ```
 
 Note: This will overwrite any Authorization headers in the original request.
+
+### Traffic interception engine
+By default Gor use `libpcap` for intercepting traffic. If you have any troubles with it, you may try alternative engine: `raw_socket`.
+
+```
+sudo gor --input-raw :80 --input-raw-engine "libpcap" --output-http "http://staging.com"
+```
 
 
 ## Stats 

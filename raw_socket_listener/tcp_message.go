@@ -23,6 +23,7 @@ type TCPMessage struct {
 	ResponseAck  uint32
 	RequestStart time.Time
 	RequestAck   uint32
+	RequestID    string
 	Start        time.Time
 	End          time.Time
 	IsIncoming   bool
@@ -95,11 +96,23 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 		// Packets not always captured in same Seq order, and sometimes we need to prepend
 		if len(t.packets) == 0 || packet.Seq > t.packets[len(t.packets)-1].Seq {
 			t.packets = append(t.packets, packet)
-		} else {
+		} else if packet.Seq < t.packets[0].Seq {
 			t.packets = append([]*TCPPacket{packet}, t.packets...)
+			t.Seq = packet.Seq // Message Seq should indicated starting seq
+		} else { // insert somewhere in the middle...
+			for i, p := range t.packets {
+				if packet.Seq < p.Seq {
+					t.packets = append(t.packets[:i], append([]*TCPPacket{packet}, t.packets[i:]...)...)
+					break
+				}
+			}
 		}
 
-		t.End = time.Now()
+		if t.IsIncoming {
+			t.End = time.Now()
+		} else {
+			t.End = time.Now().Add(time.Millisecond)
+		}
 	}
 }
 
@@ -174,4 +187,16 @@ func (t *TCPMessage) UUID() []byte {
 	hex.Encode(uuid, sha[:20])
 
 	return uuid
+}
+
+// UpdateResponseAck should be called after packet is added
+func (t *TCPMessage) UpdateResponseAck() uint32 {
+	lastPacket := t.packets[len(t.packets)-1]
+	t.ResponseAck = lastPacket.Seq + uint32(len(lastPacket.Data))
+	return t.ResponseAck
+}
+
+// ResponseID generate message ID for request response
+func (t *TCPMessage) ResponseID() string {
+	return t.packets[0].Addr + strconv.Itoa(int(t.packets[0].SrcPort)) + strconv.Itoa(int(t.ResponseAck))
 }

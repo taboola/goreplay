@@ -5,17 +5,18 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
-	"math/rand"
 )
 
 const testRawExpire = time.Millisecond * 200
@@ -30,7 +31,7 @@ func TestRAWInput(t *testing.T) {
 
 	var respCounter, reqCounter int64
 
-	input := NewRAWInput(originAddr, testRawExpire)
+	input := NewRAWInput(originAddr, EnginePcap, testRawExpire)
 	defer input.Close()
 
 	output := NewTestOutput(func(data []byte) {
@@ -52,14 +53,14 @@ func TestRAWInput(t *testing.T) {
 
 	client := NewHTTPClient(origin.URL, &HTTPClientConfig{})
 
-	time.Sleep(time.Millisecond)
-
 	go Start(quit)
+	time.Sleep(100 * time.Millisecond)
 
 	for i := 0; i < 100; i++ {
 		// request + response
 		wg.Add(2)
 		client.Get("/")
+		time.Sleep(2 * time.Millisecond)
 	}
 
 	wg.Wait()
@@ -70,7 +71,7 @@ func TestInputRAW100Expect(t *testing.T) {
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
-	fileContent, _ := ioutil.ReadFile("LICENSE.txt")
+	fileContent, _ := ioutil.ReadFile("COMM-LICENSE")
 
 	// Origing and Replay server initialization
 	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +83,7 @@ func TestInputRAW100Expect(t *testing.T) {
 
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr, time.Second)
+	input := NewRAWInput(originAddr, EnginePcap, time.Second)
 	defer input.Close()
 
 	// We will use it to get content of raw HTTP request
@@ -117,10 +118,11 @@ func TestInputRAW100Expect(t *testing.T) {
 	Plugins.Outputs = []io.Writer{testOutput, httpOutput}
 
 	go Start(quit)
+	time.Sleep(100 * time.Millisecond)
 
 	// Origin + Response/Request Test Output + Request Http Output
 	wg.Add(4)
-	curl := exec.Command("curl", "http://"+originAddr, "--data-binary", "@LICENSE.txt")
+	curl := exec.Command("curl", "http://"+originAddr, "--data-binary", "@COMM-LICENSE")
 	err := curl.Run()
 	if err != nil {
 		log.Fatal(err)
@@ -145,7 +147,7 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 	}))
 
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
-	input := NewRAWInput(originAddr, time.Second)
+	input := NewRAWInput(originAddr, EnginePcap, time.Second)
 	defer input.Close()
 
 	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -167,10 +169,11 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 	Plugins.Outputs = []io.Writer{httpOutput}
 
 	go Start(quit)
+	time.Sleep(100 * time.Millisecond)
 
 	wg.Add(2)
 
-	curl := exec.Command("curl", "http://"+originAddr, "--header", "Transfer-Encoding: chunked", "--data-binary", "@README.md")
+	curl := exec.Command("curl", "http://"+originAddr, "--header", "Transfer-Encoding: chunked", "--header", "Expect:", "--data-binary", "@README.md")
 	err := curl.Run()
 	if err != nil {
 		log.Fatal(err)
@@ -188,9 +191,10 @@ func TestInputRAWLargePayload(t *testing.T) {
 	}
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
+	sizeKb := 100
 
 	// Generate 100kb file
-	dd := exec.Command("dd", "if=/dev/urandom", "of=/tmp/large", "bs=1KB", "count=100")
+	dd := exec.Command("dd", "if=/dev/urandom", "of=/tmp/large", "bs=1KB", "count="+strconv.Itoa(sizeKb))
 	err := dd.Run()
 	if err != nil {
 		log.Fatal("dd error:", err)
@@ -200,7 +204,7 @@ func TestInputRAWLargePayload(t *testing.T) {
 		defer req.Body.Close()
 		body, _ := ioutil.ReadAll(req.Body)
 
-		if len(body) != 100*1000 {
+		if len(body) != sizeKb*1000 {
 			t.Error("File size should be 1mb:", len(body))
 		}
 
@@ -208,17 +212,18 @@ func TestInputRAWLargePayload(t *testing.T) {
 	}))
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr, time.Second)
+	input := NewRAWInput(originAddr, EnginePcap, testRawExpire)
 	defer input.Close()
 
 	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		req.Body = http.MaxBytesReader(w, req.Body, 1*1024*1024)
-		buf := make([]byte, 1*1024*1024)
-		n, _ := req.Body.Read(buf)
-		body := buf[0:n]
+		body, _ := ioutil.ReadAll(req.Body)
+		// // req.Body = http.MaxBytesReader(w, req.Body, 1*1024*1024)
+		// // buf := make([]byte, 1*1024*1024)
+		// n, _ := req.Body.Read(buf)
+		// body := buf[0:n]
 
-		if len(body) != 100*1000 {
-			t.Error("File size should be 100000 bytes:", len(body))
+		if len(body) != sizeKb*1000 {
+			t.Errorf("File size should be %d bytes: %d", sizeKb*1000, len(body))
 		}
 
 		wg.Done()
@@ -232,8 +237,10 @@ func TestInputRAWLargePayload(t *testing.T) {
 
 	go Start(quit)
 
+	time.Sleep(100 * time.Millisecond)
+
 	wg.Add(2)
-	curl := exec.Command("curl", "http://"+originAddr, "--header", "Transfer-Encoding: chunked", "--data-binary", "@/tmp/large")
+	curl := exec.Command("curl", "http://"+originAddr, "--header", "Transfer-Encoding: chunked", "--header", "Expect:", "--data-binary", "@/tmp/large")
 	err = curl.Run()
 	if err != nil {
 		log.Fatal("curl error:", err)
@@ -252,7 +259,7 @@ func BenchmarkRAWInput(b *testing.B) {
 
 	var respCounter, reqCounter int64
 
-	input := NewRAWInput(originAddr, testRawExpire)
+	input := NewRAWInput(originAddr, EnginePcap, testRawExpire)
 	defer input.Close()
 
 	output := NewTestOutput(func(data []byte) {
@@ -278,9 +285,9 @@ func BenchmarkRAWInput(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		wg := new(sync.WaitGroup)
 		wg.Add(10 * 100)
-		emitted += 10*100
+		emitted += 10 * 100
 		for w := 0; w < 100; w++ {
-			go func(){
+			go func() {
 				client := NewHTTPClient(origin.URL, &HTTPClientConfig{})
 				for i := 0; i < 10; i++ {
 					if rand.Int63n(2) == 0 {
@@ -296,7 +303,7 @@ func BenchmarkRAWInput(b *testing.B) {
 		wg.Wait()
 	}
 
-	time.Sleep(201 * time.Millisecond)
+	time.Sleep(400 * time.Millisecond)
 	log.Println("Emitted ", emitted, ", Captured ", reqCounter, "requests and ", respCounter, " responses")
 
 	close(quit)

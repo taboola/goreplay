@@ -2,7 +2,6 @@ package rawSocket
 
 import (
 	"encoding/binary"
-	"net"
 	"strconv"
 	"strings"
 )
@@ -35,11 +34,11 @@ type TCPPacket struct {
 
 	Data []byte
 
-	Addr net.Addr
+	Addr string
 }
 
 // ParseTCPPacket takes address and tcp payload and returns parsed TCPPacket
-func ParseTCPPacket(addr net.Addr, b []byte) (p *TCPPacket) {
+func ParseTCPPacket(addr string, b []byte) (p *TCPPacket) {
 	p = &TCPPacket{Data: b}
 	p.ParseBasic()
 	p.Addr = addr
@@ -75,7 +74,7 @@ func (t *TCPPacket) String() string {
 	}
 
 	return strings.Join([]string{
-		"Addr: " + t.Addr.String(),
+		"Addr: " + t.Addr,
 		"Source port: " + strconv.Itoa(int(t.SrcPort)),
 		"Dest port:" + strconv.Itoa(int(t.DestPort)),
 		"Sequence:" + strconv.Itoa(int(t.Seq)),

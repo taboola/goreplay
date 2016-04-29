@@ -1,0 +1,7 @@
+dependencies:
+  pre:
+    - sudo apt-get install libpcap-dev -y
+
+test:
+  override:
+    - sudo bash -l -c "export GOPATH='/home/ubuntu/.go_workspace:/usr/local/go_workspace:/home/ubuntu/.go_project' && GORACE='halt_on_error=1' /usr/local/go/bin/go test ./... -v -timeout 120s -race"

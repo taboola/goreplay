@@ -8,9 +8,9 @@ import (
 	"net"
 	"net/url"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
 )
 
 var defaultPorts = map[string]string{

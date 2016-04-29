@@ -116,7 +116,8 @@ func TestEchoMiddleware(t *testing.T) {
 	Settings.middleware = "./examples/middleware/echo.sh"
 
 	// Catch traffic from one service
-	input := NewRAWInput(from.Listener.Addr().String(), testRawExpire)
+	fromAddr := strings.Replace(from.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
+	input := NewRAWInput(fromAddr, EnginePcap, testRawExpire)
 	defer input.Close()
 
 	// And redirect to another
@@ -129,7 +130,7 @@ func TestEchoMiddleware(t *testing.T) {
 	go Start(quit)
 
 	// Wait till middleware initialization
-	time.Sleep(10*time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 
 	// Should receive 2 requests from original + 2 from replayed
 	client := NewHTTPClient(from.URL, &HTTPClientConfig{Debug: false})
@@ -138,7 +139,9 @@ func TestEchoMiddleware(t *testing.T) {
 		wg.Add(4)
 		// Request should be echoed
 		client.Get("/a")
+		time.Sleep(5 * time.Millisecond)
 		client.Get("/b")
+		time.Sleep(5 * time.Millisecond)
 	}
 
 	wg.Wait()
@@ -176,7 +179,7 @@ func TestTokenMiddleware(t *testing.T) {
 
 	fromAddr := strings.Replace(from.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 	// Catch traffic from one service
-	input := NewRAWInput(fromAddr, testRawExpire)
+	input := NewRAWInput(fromAddr, EnginePcap, testRawExpire)
 	defer input.Close()
 
 	// And redirect to another
