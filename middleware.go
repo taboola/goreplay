@@ -85,13 +85,22 @@ func (m *Middleware) copy(to io.Writer, from io.Reader) {
 }
 
 func (m *Middleware) read(from io.Reader) {
-	scanner := bufio.NewScanner(from)
+	reader := bufio.NewReader(from)
+    var line []byte
+	var e error
 
-	for scanner.Scan() {
-		bytes := scanner.Bytes()
-		buf := make([]byte, len(bytes)/2)
-		if _, err := hex.Decode(buf, bytes); err != nil {
-			fmt.Fprintln(os.Stderr, "Failed to decode input payload", err, len(bytes))
+	for {
+		if line, e = reader.ReadBytes('\n'); e != nil {
+			if e == io.EOF {
+				continue
+			} else {
+				break
+			}
+		}
+
+		buf := make([]byte, len(line)/2)
+		if _, err := hex.Decode(buf, line[:len(line)-1]); err != nil {
+			fmt.Fprintln(os.Stderr, "Failed to decode input payload", err, len(line))
 		}
 
 		if Settings.debug {
@@ -99,10 +108,6 @@ func (m *Middleware) read(from io.Reader) {
 		}
 
 		m.data <- buf
-	}
-
-	if err := scanner.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "Traffic modifier command failed:", err)
 	}
 
 	return
