@@ -189,12 +189,14 @@ func (t *TCPMessage) UUID() []byte {
 	return uuid
 }
 
+// UpdateResponseAck should be called after packet is added
 func (t *TCPMessage) UpdateResponseAck() uint32 {
 	lastPacket := t.packets[len(t.packets)-1]
 	t.ResponseAck = lastPacket.Seq + uint32(len(lastPacket.Data))
 	return t.ResponseAck
 }
 
+// ResponseID generate message ID for request response
 func (t *TCPMessage) ResponseID() string {
 	return t.packets[0].Addr + strconv.Itoa(int(t.packets[0].SrcPort)) + strconv.Itoa(int(t.ResponseAck))
 }

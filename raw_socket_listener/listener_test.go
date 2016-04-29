@@ -10,7 +10,7 @@ import (
 func TestRawListenerInput(t *testing.T) {
 	var req, resp *TCPMessage
 
-	listener := NewListener("", "0", ENGINE_PCAP, 10*time.Millisecond)
+	listener := NewListener("", "0", EnginePcap, 10*time.Millisecond)
 	defer listener.Close()
 
 	reqPacket := buildPacket(true, 1, 1, []byte("GET / HTTP/1.1"))
@@ -47,7 +47,7 @@ func TestRawListenerInput(t *testing.T) {
 func TestRawListenerResponse(t *testing.T) {
 	var req, resp *TCPMessage
 
-	listener := NewListener("", "0", ENGINE_PCAP, 10*time.Millisecond)
+	listener := NewListener("", "0", EnginePcap, 10*time.Millisecond)
 	defer listener.Close()
 
 	reqPacket := buildPacket(true, 1, 1, []byte("GET / HTTP/1.1"))
@@ -87,7 +87,7 @@ func TestRawListenerResponse(t *testing.T) {
 func TestRawListener100Continue(t *testing.T) {
 	var req, resp *TCPMessage
 
-	listener := NewListener("", "0", ENGINE_PCAP, 10*time.Millisecond)
+	listener := NewListener("", "0", EnginePcap, 10*time.Millisecond)
 	defer listener.Close()
 
 	reqPacket1 := buildPacket(true, 1, 1, []byte("POST / HTTP/1.1\r\nContent-Length: 2\r\nExpect: 100-continue\r\n\r\n"))
@@ -144,7 +144,7 @@ func TestRawListener100Continue(t *testing.T) {
 func TestRawListener100ContinueWrongOrder(t *testing.T) {
 	var req, resp *TCPMessage
 
-	listener := NewListener("", "0", ENGINE_PCAP, 10*time.Millisecond)
+	listener := NewListener("", "0", EnginePcap, 10*time.Millisecond)
 	defer listener.Close()
 
 	reqPacket1 := buildPacket(true, 1, 1, []byte("POST / HTTP/1.1\r\nContent-Length: 2\r\nExpect: 100-continue\r\n\r\n"))
@@ -269,7 +269,7 @@ func permutation(n int, list []*TCPPacket) []*TCPPacket {
 
 // Response comes before Request
 func TestRawListenerChunkedWrongOrder(t *testing.T) {
-	listener := NewListener("", "0", ENGINE_PCAP, 10*time.Millisecond)
+	listener := NewListener("", "0", EnginePcap, 10*time.Millisecond)
 	defer listener.Close()
 
 	reqPacket1 := buildPacket(true, 1, 1, []byte("POST / HTTP/1.1\r\nTransfer-Encoding: chunked\r\nExpect: 100-continue\r\n\r\n"))

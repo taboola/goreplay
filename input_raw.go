@@ -18,9 +18,10 @@ type RAWInput struct {
 	listener *raw.Listener
 }
 
+// Available engines for intercepting traffic
 const (
-	ENGINE_RAW_SOCKET = 1 << iota
-	ENGINE_PCAP
+	EngineRawSocket = 1 << iota
+	EnginePcap
 )
 
 // NewRAWInput constructor for RAWInput. Accepts address with port as argument.

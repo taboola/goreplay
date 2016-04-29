@@ -71,9 +71,10 @@ type request struct {
 	ack   uint32
 }
 
+// Available engines for intercepting traffic
 const (
-	ENGINE_RAW_SOCKET = 1 << iota
-	ENGINE_PCAP
+	EngineRawSocket = 1 << iota
+	EnginePcap
 )
 
 // NewListener creates and initializes new Listener object
@@ -106,9 +107,9 @@ func NewListener(addr string, port string, engine int, expire time.Duration) (l 
 	// Special case for testing
 	if l.port != 0 {
 		switch engine {
-		case ENGINE_RAW_SOCKET:
+		case EngineRawSocket:
 			go l.readRAWSocket()
-		case ENGINE_PCAP:
+		case EnginePcap:
 			go l.readPcap()
 		default:
 			log.Fatal("Unknown traffic interception engine:", engine)
@@ -204,6 +205,7 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 	t.messagesChan <- message
 }
 
+// DeviceNotFoundError raised if user specified wrong ip
 type DeviceNotFoundError struct {
 	addr string
 }
@@ -253,7 +255,7 @@ func (t *Listener) readPcap() {
 		log.Fatal(err)
 	}
 
-	handle, err := pcap.OpenLive(device.Name, 65536, true, pcap.BlockForever)
+	handle, err := pcap.OpenLive(device.Name, 65536, true, t.messageExpire)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -281,7 +283,7 @@ func (t *Listener) readPcap() {
 		// Skip ethernet layer, 14 bytes
 		data := packet.Data()[14:]
 		ihl := uint8(data[0]) & 0x0F
-		src_ip := data[12:16]
+		srcIP := data[12:16]
 		data = data[ihl*4:]
 
 		dataOffset := (data[12] & 0xF0) >> 4
@@ -293,7 +295,7 @@ func (t *Listener) readPcap() {
 			copy(newBuf, data)
 
 			go func(newBuf []byte) {
-				t.packetsChan <- ParseTCPPacket(net.IP(src_ip).String(), newBuf)
+				t.packetsChan <- ParseTCPPacket(net.IP(srcIP).String(), newBuf)
 			}(newBuf)
 		}
 	}

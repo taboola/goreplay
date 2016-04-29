@@ -31,7 +31,7 @@ func TestRAWInput(t *testing.T) {
 
 	var respCounter, reqCounter int64
 
-	input := NewRAWInput(originAddr, ENGINE_PCAP, testRawExpire)
+	input := NewRAWInput(originAddr, EnginePcap, testRawExpire)
 	defer input.Close()
 
 	output := NewTestOutput(func(data []byte) {
@@ -83,7 +83,7 @@ func TestInputRAW100Expect(t *testing.T) {
 
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr, ENGINE_PCAP, time.Second)
+	input := NewRAWInput(originAddr, EnginePcap, time.Second)
 	defer input.Close()
 
 	// We will use it to get content of raw HTTP request
@@ -147,7 +147,7 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 	}))
 
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
-	input := NewRAWInput(originAddr, ENGINE_PCAP, time.Second)
+	input := NewRAWInput(originAddr, EnginePcap, time.Second)
 	defer input.Close()
 
 	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -212,7 +212,7 @@ func TestInputRAWLargePayload(t *testing.T) {
 	}))
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr, ENGINE_PCAP, testRawExpire)
+	input := NewRAWInput(originAddr, EnginePcap, testRawExpire)
 	defer input.Close()
 
 	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -259,7 +259,7 @@ func BenchmarkRAWInput(b *testing.B) {
 
 	var respCounter, reqCounter int64
 
-	input := NewRAWInput(originAddr, ENGINE_PCAP, testRawExpire)
+	input := NewRAWInput(originAddr, EnginePcap, testRawExpire)
 	defer input.Close()
 
 	output := NewTestOutput(func(data []byte) {
