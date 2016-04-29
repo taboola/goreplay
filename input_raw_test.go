@@ -173,7 +173,7 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 
 	wg.Add(2)
 
-	curl := exec.Command("curl", "http://"+originAddr, "--header", "Transfer-Encoding: chunked", "--data-binary", "@README.md")
+	curl := exec.Command("curl", "http://"+originAddr, "--header", "Transfer-Encoding: chunked", "--header", "Expect:", "--data-binary", "@README.md")
 	err := curl.Run()
 	if err != nil {
 		log.Fatal(err)
