@@ -245,7 +245,7 @@ func testChunkedSequence(t *testing.T, listener *Listener, packets ...*TCPPacket
 		t.Error("Resp and Req UUID should be equal", string(resp.UUID()), string(req.UUID()))
 	}
 
-	time.Sleep(5 * time.Millisecond)
+	time.Sleep(15 * time.Millisecond)
 
 	if len(listener.messages) != 0 {
 		t.Error("Messages non empty:", listener.messages)

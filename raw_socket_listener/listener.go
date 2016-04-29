@@ -196,7 +196,7 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 
 		// Do not track responses which have no associated requests
 		if message.RequestAck == 0 {
-			log.Println("Can't dispatch resp", message.Seq, message.Ack, string(message.Bytes()))
+			// log.Println("Can't dispatch resp", message.Seq, message.Ack, string(message.Bytes()))
 			return
 		}
 	}
