@@ -79,8 +79,13 @@ func InitPlugins() {
 		registerPlugin(NewDummyOutput, options)
 	}
 
+	engine := EnginePcap
+	if Settings.inputRAWEngine == "raw_socket" {
+		engine = EngineRawSocket
+	}
+
 	for _, options := range Settings.inputRAW {
-		registerPlugin(NewRAWInput, options, time.Duration(0))
+		registerPlugin(NewRAWInput, engine, options, time.Duration(0))
 	}
 
 	for _, options := range Settings.inputTCP {
