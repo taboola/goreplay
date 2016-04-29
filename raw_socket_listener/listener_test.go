@@ -54,8 +54,8 @@ func TestRawListenerResponse(t *testing.T) {
 	respPacket := buildPacket(false, 1+uint32(len(reqPacket.Data)), 2, []byte("HTTP/1.1 200 OK"))
 
 	// If response packet comes before request
-	listener.packetsChan <- respPacket
-	listener.packetsChan <- reqPacket
+	listener.processTCPPacket(respPacket)
+	listener.processTCPPacket(reqPacket)
 
 	select {
 	case req = <-listener.messagesChan:

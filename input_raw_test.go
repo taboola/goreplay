@@ -60,7 +60,7 @@ func TestRAWInput(t *testing.T) {
 		// request + response
 		wg.Add(2)
 		client.Get("/")
-		time.Sleep(time.Millisecond)
+		time.Sleep(2 * time.Millisecond)
 	}
 
 	wg.Wait()
