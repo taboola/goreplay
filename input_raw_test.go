@@ -280,7 +280,7 @@ func BenchmarkRAWInput(b *testing.B) {
 	go Start(quit)
 
 	emitted := 0
-	fileContent, _ := ioutil.ReadFile("COMM-LICENSE")
+	fileContent, _ := ioutil.ReadFile("LICENSE.txt")
 
 	for i := 0; i < b.N; i++ {
 		wg := new(sync.WaitGroup)

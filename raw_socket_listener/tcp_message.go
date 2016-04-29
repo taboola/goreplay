@@ -23,6 +23,7 @@ type TCPMessage struct {
 	ResponseAck  uint32
 	RequestStart time.Time
 	RequestAck   uint32
+	RequestID    string
 	Start        time.Time
 	End          time.Time
 	IsIncoming   bool
@@ -186,4 +187,14 @@ func (t *TCPMessage) UUID() []byte {
 	hex.Encode(uuid, sha[:20])
 
 	return uuid
+}
+
+func (t *TCPMessage) UpdateResponseAck() uint32 {
+	lastPacket := t.packets[len(t.packets)-1]
+	t.ResponseAck = lastPacket.Seq + uint32(len(lastPacket.Data))
+	return t.ResponseAck
+}
+
+func (t *TCPMessage) ResponseID() string {
+	return t.packets[0].Addr + strconv.Itoa(int(t.packets[0].SrcPort)) + strconv.Itoa(int(t.ResponseAck))
 }

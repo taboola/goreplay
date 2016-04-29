@@ -15,23 +15,25 @@ package rawSocket
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
+	"github.com/google/gopacket"
+	_ "github.com/google/gopacket/layers"
+	"github.com/google/gopacket/pcap"
+	"io"
 	"log"
 	"net"
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
-	"fmt"
-	"github.com/google/gopacket/pcap"
-	_ "github.com/google/gopacket/layers"
-	"github.com/google/gopacket"
-	"io"
 )
 
 var _ = fmt.Println
 
 // Listener handle traffic capture
 type Listener struct {
+	mu sync.Mutex
 	// buffer of TCPMessages waiting to be send
 	// ID -> TCPMessage
 	messages map[string]*TCPMessage
@@ -64,6 +66,7 @@ type Listener struct {
 }
 
 type request struct {
+	id string
 	start time.Time
 	ack   uint32
 }
@@ -98,6 +101,7 @@ func NewListener(addr string, port string, engine int, expire time.Duration) (l 
 	l.messageExpire = expire
 
 	go l.listen()
+	go l.processPackets()
 
 	// Special case for testing
 	if l.port != 0 {
@@ -114,6 +118,17 @@ func NewListener(addr string, port string, engine int, expire time.Duration) (l 
 	return
 }
 
+func (t *Listener) processPackets() {
+	for {
+		// We need to use channels to process each packet to avoid data races
+		packet := <-t.packetsChan
+		// log.Println(packet)
+		t.mu.Lock()
+		t.processTCPPacket(packet)
+		t.mu.Unlock()
+	}
+}
+
 func (t *Listener) listen() {
 	gcTicker := time.Tick(t.messageExpire / 2)
 
@@ -124,35 +139,29 @@ func (t *Listener) listen() {
 				t.conn.Close()
 			}
 			return
-		// We need to use channels to process each packet to avoid data races
-		case packet := <-t.packetsChan:
-			t.processTCPPacket(packet)
-
 		case <-gcTicker:
 			now := time.Now()
 			// log.Println("GC")
 
+			t.mu.Lock()
 			// Dispatch requests before responses
 			for _, message := range t.messages {
-				if !message.IsIncoming {
-					continue
-				}
 				if now.Sub(message.End) >= t.messageExpire {
 					t.dispatchMessage(message)
 				}
 			}
 
-			for _, message := range t.messages {
-				if now.Sub(message.End) >= t.messageExpire {
-					// log.Println("GC dispatch resp", len(message.packets))
-					t.dispatchMessage(message)
-				}
-			}
+			t.mu.Unlock()
 		}
 	}
 }
 
 func (t *Listener) dispatchMessage(message *TCPMessage) {
+	// If already dispatched
+	if _, ok := t.messages[message.ID]; !ok {
+		return
+	}
+
 	delete(t.ackAliases, message.Ack)
 	delete(t.messages, message.ID)
 
@@ -187,7 +196,7 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 
 		// Do not track responses which have no associated requests
 		if message.RequestAck == 0 {
-			// log.Println("Can't dispatch resp", message.Seq, message.Ack, string(message.Bytes()))
+			log.Println("Can't dispatch resp", message.Seq, message.Ack, string(message.Bytes()))
 			return
 		}
 	}
@@ -196,63 +205,63 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 }
 
 type DeviceNotFoundError struct {
-    addr string
+	addr string
 }
 
 func (e *DeviceNotFoundError) Error() string {
-    devices, _ := pcap.FindAllDevs()
+	devices, _ := pcap.FindAllDevs()
 
-    var msg string
-    msg += "Devices with addr: " + e.addr + " not found. Available devices: \n"
-    for _, device := range devices {
-        msg += "Name: " + device.Name + "\n"
-        msg += "Description: " + device.Description + "\n"
-        msg += "Devices addresses: " + device.Description + "\n"
-        for _, address := range device.Addresses {
-            msg += "- IP address: " + address.IP.String() + "\n"
-            msg += "- Subnet mask: " + address.Netmask.String() + "\n"
-        }
-    }
+	var msg string
+	msg += "Devices with addr: " + e.addr + " not found. Available devices: \n"
+	for _, device := range devices {
+		msg += "Name: " + device.Name + "\n"
+		msg += "Description: " + device.Description + "\n"
+		msg += "Devices addresses: " + device.Description + "\n"
+		for _, address := range device.Addresses {
+			msg += "- IP address: " + address.IP.String() + "\n"
+			msg += "- Subnet mask: " + address.Netmask.String() + "\n"
+		}
+	}
 
-    return msg
+	return msg
 }
 
 func findPcapDevice(addr string) (*pcap.Interface, error) {
 	devices, err := pcap.FindAllDevs()
-    if err != nil {
-        log.Fatal(err)
-    }
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    for _, device := range devices {
-    	if device.Name == "any" && addr == "" || addr == "0.0.0.0" {
-    		return &device, nil
-    	}
+	for _, device := range devices {
+		if device.Name == "any" && addr == "" || addr == "0.0.0.0" {
+			return &device, nil
+		}
 
-    	for _, address := range device.Addresses {
-    		if address.IP.String() == addr {
-    			return &device, nil
-    		}
-    	}
-    }
+		for _, address := range device.Addresses {
+			if address.IP.String() == addr {
+				return &device, nil
+			}
+		}
+	}
 
 	return nil, &DeviceNotFoundError{addr}
 }
 
 func (t *Listener) readPcap() {
-    device, err := findPcapDevice(t.addr)
-    if err != nil {
-    	log.Fatal(err)
-    }
+	device, err := findPcapDevice(t.addr)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	handle, err := pcap.OpenLive(device.Name, 65536, true, t.messageExpire)
-    if err != nil {
-    	log.Fatal(err)
-    }
-    defer handle.Close()
+	handle, err := pcap.OpenLive(device.Name, 65536, true, pcap.BlockForever)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer handle.Close()
 
-    if err := handle.SetBPFFilter("tcp and port " + strconv.Itoa(int(t.port))); err != nil {
-    	log.Fatal(err)
-    }
+	if err := handle.SetBPFFilter("tcp and port " + strconv.Itoa(int(t.port))); err != nil {
+		log.Fatal(err)
+	}
 
 	source := gopacket.NewPacketSource(handle, handle.LinkType())
 	source.Lazy = true
@@ -261,21 +270,21 @@ func (t *Listener) readPcap() {
 	// log.Println(handle.Stats())
 
 	for {
-	   packet, err := source.NextPacket()
+		packet, err := source.NextPacket()
 
-	   if err == io.EOF {
-	     break
-	   } else if err != nil {
-	     continue
-	   }
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			continue
+		}
 
-	   // Skip ethernet layer, 14 bytes
-	   data := packet.Data()[14:]
-	   ihl := uint8(data[0]) & 0x0F
-	   src_ip := data[12:16]
-	   data = data[ihl*4:]
+		// Skip ethernet layer, 14 bytes
+		data := packet.Data()[14:]
+		ihl := uint8(data[0]) & 0x0F
+		src_ip := data[12:16]
+		data = data[ihl*4:]
 
-	   dataOffset := (data[12] & 0xF0) >> 4
+		dataOffset := (data[12] & 0xF0) >> 4
 
 		// We need only packets with data inside
 		// Check that the buffer is larger than the size of the TCP header
@@ -287,7 +296,7 @@ func (t *Listener) readPcap() {
 				t.packetsChan <- ParseTCPPacket(net.IP(src_ip).String(), newBuf)
 			}(newBuf)
 		}
-	 }
+	}
 }
 
 func (t *Listener) readRAWSocket() {
@@ -398,7 +407,6 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 	var responseRequest *request
 
 	if !isIncoming {
-		// log.Println("RESP ALIASES:", t.respAliases)
 		responseRequest, _ = t.respAliases[packet.Ack]
 	}
 
@@ -414,6 +422,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 			if responseRequest != nil {
 				message.RequestStart = responseRequest.start
 				message.RequestAck = responseRequest.ack
+				message.RequestID = responseRequest.id
 			} else {
 				t.respWithoutReq[packet.Ack] = mID
 			}
@@ -458,19 +467,27 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 			delete(t.respAliases, message.ResponseAck)
 		}
 
-		lastPacket := message.packets[len(message.packets) - 1]
-
-		responseAck := lastPacket.Seq + uint32(len(lastPacket.Data))
-		t.respAliases[responseAck] = &request{message.Start, message.Ack}
-
-		message.ResponseAck = responseAck
+		message.UpdateResponseAck()
+		t.respAliases[message.ResponseAck] = &request{message.ID, message.Start, message.Ack}
 	}
 
-
 	// If message contains only single packet immediately dispatch it
-	if message.IsFinished() && isIncoming {
-		// log.Println("Quick dispatch", string(message.Bytes()))
-		t.dispatchMessage(message)
+	if message.IsFinished() {
+		if isIncoming {
+			if resp, ok := t.messages[message.ResponseID()]; ok {
+				t.dispatchMessage(message)
+				if resp.IsFinished() {
+					t.dispatchMessage(resp)
+				}
+			}
+		} else {
+			if req, ok := t.messages[message.RequestID]; ok {
+				if req.IsFinished() {
+					t.dispatchMessage(req)
+					t.dispatchMessage(message)
+				}
+			}
+		}
 	}
 }
 
