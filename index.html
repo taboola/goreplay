@@ -126,6 +126,27 @@
       line-height: 200%;
     }
 
+    b {
+      font-family: Helvetica, Arial;
+      font-size: 1.1em;
+    }
+
+    tr td:first-child {
+      text-align: right;
+      padding-right: 4rem;
+      text-transform: uppercase;
+    }
+
+    tr td.yes {
+      background: url("./ok-xxl.png") no-repeat 12px;
+      background-size: 20px 20px;
+    }
+
+    tr td.no {
+      background: url("./minus.png") no-repeat 10px;
+      background-size: 24px 24px;
+    }
+
     @media (max-width: 48em) {
       .navbar {
         font-size: 150%;
@@ -291,23 +312,163 @@
         <img src="./trustedby/tomtom.png" height="50px"/>
         <img src="./trustedby/3scale.png" height="50px"/>
         <img src="https://www.tubemogul.com/wp-content/themes/tubemogul/_img/_logos/tubemogul_full.svg" height="50px" width="187px" />
+        <img src="./trustedby/videology.png" height="50px"/>
       </div>
 
       <div class="success-story">
         <blockquote>
-          <p>Gor enabled us to put the Router "into production" a long time before we were entirely comfortable that it was "production ready" and without any risk. We could tell that it was doing the right thing from the access logs/stats of the Gor and the Router's own error logs.</p>
+          <p><i>Gor enabled us to put the Router "into production" a long time before we were entirely comfortable that it was "production ready" and without any risk. We could tell that it was doing the right thing from the access logs/stats of the Gor and the Router's own error logs.</i></p>
           <footer><a href="https://twitter.com/dancarley">Dan Carley</a> from <cite><a href="https://gdstechnology.blog.gov.uk/2013/12/13/putting-the-router-through-its-paces/#replay-production-traffic">Government Digital Service</a></cite></footer>
         </blockquote>
       </div>
       <div class="success-story">
         <blockquote>
-          <p>Traffic from our production load balancers stream a small slice of traffic to Gor which then streams it to multiple QA environments.  We soak test our new and old versions of our web service and the compare their metrics to discover bugs.  Great stuff!</p>
+          <p><i>Traffic from our production load balancers stream a small slice of traffic to Gor which then streams it to multiple QA environments.  We soak test our new and old versions of our web service and the compare their metrics to discover bugs.  Great stuff!</i></p>
           <footer>Sahil Verma from <cite><a href="http://videologygroup.com">Videology</a></cite></footer>
         </blockquote>
       </div>
       <div class="clearfix"></div>
       <hr style="margin-top: 2.5rem"/>
+<div class="pro" id="pro">
+        <table class="table">
+          <thead>
+            <th></th>
+            <th width="23%"><a href="http://github.com/buger/gor" style="margin:0">OSS</a></th>
+            <th width="23%">PRO</th>
+            <th width="23%">ENTERPRISE</th>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-muted"><small>AUDIENCE</small></td>
+              <td><b>Hobbyists</b></td>
+              <td><b>Small Business</b></td>
+              <td><b>Med–Large Companies</b></td>
+            </tr>
+            <tr>
+              <td class="text-muted"><small><a href="https://github.com/buger/gor#capture-traffic-from-port">Support for HTTP traffic</a></small></td>
+              <td class="yes"></td>
+              <td class="yes"></td>
+              <td class="yes"></td>
+            </tr>
+            <tr>
+              <td class="text-muted"><small><a href="https://github.com/buger/gor#forward-to-multiple-addresses">Replaying to multiple targets</a></small></td>
+              <td class="yes"></td>
+              <td class="yes"></td>
+              <td class="yes"></td>
+            </tr>
+            <tr>
+              <td class="text-muted"><small><a href="https://github.com/buger/gor#rate-limiting">Rate limiting</a></small></td>
+              <td class="yes"></td>
+              <td class="yes"></td>
+              <td class="yes"></td>
+            </tr>
+            <tr>
+              <td class="text-muted"><small><a href="https://github.com/buger/gor#rewriting-original-request">Basic filtering and rewriting</a></small></td>
+              <td class="yes"></td>
+              <td class="yes"></td>
+              <td class="yes"></td>
+            </tr>
+            <tr>
+              <td class="text-muted"><small><a href="https://github.com/buger/gor#middleware">Middleware</a></small></td>
+              <td class="yes"></td>
+              <td class="yes"></td>
+              <td class="yes"></td>
+            </tr>
+            <tr>
+              <td class="text-muted"><small><a href="https://github.com/buger/gor#saving-requests-to-file-and-replaying-them">Replaying from file</a></small></td>
+              <td class="yes"></td>
+              <td class="yes"></td>
+              <td class="yes"></td>
+            </tr>
+            <tr>
+              <td class="text-muted"><small><a href="https://github.com/buger/gor#load-testing">Load testing</a></small></td>
+              <td class="yes"></td>
+              <td class="yes"></td>
+              <td class="yes"></td>
+            </tr>
+            <tr>
+              <td class="text-muted"><small><a href="https://github.com/buger/gor#load-testing">Saving and replying from S3</a></small></td>
+              <td class="no"></td>
+              <td class="yes"></td>
+              <td class="yes"></td>
+            </tr>
+            <tr>
+              <td class="text-muted"><small>ElasticSearch export</small></td>
+              <td class="no"></td>
+              <td class="yes"></td>
+              <td class="yes"></td>
+            </tr>
+            <tr>
+              <td class="text-muted"><small>Support for binary protocols (Thrift, ProtocolBuffers)</small></td>
+              <td class="no"></td>
+              <td class="yes"></td>
+              <td class="yes"></td>
+            </tr>
+            <tr>
+              <td class="text-muted"><small>Priority Bug Fixes</small></td>
+              <td class="no"></td>
+              <td class="yes"></td>
+              <td class="yes"></td>
+            </tr>
+            <tr>
+              <td class="text-muted"><small>Support for TSL encrypted traffic</small></td>
+              <td class="no"></td>
+              <td class="no"></td>
+              <td class="yes"></td>
+            </tr>
+            <tr>
+              <td class="text-muted"><small>Features Requests</small></td>
+              <td class="no"></td>
+              <td class="no"></td>
+              <td class="yes"></td>
+            </tr>
+            <tr>
+              <td class="text-muted"><small>Phone/Skype Support </small></td>
+              <td class="no"></td>
+              <td class="no"></td>
+              <td class="yes"></td>
+            </tr>
+            <tr>
+              <td class="text-muted"><small>DEDICATED SUPPORT</small></td>
+              <td><b>None</b></td>
+              <td><b>Email</b><br/><small class="text-muted">4 hours included</small></td>
+              <td><b>Email, Onboarding Session</b><br/><small class="text-muted">20 hours included</small></td>
+            </tr>
+            <tr>
+              <td class="text-muted"><small>LICENSE</small></td>
+              <td><b>LGPL</b></td>
+              <td><b>Commercial</b><br/><small class="text-muted">No Custom Terms</small></td>
+              <td><b>Commercial</b><br/><small class="text-muted">With Custom Terms</small></td>
+            </tr>
+            <tr>
+              <td class="text-muted"><small>PRICING</small></td>
+              <td><b>Free</b></td>
+              <td><b>$950 / year</b><br/><small class="text-muted">Unlimited Usage</small></td>
+              <td><b>$1950 / year</b><br/><small class="text-muted">Per 20 servers</small></td>
+            </tr>
+            <tr>
+              <td class="text-muted"><small>PURCHASING</small></td>
+              <td><b>n/a</b></td>
+              <td><b>Credit Card</b></td>
+              <td><b>Credit Card, Bank transfer</b></td>
+            </tr>
+            <tr>
+              <td></td>
+              <td><a class="btn btn-secondary btn-lg" href="http://github.com/buger/gor"style="width: 100%; display: block;">Get started</a></td>
+              <td><a class="btn btn-success btn-lg" href="https://gum.co/KWpS"  style="width: 100%; display: block;">BUY</a></td>
+              <td><a class="btn btn-primary btn-lg" href="https://buger.typeform.com/to/VXBBwm" style="width: 100%; display: block;">Get a quote</a></td>
+            </tr>
+          </tbody>
+        </table>
 
+        <br/>
+        <center>
+        <p>All sales come with a two week, 100% money back guarantee.<br/>
+        Looking to embed Gor in your virtual server or appliance?<br/>
+        <a href="https://github.com/buger/gor/wiki/Commercial-FAQ">Read the Commercial FAQ</a>.
+        </p>
+        </center>
+      </div>
       <div class="pro" id="docs">
         <h1>How Gor works and why it is made</h1>
         <p><small>Synthetic tests can be useful, but they are no substitute for the real thing. It's just not possible to synthesise the variation of traffic that you'll see in production. Humans, browsers, and robots all do strange things to affect the frequency of requests, URL weighting, size of headers, etc. You need to be sure that your app isn't tripped up by an edge-case that only presented itself after we'd gone live.</small></p>
@@ -319,34 +480,20 @@ gor --input-raw :80 --output-http "http://staging.com"</pre>
         </p>
         <p><small>You can modify and filter captured requested before replaying them. You can even replay them at higher speed for load testing. See <a href="https://github.com/buger/gor">full documentation</a>.</small></p>
       </div>
-
-      <div class="pro" id="pro">
-        <h1>Pro version</h1>
-        <p>Gor Pro is an extension to community version which provides more features, a commercial-friendly license and allows you to support high-quality open source development all at the same time.</p>
-        <ul>
-          <li>Include all the features from the <a href="http://github.com/buger/gor">Community version</a></li>
-          <li>Guaranteed traffic capture <sup>*</sup></li>
-          <li>Support for TSL encrypted traffic <sup>*</sup></li>
-          <li><a href="https://github.com/buger/gor/blob/master/COMM-LICENSE">Commercial license</a> vs LGPL by default</li>
-          <li>Feature prioritization</li>
-          <li>Dedicated Email support from the author</li>
-        </ul>
-        <div style="font-size: smaller; color: #aaa;">* this featured sheduled to be released in Q2 2016</div>
-        <br/>
-
-        <a class="btn btn-primary btn-lg" href="https://gum.co/KWpS">Buy for $950 / Year</a>
-
-        <br/>
-        <br/>
-        <p><small>All sales come with a two week, 100% money back guarantee.<br/>
-        Looking to embed Gor in your virtual server or appliance?<br/>
-        <a href="https://github.com/buger/gor/wiki/Commercial-FAQ">Read the Commercial FAQ</a>.
-        </small>
-        </p>
-      </div>
     </div>
-      <div class="container-fluid" style="background-color: #ccc; padding: 4rem;">
-        <h2>Questions, comments, & concerns? Lets chat: <a href="mailto:hello@gortool.com">hello@gortool.com</a></h2>
+      <div class="container-fluid" style="background-color: #333; padding: 4rem;">
+        <h2 style="color: white">Questions, comments, & concerns? Lets chat: <a href="mailto:hello@gortool.com">hello@gortool.com</a></h2>
+        </br>
+        <center>
+        <form class="text-center" action="https://tinyletter.com/gor" method="post" target="popupwindow" onsubmit="window.open('https://tinyletter.com/gor', 'popupwindow', 'scrollbars=yes,width=800,height=600');return true">
+          <label for="tlemail" style="color: #eee">Subscribe to our newsletter and keep up to date on new Gor features and changes and QA automaion news</label>
+          <div class="subscribe-form">
+            <input type="text" style="width:240px" name="email" id="tlemail" class="subscribe-form__email">
+            <input type="hidden" value="1" name="embed">
+            <input type="submit" value="Subscribe" class="btn btn-primary btn-white subscribe-form__submit" style="-webkit-user-select: auto;">
+          </div>
+        </form>
+        </center>
       </div>
   </body>
 </html>
