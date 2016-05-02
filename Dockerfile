@@ -10,9 +10,6 @@ RUN apt-get update -y
 RUN echo oracle-java7-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections
 RUN apt-get install oracle-java8-installer -y
 
-RUN wget http://apache-mirror.rbc.ru/pub/apache//commons/io/binaries/commons-io-2.4-bin.tar.gz -P /tmp
-RUN tar xzf /tmp/commons-io-2.4-bin.tar.gz -C /tmp
-
 RUN apt-get install libpcap-dev -y
 RUN go get github.com/google/gopacket
 RUN go get -u github.com/golang/lint/golint

@@ -2,8 +2,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-import org.apache.commons.io.IOUtils;
-
 public class echo {
     public static void main(String[] args) {
         if(args != null){
@@ -24,7 +22,6 @@ public class echo {
 
             }
         } catch (IOException e) {
-            IOUtils.closeQuietly(stdin);
         }
     }
 }
