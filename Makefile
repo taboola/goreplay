@@ -6,7 +6,7 @@ BENCHMARK = BenchmarkRAWInput
 release: release-x64
 
 release-x64:
-	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=amd64  -i gor go build -ldflags "-X main.VERSION=$(VERSION) -extldflags "-static""&& tar -czf gor_$(VERSION)_x64.tar.gz gor && rm gor
+	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=amd64  -i gor go build -ldflags "-X main.VERSION=$(VERSION) -extldflags \"-static\"" && tar -czf gor_$(VERSION)_x64.tar.gz gor && rm gor
 
 release-x86:
 	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=386 -i gor go build -ldflags "-X main.VERSION=$(VERSION)" && tar -czf gor_$(VERSION)_x86.tar.gz gor && rm gor

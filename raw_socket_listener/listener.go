@@ -214,14 +214,14 @@ func (e *DeviceNotFoundError) Error() string {
 	devices, _ := pcap.FindAllDevs()
 
 	var msg string
-	msg += "Devices with addr: " + e.addr + " not found. Available devices: \n"
+	msg += "Can't find interfaces with addr: " + e.addr + ". Provide available IP for intercepting traffic: \n"
 	for _, device := range devices {
 		msg += "Name: " + device.Name + "\n"
-		msg += "Description: " + device.Description + "\n"
-		msg += "Devices addresses: " + device.Description + "\n"
+		if device.Description != "" {
+			msg += "Description: " + device.Description + "\n"
+		}
 		for _, address := range device.Addresses {
 			msg += "- IP address: " + address.IP.String() + "\n"
-			msg += "- Subnet mask: " + address.Netmask.String() + "\n"
 		}
 	}
 
@@ -235,10 +235,6 @@ func findPcapDevice(addr string) (*pcap.Interface, error) {
 	}
 
 	for _, device := range devices {
-		if device.Name == "any" && addr == "" || addr == "0.0.0.0" {
-			return &device, nil
-		}
-
 		for _, address := range device.Addresses {
 			if address.IP.String() == addr {
 				return &device, nil
