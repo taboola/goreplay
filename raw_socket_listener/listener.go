@@ -283,8 +283,19 @@ func (t *Listener) readPcap() {
 		// Skip ethernet layer, 14 bytes
 		data := packet.Data()[14:]
 		ihl := uint8(data[0]) & 0x0F
+
+		// Truncated IP info
+		if len(data) < int(ihl*4) {
+			continue
+		}
+
 		srcIP := data[12:16]
 		data = data[ihl*4:]
+
+		// Truncated TCP info
+		if len(data) < 13 {
+			continue
+		}
 
 		dataOffset := (data[12] & 0xF0) >> 4
 
