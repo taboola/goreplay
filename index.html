@@ -498,8 +498,8 @@
       </div>
       <div class="pro" id="docs">
         <h1>How Gor works and why it is made</h1>
-        <p><small>Synthetic tests can be useful, but they are no substitute for the real thing. It's just not possible to synthesise the variation of traffic that you'll see in production. Humans, browsers, and robots all do strange things to affect the frequency of requests, URL weighting, size of headers, etc. You need to be sure that your app isn't tripped up by an edge-case that only presented itself after we'd gone live.</small></p>
-        <p><small>Placing another component in the critical path of production traffic is too risky, instead, Gor intercepts traffic coming to your service, not affecting its functionality, and the price is few percents of CPU.</small></p>
+        <p><small>No matter how many tests and fixtures you have, they just can’t cover all cases. Humans, browsers, and robots all do strange things to affect the frequency of requests, URL weighting, size of headers, etc. There is a whole layer of errors that just can’t found via automated and manual testing: concurrency, server environment specific bugs, some bugs can occur from requests called in a particular order, and way more. You need to be sure that your app isn't tripped up by an edge-case that only presented itself after we'd gone live.</small></p>
+        <p><small>Gor is not a proxy: placing another component in the critical path of production traffic is too risky. Instead, Gor analyze traffic coming to your service, not affecting its functionality, and the price is few percents of CPU.</small></p>
         <p><small>The most basic setup is:</small><br/>
         <pre style="padding: 1rem; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc">
 # Assuming that your service running on port 80
