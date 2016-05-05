@@ -467,11 +467,21 @@
             <tr>
               <td></td>
               <td><a class="btn btn-secondary btn-lg" href="http://github.com/buger/gor"style="width: 100%; display: block;">Get started</a></td>
-              <td><a class="btn btn-success btn-lg" href="https://gum.co/kscZR"  style="width: 100%; display: block;">BUY</a></td>
+              <td><script src="https://gumroad.com/js/gumroad.js"></script>
+<a class="gumroad-button btn btn-success btn-lg" href="https://gum.co/kscZR" style="width: 100%; display: block;">Buy</a></td>
               <td><a class="btn btn-primary btn-lg" href="https://buger.typeform.com/to/VXBBwm" style="width: 100%; display: block;">Get a quote</a></td>
             </tr>
           </tbody>
         </table>
+        <script type="text/javascript">
+          var timer = setInterval(function(){
+            if (document.querySelector(".gumroad-button span")) {
+              document.querySelector(".gumroad-button").removeChild(document.querySelector(".gumroad-button span"))
+              document.querySelector(".gumroad-button").className = "btn btn-primary btn-lg";
+              clearInterval(timer);
+            }
+          }, 500)
+        </script>
 
         <br/>
         <center>
