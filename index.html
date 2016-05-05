@@ -246,6 +246,12 @@
         font-size: 1rem;
         line-height: 1.5rem;
       }
+
+      .madein {
+        margin-top: 1rem;
+        display: block;
+        float: none !important;
+      }
     }
     </style>
 
@@ -308,7 +314,7 @@
           <a class="nav-link" href="#pro">Pro</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#docs">Docs</a>
+          <a class="nav-link" href="#about">About</a>
         </li>
 <!--         <li class="nav-item">
           <a class="nav-link" href="#about">About</a>
@@ -496,7 +502,7 @@
         </p>
         </center>
       </div>
-      <div class="pro" id="docs">
+      <div class="pro" id="about">
         <h1>How Gor works and why it is made</h1>
         <p><small>No matter how many tests and fixtures you have, they just can’t cover all cases. Humans, browsers, and robots all do strange things to affect the frequency of requests, URL weighting, size of headers, etc. There is a whole layer of errors that just can’t found via automated and manual testing: concurrency, server environment specific bugs, some bugs can occur from requests called in a particular order, and way more. You need to be sure that your app isn't tripped up by an edge-case that only presented itself after we'd gone live.</small></p>
         <p><small>Gor is not a proxy: placing another component in the critical path of production traffic is too risky. Instead, Gor analyze traffic coming to your service, not affecting its functionality, and the price is few percents of CPU.</small></p>
@@ -508,7 +514,7 @@ gor --input-raw :80 --output-http "http://staging.com"</pre>
         <p><small>You can modify and filter captured requested before replaying them. You can even replay them at higher speed for load testing. See <a href="https://github.com/buger/gor">full documentation</a>.</small></p>
       </div>
     </div>
-      <div class="container-fluid" style="background-color: #333; padding: 4rem;">
+      <div class="container-fluid" style="background-color: #666; padding: 4rem;">
         <h2 style="color: white">Questions, comments, & concerns? Lets chat: <a href="mailto:hello@gortool.com">hello@gortool.com</a></h2>
         </br>
         <center>
@@ -521,6 +527,15 @@ gor --input-raw :80 --output-http "http://staging.com"</pre>
           </div>
         </form>
         </center>
+      </div>
+      <div class="container-fluid" style="background-color: #333; color: #eee; padding: 2rem;">
+        <a href="https://github.com/buger/gor" style="font-size: 1.2rem; color: #eee;vertical-align: middle;">Github</a>
+        <a href="https://twitter.com/buger" style="margin-left: 1rem; font-size: 1.2rem; color: #eee;vertical-align: middle;">Twitter</a>
+        <a href="#pro" style="margin-left: 1rem; font-size: 1.2rem; color: #eee;vertical-align: middle;">Pro</a>
+        <a href="#about" style="margin-left: 1rem; font-size: 1.2rem; color: #eee;vertical-align: middle;">About</a>
+        <span class="madein pull-xs-right"><small>
+        Copyright © 2016 Replay Software LLC.<br/>Made in Syberia, Russia.
+        </small></span>
       </div>
   </body>
 </html>
