@@ -376,7 +376,7 @@ func TestRawListenerBench(t *testing.T) {
 						}
 					}
 
-					l.packetsChan <- p
+					l.packetsQueue.Write(p)
 					time.Sleep(time.Millisecond)
 				}
 
@@ -390,11 +390,12 @@ func TestRawListenerBench(t *testing.T) {
 	var count int32
 
 	for {
+		ch.Read()
 		select {
 			case <- ch:
 				atomic.AddInt32(&count, 1)
 			case <-time.After(2000 * time.Millisecond):
-				log.Println("Emitted 200000 messages, captured: ", count, len(l.ackAliases), len(l.seqWithData), len(l.respAliases), len(l.respWithoutReq), len(l.packetsChan))
+				log.Println("Emitted 200000 messages, captured: ", count, len(l.ackAliases), len(l.seqWithData), len(l.respAliases), len(l.respWithoutReq))
 				return
 		}
 	}

@@ -51,10 +51,10 @@ type Listener struct {
 	respWithoutReq map[uint32]string
 
 	// Messages ready to be send to client
-	packetsChan chan *TCPPacket
+	packetsQueue *PacketQueue
 
 	// Messages ready to be send to client
-	messagesChan chan *TCPMessage
+	messagesQueue *MessageQueue
 
 	addr string // IP to listen
 	port uint16 // Port to listen
@@ -82,8 +82,9 @@ const (
 func NewListener(addr string, port string, engine int, expire time.Duration) (l *Listener) {
 	l = &Listener{}
 
-	l.packetsChan = make(chan *TCPPacket, 10000)
-	l.messagesChan = make(chan *TCPMessage, 10000)
+	l.messagesQueue = &MessageQueue{lastCommittedIndex : 0, nextFreeIndex : 1, readerIndex : 1}
+	l.packetsQueue = &PacketQueue{lastCommittedIndex : 0, nextFreeIndex : 1, readerIndex : 1}
+
 	l.quit = make(chan bool)
 	l.readyCh = make(chan bool, 1)
 
@@ -124,7 +125,7 @@ func NewListener(addr string, port string, engine int, expire time.Duration) (l 
 func (t *Listener) processPackets() {
 	for {
 		// We need to use channels to process each packet to avoid data races
-		packet := <-t.packetsChan
+		packet := t.packetsQueue.Read()
 		// log.Println(packet)
 		t.mu.Lock()
 		t.processTCPPacket(packet)
@@ -207,7 +208,7 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 		}
 	}
 
-	t.messagesChan <- message
+	t.messagesQueue.Write(message)
 }
 
 // DeviceNotFoundError raised if user specified wrong ip
@@ -308,9 +309,7 @@ func (t *Listener) readPcap() {
 			newBuf := make([]byte, len(data))
 			copy(newBuf, data)
 
-			go func(newBuf []byte) {
-				t.packetsChan <- ParseTCPPacket(net.IP(srcIP).String(), newBuf)
-			}(newBuf)
+			t.packetsQueue.Write(ParseTCPPacket(net.IP(srcIP).String(), newBuf))
 		}
 	}
 }
@@ -346,9 +345,7 @@ func (t *Listener) readRAWSocket() {
 				newBuf := make([]byte, n)
 				copy(newBuf, buf[:n])
 
-				go func(newBuf []byte) {
-					t.packetsChan <- ParseTCPPacket(addr.String(), newBuf)
-				}(newBuf)
+				t.packetsQueue.Write(ParseTCPPacket(addr.String(), newBuf))
 			}
 		}
 	}
@@ -519,8 +516,8 @@ func (t *Listener) IsReady() bool {
 }
 
 // Receive TCP messages from the listener channel
-func (t *Listener) Receiver() chan *TCPMessage {
-	return t.messagesChan
+func (t *Listener) Receiver() *MessageQueue {
+	return t.messagesQueue
 }
 
 func (t *Listener) Close() {

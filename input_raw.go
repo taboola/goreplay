@@ -83,10 +83,7 @@ func (i *RAWInput) listen(address string) {
 		default:
 		}
 
-		// Receiving TCPMessage object
-		m := <- ch
-
-		i.data <- m
+		i.data <- ch.Read()
 	}
 }
 
