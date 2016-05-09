@@ -63,6 +63,7 @@ type Listener struct {
 
 	conn net.PacketConn
 	quit chan bool
+	readyCh chan bool
 }
 
 type request struct {
@@ -84,6 +85,7 @@ func NewListener(addr string, port string, engine int, expire time.Duration) (l 
 	l.packetsChan = make(chan *TCPPacket, 10000)
 	l.messagesChan = make(chan *TCPMessage, 10000)
 	l.quit = make(chan bool)
+	l.readyCh = make(chan bool, 1)
 
 	l.messages = make(map[string]*TCPMessage)
 	l.ackAliases = make(map[uint32]uint32)
@@ -165,6 +167,7 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 
 	delete(t.ackAliases, message.Ack)
 	delete(t.messages, message.ID)
+	delete(t.respAliases, message.ResponseAck)
 
 	// log.Println("Dispatching, message", message.Seq, message.Ack, string(message.Bytes()))
 
@@ -184,6 +187,8 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 				}
 			}
 		}
+
+
 	} else {
 		if message.RequestAck == 0 {
 			if responseRequest, ok := t.respAliases[message.Ack]; ok {
@@ -265,6 +270,8 @@ func (t *Listener) readPcap() {
 	source.Lazy = true
 	source.NoCopy = true
 
+	t.readyCh <- true
+
 	// log.Println(handle.Stats())
 
 	for {
@@ -319,6 +326,8 @@ func (t *Listener) readRAWSocket() {
 	defer t.conn.Close()
 
 	buf := make([]byte, 64*1024) // 64kb
+
+	t.readyCh <- true
 
 	for {
 		// Note: ReadFrom receive messages without IP header
@@ -500,9 +509,18 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 	}
 }
 
+func (t *Listener) IsReady() bool {
+	select {
+	case <- t.readyCh:
+		return true
+	case <- time.After(5 * time.Second):
+		return false
+	}
+}
+
 // Receive TCP messages from the listener channel
-func (t *Listener) Receive() *TCPMessage {
-	return <-t.messagesChan
+func (t *Listener) Receiver() chan *TCPMessage {
+	return t.messagesChan
 }
 
 func (t *Listener) Close() {

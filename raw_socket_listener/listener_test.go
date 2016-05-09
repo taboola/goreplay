@@ -2,9 +2,11 @@ package rawSocket
 
 import (
 	"bytes"
-	_ "log"
+	"log"
 	"testing"
 	"time"
+	"math/rand"
+	"sync/atomic"
 )
 
 func TestRawListenerInput(t *testing.T) {
@@ -219,8 +221,16 @@ func testChunkedSequence(t *testing.T, listener *Listener, packets ...*TCPPacket
 	select {
 	case r = <-listener.messagesChan:
 		if r.IsIncoming {
+			if req != nil {
+				t.Error("Request already received", r)
+				return
+			}
 			req = r
 		} else {
+			if resp != nil {
+				t.Error("Response already received", r)
+				return
+			}
 			resp = r
 		}
 		break
@@ -287,5 +297,105 @@ func TestRawListenerChunkedWrongOrder(t *testing.T) {
 	for i := 0; i < 6*5*4*3*2*1; i++ {
 		packets := permutation(i, []*TCPPacket{reqPacket1, reqPacket2, reqPacket3, reqPacket4, respPacket1, respPacket2})
 		testChunkedSequence(t, listener, packets...)
+	}
+}
+
+
+func chunkedPostMessage() []*TCPPacket {
+	ack := uint32(rand.Int63())
+	seq := uint32(rand.Int63())
+
+	reqPacket1 := buildPacket(true, ack, seq, []byte("POST / HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n"))
+	// Packet with data have different Seq
+	reqPacket2 := buildPacket(true, ack, seq + 47, []byte("1\r\na\r\n"))
+	reqPacket3 := buildPacket(true, ack, reqPacket2.Seq+5, []byte("1\r\nb\r\n"))
+	reqPacket4 := buildPacket(true, ack, reqPacket3.Seq+5, []byte("0\r\n\r\n"))
+
+	respPacket := buildPacket(false, reqPacket4.Seq+5 /* len of data */, ack, []byte("HTTP/1.1 200 OK\r\n"))
+
+	return []*TCPPacket{
+		reqPacket1, reqPacket2, reqPacket3, reqPacket4, respPacket,
+	}
+}
+
+func postMessage() []*TCPPacket {
+	ack := uint32(rand.Int63())
+	seq2 := uint32(rand.Int63())
+	seq := uint32(rand.Int63())
+
+	c := 10000
+	data := make([]byte, c)
+	rand.Read(data)
+
+	head := []byte("POST / HTTP/1.1\r\nContent-Length: 9958\r\n\r\n")
+	for i, _ := range head {
+		data[i] = head[i]
+	}
+
+	return []*TCPPacket{
+		buildPacket(true, ack, seq, data),
+		buildPacket(false, seq + uint32(len(data)), seq2, []byte("HTTP/1.1 200 OK\r\n")),
+	}
+}
+
+func getMessage() []*TCPPacket {
+	ack := uint32(rand.Int63())
+	seq2 := uint32(rand.Int63())
+	seq := uint32(rand.Int63())
+
+	return []*TCPPacket{
+		buildPacket(true, ack, seq, []byte("GET / HTTP/1.1\r\n\r\n")),
+		buildPacket(false, seq + 18, seq2, []byte("HTTP/1.1 200 OK\r\n")),
+	}
+}
+
+// Response comes before Request
+func TestRawListenerBench(t *testing.T) {
+	l := NewListener("", "0", EnginePcap, 200*time.Millisecond)
+	defer l.Close()
+
+	// Should re-construct message from all possible combinations
+	for i := 0; i < 1000; i++ {
+		go func(){
+			for j := 0; j < 100; j++ {
+				var packets []*TCPPacket
+
+				if j % 5 == 0 {
+					packets = chunkedPostMessage()
+				} else if j % 3 == 0 {
+				 	packets = postMessage()
+				} else {
+					packets = getMessage()
+				}
+
+				for _, p := range packets {
+					// Randomly drop packets
+					if (i + j) % 5 == 0 {
+						if rand.Int63() % 3 == 0 {
+							continue
+						}
+					}
+
+					l.packetsChan <- p
+					time.Sleep(time.Millisecond)
+				}
+
+				time.Sleep(5 * time.Millisecond)
+			}
+		}()
+	}
+
+	ch := l.Receiver()
+
+	var count int32
+
+	for {
+		select {
+			case <- ch:
+				atomic.AddInt32(&count, 1)
+			case <-time.After(2000 * time.Millisecond):
+				log.Println("Emitted 200000 messages, captured: ", count, len(l.ackAliases), len(l.seqWithData), len(l.respAliases), len(l.respWithoutReq), len(l.packetsChan))
+				return
+		}
 	}
 }

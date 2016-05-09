@@ -35,6 +35,11 @@ func NewRAWInput(address string, engine int, expire time.Duration) (i *RAWInput)
 
 	go i.listen(address)
 
+	for i.listener == nil {
+		time.Sleep(time.Millisecond)
+	}
+	i.listener.IsReady()
+
 	return
 }
 
@@ -69,6 +74,8 @@ func (i *RAWInput) listen(address string) {
 
 	i.listener = raw.NewListener(host, port, i.engine, i.expire)
 
+	ch := i.listener.Receiver()
+
 	for {
 		select {
 		case <-i.quit:
@@ -77,7 +84,7 @@ func (i *RAWInput) listen(address string) {
 		}
 
 		// Receiving TCPMessage object
-		m := i.listener.Receive()
+		m := <- ch
 
 		i.data <- m
 	}
