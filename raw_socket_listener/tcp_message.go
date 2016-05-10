@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/binary"
 	"github.com/buger/gor/proto"
 	"log"
 	"strconv"
@@ -17,13 +18,12 @@ import (
 // Message can be compiled from unique packets with same message_id which sorted by sequence
 // Message is received if we didn't receive any packets for 2000ms
 type TCPMessage struct {
-	ID           string // Message ID
 	Seq          uint32
 	Ack          uint32
 	ResponseAck  uint32
 	RequestStart time.Time
 	RequestAck   uint32
-	RequestID    string
+	RequestID    [10]byte
 	Start        time.Time
 	End          time.Time
 	IsIncoming   bool
@@ -34,8 +34,8 @@ type TCPMessage struct {
 }
 
 // NewTCPMessage pointer created from a Acknowledgment number and a channel of messages readuy to be deleted
-func NewTCPMessage(ID string, Seq, Ack uint32, IsIncoming bool) (msg *TCPMessage) {
-	msg = &TCPMessage{ID: ID, Seq: Seq, Ack: Ack, IsIncoming: IsIncoming}
+func NewTCPMessage(Seq, Ack uint32, IsIncoming bool) (msg *TCPMessage) {
+	msg = &TCPMessage{Seq: Seq, Ack: Ack, IsIncoming: IsIncoming}
 	msg.Start = time.Now()
 
 	return
@@ -196,7 +196,18 @@ func (t *TCPMessage) UpdateResponseAck() uint32 {
 	return t.ResponseAck
 }
 
+func (t *TCPMessage) ID() [10]byte {
+	return t.packets[0].ID
+}
+
 // ResponseID generate message ID for request response
-func (t *TCPMessage) ResponseID() string {
-	return t.packets[0].Addr + strconv.Itoa(int(t.packets[0].SrcPort)) + strconv.Itoa(int(t.ResponseAck))
+func (t *TCPMessage) ResponseID() [10]byte {
+	var id [10]byte
+	p := t.packets[0]
+
+	copy(id[:4], p.Addr)
+	copy(id[4:], p.Data[2:4]) // Dest port
+	binary.BigEndian.PutUint32(id[6:10], t.ResponseAck)
+
+	return id
 }

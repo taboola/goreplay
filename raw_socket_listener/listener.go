@@ -36,7 +36,7 @@ type Listener struct {
 	mu sync.Mutex
 	// buffer of TCPMessages waiting to be send
 	// ID -> TCPMessage
-	messages map[string]*TCPMessage
+	messages map[[10]byte]*TCPMessage
 
 	// Expect: 100-continue request is send in 2 tcp messages
 	// We store ACK aliases to merge this packets together
@@ -48,7 +48,7 @@ type Listener struct {
 	respAliases map[uint32]*request
 
 	// Ack -> ID
-	respWithoutReq map[uint32]string
+	respWithoutReq map[uint32][10]byte
 
 	// Messages ready to be send to client
 	packetsChan chan []byte
@@ -67,7 +67,7 @@ type Listener struct {
 }
 
 type request struct {
-	id    string
+	id    [10]byte
 	start time.Time
 	ack   uint32
 }
@@ -87,11 +87,11 @@ func NewListener(addr string, port string, engine int, expire time.Duration) (l 
 	l.quit = make(chan bool)
 	l.readyCh = make(chan bool, 1)
 
-	l.messages = make(map[string]*TCPMessage)
+	l.messages = make(map[[10]byte]*TCPMessage)
 	l.ackAliases = make(map[uint32]uint32)
 	l.seqWithData = make(map[uint32]uint32)
 	l.respAliases = make(map[uint32]*request)
-	l.respWithoutReq = make(map[uint32]string)
+	l.respWithoutReq = make(map[uint32][10]byte)
 
 	l.addr = addr
 	_port, _ := strconv.Atoi(port)
@@ -131,33 +131,29 @@ func (t *Listener) listen() {
 			}
 			return
 		case data := <- t.packetsChan:
-			packet := ParseTCPPacket(net.IP(data[:4]).String(), data[4:])
+			packet := ParseTCPPacket(data[:4], data[4:])
 			t.processTCPPacket(packet)
 		case <- gcTicker:
 			now := time.Now()
-			// log.Println("GC")
 
-			t.mu.Lock()
 			// Dispatch requests before responses
 			for _, message := range t.messages {
 				if now.Sub(message.End) >= t.messageExpire {
 					t.dispatchMessage(message)
 				}
 			}
-
-			t.mu.Unlock()
 		}
 	}
 }
 
 func (t *Listener) dispatchMessage(message *TCPMessage) {
 	// If already dispatched
-	if _, ok := t.messages[message.ID]; !ok {
+	if _, ok := t.messages[message.ID()]; !ok {
 		return
 	}
 
 	delete(t.ackAliases, message.Ack)
-	delete(t.messages, message.ID)
+	delete(t.messages, message.ID())
 	delete(t.respAliases, message.ResponseAck)
 
 	// log.Println("Dispatching, message", message.Seq, message.Ack, string(message.Bytes()))
@@ -391,7 +387,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 		// In case if non-first data chunks comes first
 		for _id, m := range t.messages {
 			// log.Println("Message ack:", m.Ack, m.packets[0].Addr, packet.Addr)
-			if m.Ack == packet.Ack && m.packets[0].Addr == packet.Addr {
+			if m.Ack == packet.Ack && bytes.Equal(m.packets[0].Addr, packet.Addr) {
 				delete(t.messages, _id)
 
 				for _, pkt := range m.packets {
@@ -417,13 +413,11 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 		responseRequest, _ = t.respAliases[packet.Ack]
 	}
 
-	mID := packet.Addr + strconv.Itoa(int(packet.DestPort)) + strconv.Itoa(int(packet.Ack))
-
-	message, ok := t.messages[mID]
+	message, ok := t.messages[packet.ID]
 
 	if !ok {
-		message = NewTCPMessage(mID, packet.Seq, packet.Ack, isIncoming)
-		t.messages[mID] = message
+		message = NewTCPMessage(packet.Seq, packet.Ack, isIncoming)
+		t.messages[packet.ID] = message
 
 		if !isIncoming {
 			if responseRequest != nil {
@@ -431,7 +425,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 				message.RequestAck = responseRequest.ack
 				message.RequestID = responseRequest.id
 			} else {
-				t.respWithoutReq[packet.Ack] = mID
+				t.respWithoutReq[packet.Ack] = packet.ID
 			}
 		}
 	}
@@ -475,7 +469,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 		}
 
 		message.UpdateResponseAck()
-		t.respAliases[message.ResponseAck] = &request{message.ID, message.Start, message.Ack}
+		t.respAliases[message.ResponseAck] = &request{message.ID(), message.Start, message.Ack}
 	}
 
 	// If message contains only single packet immediately dispatch it

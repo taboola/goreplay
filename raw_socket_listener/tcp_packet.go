@@ -32,38 +32,34 @@ type TCPPacket struct {
 	Checksum   uint16
 	Urgent     uint16
 
+	Raw []byte
 	Data []byte
-
-	Addr string
+	Addr []byte
+	ID [10]byte
 }
 
 // ParseTCPPacket takes address and tcp payload and returns parsed TCPPacket
-func ParseTCPPacket(addr string, b []byte) (p *TCPPacket) {
-	p = &TCPPacket{Data: b}
+func ParseTCPPacket(addr []byte, data []byte) (p *TCPPacket) {
+	p = &TCPPacket{Raw: data}
 	p.ParseBasic()
 	p.Addr = addr
 
-	return p
-}
+	copy(p.ID[:4], addr)
+	copy(p.ID[4:], p.Raw[2:4]) // Dest port
+	copy(p.ID[6:], p.Raw[8:12]) // Ack
 
-// Parse TCP Packet, inspired by: https://github.com/miekg/pcap/blob/master/packet.go
-func (t *TCPPacket) Parse() {
-	t.ParseBasic()
-	t.Flags = binary.BigEndian.Uint16(t.Data[12:14]) & 0x1FF
-	t.Window = binary.BigEndian.Uint16(t.Data[14:16])
-	t.Checksum = binary.BigEndian.Uint16(t.Data[16:18])
-	t.Urgent = binary.BigEndian.Uint16(t.Data[18:20])
+	return
 }
 
 // ParseBasic set of fields
 func (t *TCPPacket) ParseBasic() {
-	t.DestPort = binary.BigEndian.Uint16(t.Data[2:4])
-	t.SrcPort = binary.BigEndian.Uint16(t.Data[0:2])
-	t.Seq = binary.BigEndian.Uint32(t.Data[4:8])
-	t.Ack = binary.BigEndian.Uint32(t.Data[8:12])
-	t.DataOffset = (t.Data[12] & 0xF0) >> 4
+	t.DestPort = binary.BigEndian.Uint16(t.Raw[2:4])
+	t.SrcPort = binary.BigEndian.Uint16(t.Raw[0:2])
+	t.Seq = binary.BigEndian.Uint32(t.Raw[4:8])
+	t.Ack = binary.BigEndian.Uint32(t.Raw[8:12])
+	t.DataOffset = (t.Raw[12] & 0xF0) >> 4
 
-	t.Data = t.Data[t.DataOffset*4:]
+	t.Data = t.Raw[t.DataOffset*4:]
 }
 
 func (t *TCPPacket) Dump() []byte {
@@ -89,7 +85,7 @@ func (t *TCPPacket) String() string {
 	}
 
 	return strings.Join([]string{
-		"Addr: " + t.Addr,
+		"Addr: " + string(t.Addr),
 		"Source port: " + strconv.Itoa(int(t.SrcPort)),
 		"Dest port:" + strconv.Itoa(int(t.DestPort)),
 		"Sequence:" + strconv.Itoa(int(t.Seq)),

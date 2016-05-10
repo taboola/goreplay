@@ -3,13 +3,12 @@ package rawSocket
 import (
 	"bytes"
 	_ "log"
-	"strconv"
 	"testing"
 )
 
 func buildPacket(isIncoming bool, Ack, Seq uint32, Data []byte) (packet *TCPPacket) {
 	packet = &TCPPacket{
-		Addr: "",
+		Addr: []byte(""),
 		Ack:  Ack,
 		Seq:  Seq,
 		Data: Data,
@@ -26,14 +25,12 @@ func buildPacket(isIncoming bool, Ack, Seq uint32, Data []byte) (packet *TCPPack
 }
 
 func buildMessage(p *TCPPacket) *TCPMessage {
-	id := p.Addr + strconv.Itoa(int(p.DestPort)) + strconv.Itoa(int(p.Ack))
-
 	isIncoming := false
 	if p.SrcPort == 1 {
 		isIncoming = true
 	}
 
-	m := NewTCPMessage(id, p.Seq, p.Ack, isIncoming)
+	m := NewTCPMessage(p.Seq, p.Ack, isIncoming)
 	m.AddPacket(p)
 
 	return m
