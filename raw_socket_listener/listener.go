@@ -36,7 +36,7 @@ type Listener struct {
 	mu sync.Mutex
 	// buffer of TCPMessages waiting to be send
 	// ID -> TCPMessage
-	messages map[[10]byte]*TCPMessage
+	messages map[tcpID]*TCPMessage
 
 	// Expect: 100-continue request is send in 2 tcp messages
 	// We store ACK aliases to merge this packets together
@@ -48,7 +48,7 @@ type Listener struct {
 	respAliases map[uint32]*request
 
 	// Ack -> ID
-	respWithoutReq map[uint32][10]byte
+	respWithoutReq map[uint32]tcpID
 
 	// Messages ready to be send to client
 	packetsChan chan []byte
@@ -67,7 +67,7 @@ type Listener struct {
 }
 
 type request struct {
-	id    [10]byte
+	id    tcpID
 	start time.Time
 	ack   uint32
 }
@@ -87,11 +87,11 @@ func NewListener(addr string, port string, engine int, expire time.Duration) (l 
 	l.quit = make(chan bool)
 	l.readyCh = make(chan bool, 1)
 
-	l.messages = make(map[[10]byte]*TCPMessage)
+	l.messages = make(map[tcpID]*TCPMessage)
 	l.ackAliases = make(map[uint32]uint32)
 	l.seqWithData = make(map[uint32]uint32)
 	l.respAliases = make(map[uint32]*request)
-	l.respWithoutReq = make(map[uint32][10]byte)
+	l.respWithoutReq = make(map[uint32]tcpID)
 
 	l.addr = addr
 	_port, _ := strconv.Atoi(port)

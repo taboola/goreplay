@@ -23,7 +23,7 @@ type TCPMessage struct {
 	ResponseAck  uint32
 	RequestStart time.Time
 	RequestAck   uint32
-	RequestID    [10]byte
+	RequestID    tcpID
 	Start        time.Time
 	End          time.Time
 	IsIncoming   bool
@@ -196,13 +196,13 @@ func (t *TCPMessage) UpdateResponseAck() uint32 {
 	return t.ResponseAck
 }
 
-func (t *TCPMessage) ID() [10]byte {
+func (t *TCPMessage) ID() tcpID {
 	return t.packets[0].ID
 }
 
 // ResponseID generate message ID for request response
-func (t *TCPMessage) ResponseID() [10]byte {
-	var id [10]byte
+func (t *TCPMessage) ResponseID() tcpID {
+	var id tcpID
 	p := t.packets[0]
 
 	copy(id[:4], p.Addr)

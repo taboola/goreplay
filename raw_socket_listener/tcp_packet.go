@@ -19,6 +19,8 @@ const (
 	fNS
 )
 
+type tcpID [10]byte
+
 // TCPPacket provides tcp packet parser
 // Packet structure: http://en.wikipedia.org/wiki/Transmission_Control_Protocol
 type TCPPacket struct {
@@ -27,15 +29,11 @@ type TCPPacket struct {
 	Seq        uint32
 	Ack        uint32
 	DataOffset uint8
-	Flags      uint16
-	Window     uint16
-	Checksum   uint16
-	Urgent     uint16
 
 	Raw []byte
 	Data []byte
 	Addr []byte
-	ID [10]byte
+	ID tcpID
 }
 
 // ParseTCPPacket takes address and tcp payload and returns parsed TCPPacket
@@ -91,19 +89,6 @@ func (t *TCPPacket) String() string {
 		"Sequence:" + strconv.Itoa(int(t.Seq)),
 		"Acknowledgment:" + strconv.Itoa(int(t.Ack)),
 		"Header len:" + strconv.Itoa(int(t.DataOffset)),
-
-		"Flag ns:" + strconv.FormatBool(t.Flags&fNS != 0),
-		"Flag crw:" + strconv.FormatBool(t.Flags&fCWR != 0),
-		"Flag ece:" + strconv.FormatBool(t.Flags&fECE != 0),
-		"Flag urg:" + strconv.FormatBool(t.Flags&fURG != 0),
-		"Flag ack:" + strconv.FormatBool(t.Flags&fACK != 0),
-		"Flag psh:" + strconv.FormatBool(t.Flags&fPSH != 0),
-		"Flag rst:" + strconv.FormatBool(t.Flags&fRST != 0),
-		"Flag syn:" + strconv.FormatBool(t.Flags&fSYN != 0),
-		"Flag fin:" + strconv.FormatBool(t.Flags&fFIN != 0),
-
-		"Window size:" + strconv.Itoa(int(t.Window)),
-		"Checksum:" + strconv.Itoa(int(t.Checksum)),
 
 		"Data size:" + strconv.Itoa(len(t.Data)),
 		"Data:" + string(t.Data[:maxLen]),
