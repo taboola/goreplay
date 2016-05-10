@@ -90,9 +90,7 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 		}
 	}
 
-	if packetFound {
-		log.Println("Received packet with same sequence")
-	} else {
+	if !packetFound {
 		// Packets not always captured in same Seq order, and sometimes we need to prepend
 		if len(t.packets) == 0 || packet.Seq > t.packets[len(t.packets)-1].Seq {
 			t.packets = append(t.packets, packet)
