@@ -376,7 +376,7 @@ func TestRawListenerBench(t *testing.T) {
 						}
 					}
 
-					l.packetsChan <- p
+					l.packetsChan <- p.Dump()
 					time.Sleep(time.Millisecond)
 				}
 

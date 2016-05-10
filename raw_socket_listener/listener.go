@@ -51,7 +51,7 @@ type Listener struct {
 	respWithoutReq map[uint32]string
 
 	// Messages ready to be send to client
-	packetsChan chan *TCPPacket
+	packetsChan chan []byte
 
 	// Messages ready to be send to client
 	messagesChan chan *TCPMessage
@@ -82,7 +82,7 @@ const (
 func NewListener(addr string, port string, engine int, expire time.Duration) (l *Listener) {
 	l = &Listener{}
 
-	l.packetsChan = make(chan *TCPPacket, 10000)
+	l.packetsChan = make(chan []byte, 10000)
 	l.messagesChan = make(chan *TCPMessage, 10000)
 	l.quit = make(chan bool)
 	l.readyCh = make(chan bool, 1)
@@ -104,7 +104,6 @@ func NewListener(addr string, port string, engine int, expire time.Duration) (l 
 	l.messageExpire = expire
 
 	go l.listen()
-	go l.processPackets()
 
 	// Special case for testing
 	if l.port != 0 {
@@ -121,17 +120,6 @@ func NewListener(addr string, port string, engine int, expire time.Duration) (l 
 	return
 }
 
-func (t *Listener) processPackets() {
-	for {
-		// We need to use channels to process each packet to avoid data races
-		packet := <-t.packetsChan
-		// log.Println(packet)
-		t.mu.Lock()
-		t.processTCPPacket(packet)
-		t.mu.Unlock()
-	}
-}
-
 func (t *Listener) listen() {
 	gcTicker := time.Tick(t.messageExpire / 2)
 
@@ -142,7 +130,10 @@ func (t *Listener) listen() {
 				t.conn.Close()
 			}
 			return
-		case <-gcTicker:
+		case data := <- t.packetsChan:
+			packet := ParseTCPPacket(net.IP(data[:4]).String(), data[4:])
+			t.processTCPPacket(packet)
+		case <- gcTicker:
 			now := time.Now()
 			// log.Println("GC")
 
@@ -305,12 +296,11 @@ func (t *Listener) readPcap() {
 		// We need only packets with data inside
 		// Check that the buffer is larger than the size of the TCP header
 		if len(data) > int(dataOffset*4) {
-			newBuf := make([]byte, len(data))
-			copy(newBuf, data)
+			newBuf := make([]byte, len(data) + 4)
+			copy(newBuf[:4], srcIP)
+			copy(newBuf[4:], data)
 
-			go func(newBuf []byte) {
-				t.packetsChan <- ParseTCPPacket(net.IP(srcIP).String(), newBuf)
-			}(newBuf)
+			t.packetsChan <- newBuf
 		}
 	}
 }
@@ -343,12 +333,11 @@ func (t *Listener) readRAWSocket() {
 
 		if n > 0 {
 			if t.isValidPacket(buf[:n]) {
-				newBuf := make([]byte, n)
-				copy(newBuf, buf[:n])
+				newBuf := make([]byte, n + 4)
+				copy(newBuf[4:], buf[:n])
+				copy(newBuf[:4], []byte(addr.(*net.IPAddr).IP))
 
-				go func(newBuf []byte) {
-					t.packetsChan <- ParseTCPPacket(addr.String(), newBuf)
-				}(newBuf)
+				t.packetsChan <- newBuf
 			}
 		}
 	}

@@ -66,6 +66,21 @@ func (t *TCPPacket) ParseBasic() {
 	t.Data = t.Data[t.DataOffset*4:]
 }
 
+func (t *TCPPacket) Dump() []byte {
+	buf := make([]byte, len(t.Data) + 16 + 4)
+
+	binary.BigEndian.PutUint16(buf[6:8], t.DestPort)
+	binary.BigEndian.PutUint16(buf[4:6], t.SrcPort)
+
+	binary.BigEndian.PutUint32(buf[8:12], t.Seq)
+	binary.BigEndian.PutUint32(buf[12:16], t.Ack)
+
+	buf[16] = 64
+	copy(buf[20:], t.Data)
+
+	return buf
+}
+
 // String output for a TCP Packet
 func (t *TCPPacket) String() string {
 	maxLen := len(t.Data)
