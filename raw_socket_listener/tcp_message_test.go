@@ -4,22 +4,28 @@ import (
 	"bytes"
 	_ "log"
 	"testing"
+	"encoding/binary"
 )
 
 func buildPacket(isIncoming bool, Ack, Seq uint32, Data []byte) (packet *TCPPacket) {
-	packet = &TCPPacket{
-		Addr: []byte(""),
-		Ack:  Ack,
-		Seq:  Seq,
-		Data: Data,
-	}
+	var srcPort, destPort uint16
 
 	// For tests `listening` port is 0
 	if isIncoming {
-		packet.SrcPort = 1
+		srcPort = 1
 	} else {
-		packet.DestPort = 1
+		destPort = 1
 	}
+
+	buf := make([]byte, 16)
+	binary.BigEndian.PutUint16(buf[2:4], destPort)
+	binary.BigEndian.PutUint16(buf[0:2], srcPort)
+	binary.BigEndian.PutUint32(buf[4:8], Seq)
+	binary.BigEndian.PutUint32(buf[8:12], Ack)
+	buf[12] = 64
+	buf = append(buf, Data...)
+
+	packet = ParseTCPPacket([]byte(""), buf)
 
 	return packet
 }

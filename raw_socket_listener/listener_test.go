@@ -15,10 +15,10 @@ func TestRawListenerInput(t *testing.T) {
 	listener := NewListener("", "0", EnginePcap, 10*time.Millisecond)
 	defer listener.Close()
 
-	reqPacket := buildPacket(true, 1, 1, []byte("GET / HTTP/1.1"))
+	reqPacket := buildPacket(true, 1, 1, []byte("GET / HTTP/1.1\r\n\r\n"))
 
 	respAck := reqPacket.Seq + uint32(len(reqPacket.Data))
-	respPacket := buildPacket(false, respAck, reqPacket.Seq+1, []byte("HTTP/1.1 200 OK"))
+	respPacket := buildPacket(false, respAck, reqPacket.Seq+1, []byte("HTTP/1.1 200 OK\r\n\r\n"))
 
 	listener.processTCPPacket(reqPacket)
 	listener.processTCPPacket(respPacket)
@@ -52,8 +52,8 @@ func TestRawListenerResponse(t *testing.T) {
 	listener := NewListener("", "0", EnginePcap, 10*time.Millisecond)
 	defer listener.Close()
 
-	reqPacket := buildPacket(true, 1, 1, []byte("GET / HTTP/1.1"))
-	respPacket := buildPacket(false, 1+uint32(len(reqPacket.Data)), 2, []byte("HTTP/1.1 200 OK"))
+	reqPacket := buildPacket(true, 1, 1, []byte("GET / HTTP/1.1\r\n\r\n"))
+	respPacket := buildPacket(false, 1+uint32(len(reqPacket.Data)), 2, []byte("HTTP/1.1 200 OK\r\n\r\n"))
 
 	// If response packet comes before request
 	listener.processTCPPacket(respPacket)

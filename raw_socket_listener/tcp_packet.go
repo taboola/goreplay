@@ -19,7 +19,7 @@ const (
 	fNS
 )
 
-type tcpID [10]byte
+type tcpID [12]byte
 
 // TCPPacket provides tcp packet parser
 // Packet structure: http://en.wikipedia.org/wiki/Transmission_Control_Protocol
@@ -43,8 +43,9 @@ func ParseTCPPacket(addr []byte, data []byte) (p *TCPPacket) {
 	p.Addr = addr
 
 	copy(p.ID[:4], addr)
-	copy(p.ID[4:], p.Raw[2:4]) // Dest port
-	copy(p.ID[6:], p.Raw[8:12]) // Ack
+	copy(p.ID[4:], p.Raw[0:2]) // Src port
+	copy(p.ID[6:], p.Raw[2:4]) // Dest port
+	copy(p.ID[8:], p.Raw[8:12]) // Ack
 
 	return
 }

@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+var _ = log.Println
+
 // TCPMessage ensure that all TCP packets for given request is received, and processed in right sequence
 // Its needed because all TCP message can be fragmented or re-transmitted
 //
@@ -24,6 +26,7 @@ type TCPMessage struct {
 	RequestStart time.Time
 	RequestAck   uint32
 	RequestID    tcpID
+	ResponseID   tcpID
 	Start        time.Time
 	End          time.Time
 	IsIncoming   bool
@@ -190,22 +193,21 @@ func (t *TCPMessage) UUID() []byte {
 // UpdateResponseAck should be called after packet is added
 func (t *TCPMessage) UpdateResponseAck() uint32 {
 	lastPacket := t.packets[len(t.packets)-1]
-	t.ResponseAck = lastPacket.Seq + uint32(len(lastPacket.Data))
+	respAck := lastPacket.Seq + uint32(len(lastPacket.Data))
+
+	if t.ResponseAck != respAck {
+		t.ResponseAck = lastPacket.Seq + uint32(len(lastPacket.Data))
+
+		// We swappwed src and dst port
+		copy(t.ResponseID[:4], lastPacket.Addr)
+		copy(t.ResponseID[4:], lastPacket.Raw[2:4]) // Src port
+		copy(t.ResponseID[6:], lastPacket.Raw[0:2]) // Dest port
+		binary.BigEndian.PutUint32(t.ResponseID[8:12], t.ResponseAck)
+    }
+
 	return t.ResponseAck
 }
 
 func (t *TCPMessage) ID() tcpID {
 	return t.packets[0].ID
-}
-
-// ResponseID generate message ID for request response
-func (t *TCPMessage) ResponseID() tcpID {
-	var id tcpID
-	p := t.packets[0]
-
-	copy(id[:4], p.Addr)
-	copy(id[4:], p.Data[2:4]) // Dest port
-	binary.BigEndian.PutUint32(id[6:10], t.ResponseAck)
-
-	return id
 }

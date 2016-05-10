@@ -475,7 +475,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 	// If message contains only single packet immediately dispatch it
 	if message.IsFinished() {
 		if isIncoming {
-			if resp, ok := t.messages[message.ResponseID()]; ok {
+			if resp, ok := t.messages[message.ResponseID]; ok {
 				t.dispatchMessage(message)
 				if resp.IsFinished() {
 					t.dispatchMessage(resp)
