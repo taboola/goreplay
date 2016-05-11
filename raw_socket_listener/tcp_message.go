@@ -3,8 +3,8 @@ package rawSocket
 import (
 	"bytes"
 	"crypto/sha1"
-	"encoding/hex"
 	"encoding/binary"
+	"encoding/hex"
 	"github.com/buger/gor/proto"
 	"log"
 	"strconv"
@@ -20,12 +20,12 @@ var _ = log.Println
 // Message can be compiled from unique packets with same message_id which sorted by sequence
 // Message is received if we didn't receive any packets for 2000ms
 type TCPMessage struct {
-	Seq          uint32
-	Ack          uint32
-	ResponseAck  uint32
-	ResponseID   tcpID
-	DataAck      uint32
-	DataSeq      uint32
+	Seq         uint32
+	Ack         uint32
+	ResponseAck uint32
+	ResponseID  tcpID
+	DataAck     uint32
+	DataSeq     uint32
 
 	AssocMessage *TCPMessage
 	Start        time.Time
@@ -210,7 +210,7 @@ func (t *TCPMessage) UpdateResponseAck() uint32 {
 		copy(t.ResponseID[4:], lastPacket.Raw[2:4]) // Src port
 		copy(t.ResponseID[6:], lastPacket.Raw[0:2]) // Dest port
 		binary.BigEndian.PutUint32(t.ResponseID[8:12], t.ResponseAck)
-    }
+	}
 
 	return t.ResponseAck
 }

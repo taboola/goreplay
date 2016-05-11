@@ -2,9 +2,9 @@ package rawSocket
 
 import (
 	"bytes"
+	"encoding/binary"
 	_ "log"
 	"testing"
-	"encoding/binary"
 )
 
 func buildPacket(isIncoming bool, Ack, Seq uint32, Data []byte) (packet *TCPPacket) {

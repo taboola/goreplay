@@ -31,10 +31,10 @@ type TCPPacket struct {
 	OrigAck    uint32
 	DataOffset uint8
 
-	Raw []byte
+	Raw  []byte
 	Data []byte
 	Addr []byte
-	ID tcpID
+	ID   tcpID
 }
 
 // ParseTCPPacket takes address and tcp payload and returns parsed TCPPacket
@@ -49,8 +49,8 @@ func ParseTCPPacket(addr []byte, data []byte) (p *TCPPacket) {
 
 func (p *TCPPacket) GenID() {
 	copy(p.ID[:16], p.Addr)
-	copy(p.ID[16:], p.Raw[0:2]) // Src port
-	copy(p.ID[18:], p.Raw[2:4]) // Dest port
+	copy(p.ID[16:], p.Raw[0:2])  // Src port
+	copy(p.ID[18:], p.Raw[2:4])  // Dest port
 	copy(p.ID[20:], p.Raw[8:12]) // Ack
 }
 
@@ -73,7 +73,7 @@ func (t *TCPPacket) ParseBasic() {
 }
 
 func (t *TCPPacket) Dump() []byte {
-	buf := make([]byte, len(t.Data) + 16 + 16)
+	buf := make([]byte, len(t.Data)+16+16)
 	tcpBuf := buf[16:]
 
 	binary.BigEndian.PutUint16(tcpBuf[2:4], t.DestPort)

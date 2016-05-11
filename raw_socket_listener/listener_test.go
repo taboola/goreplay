@@ -3,10 +3,10 @@ package rawSocket
 import (
 	"bytes"
 	"log"
-	"testing"
-	"time"
 	"math/rand"
 	"sync/atomic"
+	"testing"
+	"time"
 )
 
 func TestRawListenerInput(t *testing.T) {
@@ -262,7 +262,7 @@ func testChunkedSequence(t *testing.T, listener *Listener, packets ...*TCPPacket
 	}
 
 	if len(listener.messagesChan) != 0 {
-		t.Fatal("messagesChan non empty:", <- listener.messagesChan)
+		t.Fatal("messagesChan non empty:", <-listener.messagesChan)
 	}
 
 	if len(listener.messages) != 0 {
@@ -331,14 +331,13 @@ func TestRawListenerChunkedWrongOrder(t *testing.T) {
 	}
 }
 
-
 func chunkedPostMessage() []*TCPPacket {
 	ack := uint32(rand.Int63())
 	seq := uint32(rand.Int63())
 
 	reqPacket1 := buildPacket(true, ack, seq, []byte("POST / HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n"))
 	// Packet with data have different Seq
-	reqPacket2 := buildPacket(true, ack, seq + 47, []byte("1\r\na\r\n"))
+	reqPacket2 := buildPacket(true, ack, seq+47, []byte("1\r\na\r\n"))
 	reqPacket3 := buildPacket(true, ack, reqPacket2.Seq+5, []byte("1\r\nb\r\n"))
 	reqPacket4 := buildPacket(true, ack, reqPacket3.Seq+5, []byte("0\r\n\r\n"))
 
@@ -359,13 +358,13 @@ func postMessage() []*TCPPacket {
 	rand.Read(data)
 
 	head := []byte("POST / HTTP/1.1\r\nContent-Length: 9958\r\n\r\n")
-	for i, _ := range head {
+	for i := range head {
 		data[i] = head[i]
 	}
 
 	return []*TCPPacket{
 		buildPacket(true, ack, seq, data),
-		buildPacket(false, seq + uint32(len(data)), seq2, []byte("HTTP/1.1 200 OK\r\n")),
+		buildPacket(false, seq+uint32(len(data)), seq2, []byte("HTTP/1.1 200 OK\r\n")),
 	}
 }
 
@@ -376,7 +375,7 @@ func getMessage() []*TCPPacket {
 
 	return []*TCPPacket{
 		buildPacket(true, ack, seq, []byte("GET / HTTP/1.1\r\n\r\n")),
-		buildPacket(false, seq + 18, seq2, []byte("HTTP/1.1 200 OK\r\n")),
+		buildPacket(false, seq+18, seq2, []byte("HTTP/1.1 200 OK\r\n")),
 	}
 }
 
@@ -387,22 +386,22 @@ func TestRawListenerBench(t *testing.T) {
 
 	// Should re-construct message from all possible combinations
 	for i := 0; i < 1000; i++ {
-		go func(){
+		go func() {
 			for j := 0; j < 100; j++ {
 				var packets []*TCPPacket
 
-				if j % 5 == 0 {
+				if j%5 == 0 {
 					packets = chunkedPostMessage()
-				} else if j % 3 == 0 {
-				 	packets = postMessage()
+				} else if j%3 == 0 {
+					packets = postMessage()
 				} else {
 					packets = getMessage()
 				}
 
 				for _, p := range packets {
 					// Randomly drop packets
-					if (i + j) % 5 == 0 {
-						if rand.Int63() % 3 == 0 {
+					if (i+j)%5 == 0 {
+						if rand.Int63()%3 == 0 {
 							continue
 						}
 					}
@@ -422,11 +421,11 @@ func TestRawListenerBench(t *testing.T) {
 
 	for {
 		select {
-			case <- ch:
-				atomic.AddInt32(&count, 1)
-			case <-time.After(2000 * time.Millisecond):
-				log.Println("Emitted 200000 messages, captured: ", count, len(l.ackAliases), len(l.seqWithData), len(l.respAliases), len(l.respWithoutReq), len(l.packetsChan))
-				return
+		case <-ch:
+			atomic.AddInt32(&count, 1)
+		case <-time.After(2000 * time.Millisecond):
+			log.Println("Emitted 200000 messages, captured: ", count, len(l.ackAliases), len(l.seqWithData), len(l.respAliases), len(l.respWithoutReq), len(l.packetsChan))
+			return
 		}
 	}
 }

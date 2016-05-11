@@ -31,15 +31,14 @@ func TestRAWInput(t *testing.T) {
 		t.Fatal(err)
 	}
 	origin := &http.Server{
-		Handler:        http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}),
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
+		Handler:      http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}),
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	}
 	go origin.Serve(listener)
 	defer listener.Close()
 
 	originAddr := listener.Addr().String()
-
 
 	var respCounter, reqCounter int64
 
@@ -63,7 +62,7 @@ func TestRAWInput(t *testing.T) {
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
 
-	client := NewHTTPClient("http://" + listener.Addr().String(), &HTTPClientConfig{})
+	client := NewHTTPClient("http://"+listener.Addr().String(), &HTTPClientConfig{})
 
 	go Start(quit)
 
@@ -87,15 +86,14 @@ func TestRAWInputIPv6(t *testing.T) {
 		t.Fatal(err)
 	}
 	origin := &http.Server{
-		Handler:        http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}),
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
+		Handler:      http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}),
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	}
 	go origin.Serve(listener)
 	defer listener.Close()
 
 	originAddr := listener.Addr().String()
-
 
 	var respCounter, reqCounter int64
 
@@ -119,7 +117,7 @@ func TestRAWInputIPv6(t *testing.T) {
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
 
-	client := NewHTTPClient("http://" + listener.Addr().String(), &HTTPClientConfig{})
+	client := NewHTTPClient("http://"+listener.Addr().String(), &HTTPClientConfig{})
 
 	go Start(quit)
 

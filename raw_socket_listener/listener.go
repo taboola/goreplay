@@ -61,8 +61,8 @@ type Listener struct {
 
 	messageExpire time.Duration
 
-	conn net.PacketConn
-	quit chan bool
+	conn    net.PacketConn
+	quit    chan bool
 	readyCh chan bool
 }
 
@@ -130,10 +130,10 @@ func (t *Listener) listen() {
 				t.conn.Close()
 			}
 			return
-		case data := <- t.packetsChan:
+		case data := <-t.packetsChan:
 			packet := ParseTCPPacket(data[:16], data[16:])
 			t.processTCPPacket(packet)
-		case <- gcTicker:
+		case <-gcTicker:
 			now := time.Now()
 
 			// Dispatch requests before responses
@@ -175,13 +175,13 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 		if respID, ok := t.respWithoutReq[message.ResponseAck]; ok {
 			if resp, rok := t.messages[respID]; rok {
 				// if resp.AssocMessage == nil {
-					// log.Println("FOUND RESPONSE")
-					resp.AssocMessage = message
-					message.AssocMessage = resp
+				// log.Println("FOUND RESPONSE")
+				resp.AssocMessage = message
+				message.AssocMessage = resp
 
-					if resp.IsFinished() {
-						defer t.dispatchMessage(resp)
-					}
+				if resp.IsFinished() {
+					defer t.dispatchMessage(resp)
+				}
 				// }
 			}
 		}
@@ -333,7 +333,7 @@ func (t *Listener) readPcap() {
 				// We need only packets with data inside
 				// Check that the buffer is larger than the size of the TCP header
 				if len(data) > int(dataOffset*4) {
-					newBuf := make([]byte, len(data) + 16)
+					newBuf := make([]byte, len(data)+16)
 					copy(newBuf[:16], srcIP)
 					copy(newBuf[16:], data)
 
@@ -375,7 +375,7 @@ func (t *Listener) readRAWSocket() {
 
 		if n > 0 {
 			if t.isValidPacket(buf[:n]) {
-				newBuf := make([]byte, n + 4)
+				newBuf := make([]byte, n+4)
 				copy(newBuf[16:], buf[:n])
 				copy(newBuf[:16], []byte(addr.(*net.IPAddr).IP))
 
@@ -550,9 +550,9 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 
 func (t *Listener) IsReady() bool {
 	select {
-	case <- t.readyCh:
+	case <-t.readyCh:
 		return true
-	case <- time.After(5 * time.Second):
+	case <-time.After(5 * time.Second):
 		return false
 	}
 }
