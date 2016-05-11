@@ -233,98 +233,118 @@ func (e *DeviceNotFoundError) Error() string {
 	return msg
 }
 
-func findPcapDevice(addr string) (*pcap.Interface, error) {
+func findPcapDevices(addr string) (interfaces []pcap.Interface, err error) {
 	devices, err := pcap.FindAllDevs()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	for _, device := range devices {
+		if (addr == "" || addr == "0.0.0.0" || addr == "[::]" || addr == "::") && len(device.Addresses) > 0 {
+			interfaces = append(interfaces, device)
+			continue
+		}
+
 		for _, address := range device.Addresses {
 			if device.Name == addr || address.IP.String() == addr {
-				return &device, nil
+				interfaces = append(interfaces, device)
+				return interfaces, nil
 			}
 		}
 	}
 
-	return nil, &DeviceNotFoundError{addr}
+	if len(interfaces) == 0 {
+		return nil, &DeviceNotFoundError{addr}
+	} else {
+		return interfaces, nil
+	}
 }
 
 func (t *Listener) readPcap() {
-	device, err := findPcapDevice(t.addr)
+	devices, err := findPcapDevices(t.addr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	handle, err := pcap.OpenLive(device.Name, 65536, true, t.messageExpire)
-	if err != nil {
-		log.Fatal(err)
+	var wg sync.WaitGroup
+	wg.Add(len(devices))
+
+	for _, d := range devices {
+		go func(device pcap.Interface) {
+			handle, err := pcap.OpenLive(device.Name, 65536, true, t.messageExpire)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer handle.Close()
+
+			if err := handle.SetBPFFilter("tcp and port " + strconv.Itoa(int(t.port))); err != nil {
+				log.Fatal(err)
+			}
+
+			source := gopacket.NewPacketSource(handle, handle.LinkType())
+			source.Lazy = true
+			source.NoCopy = true
+
+			wg.Done()
+
+			for {
+				packet, err := source.NextPacket()
+
+				if err == io.EOF {
+					break
+				} else if err != nil {
+					continue
+				}
+
+				// Skip ethernet layer, 14 bytes
+				data := packet.Data()[14:]
+				version := uint8(data[0]) >> 4
+
+				var srcIP []byte
+
+				if version == 4 {
+					ihl := uint8(data[0]) & 0x0F
+
+					// Truncated IP info
+					if len(data) < int(ihl*4) {
+						continue
+					}
+
+					srcIP = data[12:16]
+					data = data[ihl*4:]
+				} else {
+					// Truncated IP info
+					if len(data) < 40 {
+						continue
+					}
+
+					srcIP = data[8:24]
+
+					data = data[40:]
+				}
+
+				// Truncated TCP info
+				if len(data) < 13 {
+					continue
+				}
+
+				dataOffset := (data[12] & 0xF0) >> 4
+
+				// We need only packets with data inside
+				// Check that the buffer is larger than the size of the TCP header
+				if len(data) > int(dataOffset*4) {
+					newBuf := make([]byte, len(data) + 16)
+					copy(newBuf[:16], srcIP)
+					copy(newBuf[16:], data)
+
+					t.packetsChan <- newBuf
+				}
+			}
+		}(d)
 	}
-	defer handle.Close()
 
-	if err := handle.SetBPFFilter("tcp and port " + strconv.Itoa(int(t.port))); err != nil {
-		log.Fatal(err)
-	}
-
-	source := gopacket.NewPacketSource(handle, handle.LinkType())
-	source.Lazy = true
-	source.NoCopy = true
-
+	wg.Wait()
 	t.readyCh <- true
-
-	for {
-		packet, err := source.NextPacket()
-
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			continue
-		}
-
-		// Skip ethernet layer, 14 bytes
-		data := packet.Data()[14:]
-		version := uint8(data[0]) >> 4
-
-		var srcIP []byte
-
-		if version == 4 {
-			ihl := uint8(data[0]) & 0x0F
-
-			// Truncated IP info
-			if len(data) < int(ihl*4) {
-				continue
-			}
-
-			srcIP = data[12:16]
-			data = data[ihl*4:]
-		} else {
-			// Truncated IP info
-			if len(data) < 40 {
-				continue
-			}
-
-			srcIP = data[8:24]
-
-			data = data[40:]
-		}
-
-		// Truncated TCP info
-		if len(data) < 13 {
-			continue
-		}
-
-		dataOffset := (data[12] & 0xF0) >> 4
-
-		// We need only packets with data inside
-		// Check that the buffer is larger than the size of the TCP header
-		if len(data) > int(dataOffset*4) {
-			newBuf := make([]byte, len(data) + 16)
-			copy(newBuf[:16], srcIP)
-			copy(newBuf[16:], data)
-
-			t.packetsChan <- newBuf
-		}
-	}
 }
 
 func (t *Listener) readRAWSocket() {

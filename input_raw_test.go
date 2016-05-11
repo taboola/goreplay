@@ -26,6 +26,62 @@ func TestRAWInput(t *testing.T) {
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
+	listener, err := net.Listen("tcp", ":0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	origin := &http.Server{
+		Handler:        http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}),
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+	}
+	go origin.Serve(listener)
+	defer listener.Close()
+
+	originAddr := listener.Addr().String()
+
+
+	var respCounter, reqCounter int64
+
+	input := NewRAWInput(originAddr, EnginePcap, testRawExpire)
+	defer input.Close()
+
+	output := NewTestOutput(func(data []byte) {
+		if data[0] == '1' {
+			atomic.AddInt64(&reqCounter, 1)
+		} else {
+			atomic.AddInt64(&respCounter, 1)
+		}
+
+		if Settings.debug {
+			log.Println(reqCounter, respCounter)
+		}
+
+		wg.Done()
+	})
+
+	Plugins.Inputs = []io.Reader{input}
+	Plugins.Outputs = []io.Writer{output}
+
+	client := NewHTTPClient("http://" + listener.Addr().String(), &HTTPClientConfig{})
+
+	go Start(quit)
+
+	for i := 0; i < 100; i++ {
+		// request + response
+		wg.Add(2)
+		client.Get("/")
+		time.Sleep(2 * time.Millisecond)
+	}
+
+	wg.Wait()
+	close(quit)
+}
+
+func TestRAWInputIPv6(t *testing.T) {
+	wg := new(sync.WaitGroup)
+	quit := make(chan int)
+
 	listener, err := net.Listen("tcp", "[::1]:0")
 	if err != nil {
 		t.Fatal(err)
