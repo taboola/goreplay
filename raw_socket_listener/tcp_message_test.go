@@ -25,7 +25,7 @@ func buildPacket(isIncoming bool, Ack, Seq uint32, Data []byte) (packet *TCPPack
 	buf[12] = 64
 	buf = append(buf, Data...)
 
-	packet = ParseTCPPacket([]byte(""), buf)
+	packet = ParseTCPPacket([]byte("123"), buf)
 
 	return packet
 }

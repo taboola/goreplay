@@ -146,17 +146,28 @@ func (t *Listener) listen() {
 	}
 }
 
+func (t *Listener) deleteMessage(message *TCPMessage) {
+	delete(t.messages, message.ID())
+	delete(t.ackAliases, message.Ack)
+	if message.DataAck != 0 {
+		delete(t.ackAliases, message.DataAck)
+	}
+	if message.DataSeq != 0 {
+		delete(t.seqWithData, message.DataSeq)
+	}
+
+	delete(t.respAliases, message.ResponseAck)
+}
+
 func (t *Listener) dispatchMessage(message *TCPMessage) {
 	// If already dispatched
 	if _, ok := t.messages[message.ID()]; !ok {
 		return
 	}
 
-	delete(t.ackAliases, message.Ack)
-	delete(t.messages, message.ID())
-	delete(t.respAliases, message.ResponseAck)
+	t.deleteMessage(message)
 
-	// log.Println("Dispatching, message", message.Seq, message.Ack, string(message.Bytes()))
+	log.Println("Dispatching, message", message.Seq, message.Ack, message.RequestAck, string(message.Bytes()))
 
 	if message.IsIncoming {
 		// If there were response before request
@@ -375,7 +386,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 		}
 	}()
 
-	// log.Println("Processing packet:", packet.Ack, packet.Seq, string(packet.Data))
+	// log.Println("Processing packet:", packet.Ack, packet.Seq, packet.ID)
 
 	var message *TCPMessage
 
@@ -383,28 +394,26 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 
 	// Seek for 100-expect chunks
 	if parentAck, ok := t.seqWithData[packet.Seq]; ok {
-		// log.Println("Found data package with Ack:", packet.Ack)
 		// In case if non-first data chunks comes first
-		for _id, m := range t.messages {
-			// log.Println("Message ack:", m.Ack, m.packets[0].Addr, packet.Addr)
+		for _, m := range t.messages {
 			if m.Ack == packet.Ack && bytes.Equal(m.packets[0].Addr, packet.Addr) {
-				delete(t.messages, _id)
+				t.deleteMessage(m)
 
 				for _, pkt := range m.packets {
-					pkt.Ack = parentAck
+					// log.Println("Updating ack", parentAck, pkt.Ack)
+					pkt.UpdateAck(parentAck)
 					// Re-queue this packets
 					t.processTCPPacket(pkt)
 				}
 			}
 		}
 
-		delete(t.seqWithData, packet.Seq)
 		t.ackAliases[packet.Ack] = parentAck
-		packet.Ack = parentAck
+		packet.UpdateAck(parentAck)
 	}
 
 	if alias, ok := t.ackAliases[packet.Ack]; ok {
-		packet.Ack = alias
+		packet.UpdateAck(alias)
 	}
 
 	var responseRequest *request
@@ -430,25 +439,28 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 		}
 	}
 
+	// Adding packet to message
+	message.AddPacket(packet)
+
 	// Handling Expect: 100-continue requests
 	if len(packet.Data) > 4 && bytes.Equal(packet.Data[0:4], bPOST) {
 		// reading last 20 bytes (not counting CRLF): last header value (if no body presented)
 		if bytes.Equal(packet.Data[len(packet.Data)-24:len(packet.Data)-4], bExpect100ContinueCheck) {
 			seq := packet.Seq + uint32(len(packet.Data))
 			t.seqWithData[seq] = packet.Ack
+			message.DataSeq = seq
 
 			// In case if sequence packet came first
-			// log.Println("Looking for sequences:", seq, t.messages)
-			for _id, m := range t.messages {
-				// log.Println("SeqSEQ", m.Seq, len(m.packets))
+			for _, m := range t.messages {
 				if m.Seq == seq {
+					t.deleteMessage(m)
+					// log.Println("2: Adding ack alias:", m.Ack, packet.Ack)
 					t.ackAliases[m.Ack] = packet.Ack
 
 					for _, pkt := range m.packets {
+						pkt.UpdateAck(packet.Ack)
 						message.AddPacket(pkt)
 					}
-
-					delete(t.messages, _id)
 				}
 			}
 
@@ -459,8 +471,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 		}
 	}
 
-	// Adding packet to message
-	message.AddPacket(packet)
+	// log.Println("Received message:", string(message.Bytes()), message.ID(), t.messages)
 
 	if isIncoming {
 		// If message have multiple packets, delete previous alias

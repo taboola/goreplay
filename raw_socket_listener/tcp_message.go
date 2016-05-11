@@ -24,6 +24,8 @@ type TCPMessage struct {
 	Ack          uint32
 	ResponseAck  uint32
 	RequestStart time.Time
+	DataAck      uint32
+	DataSeq      uint32
 	RequestAck   uint32
 	RequestID    tcpID
 	ResponseID   tcpID
@@ -113,6 +115,10 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 			t.End = time.Now()
 		} else {
 			t.End = time.Now().Add(time.Millisecond)
+		}
+
+		if packet.OrigAck != 0 {
+			t.DataAck = packet.OrigAck
 		}
 	}
 }

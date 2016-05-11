@@ -28,6 +28,7 @@ type TCPPacket struct {
 	DestPort   uint16
 	Seq        uint32
 	Ack        uint32
+	OrigAck    uint32
 	DataOffset uint8
 
 	Raw []byte
@@ -41,13 +42,23 @@ func ParseTCPPacket(addr []byte, data []byte) (p *TCPPacket) {
 	p = &TCPPacket{Raw: data}
 	p.ParseBasic()
 	p.Addr = addr
+	p.GenID()
 
-	copy(p.ID[:4], addr)
+	return
+}
+
+func (p *TCPPacket) GenID() {
+	copy(p.ID[:4], p.Addr)
 	copy(p.ID[4:], p.Raw[0:2]) // Src port
 	copy(p.ID[6:], p.Raw[2:4]) // Dest port
 	copy(p.ID[8:], p.Raw[8:12]) // Ack
+}
 
-	return
+func (p *TCPPacket) UpdateAck(ack uint32) {
+	p.OrigAck = p.Ack
+	p.Ack = ack
+	binary.BigEndian.PutUint32(p.Raw[8:12], ack)
+	p.GenID()
 }
 
 // ParseBasic set of fields

@@ -29,7 +29,7 @@ test:
 	$(RUN) go test ./. -timeout 30s $(ARGS) -v
 
 test_all:
-	$(RUN) go test ./... -timeout 30s $(ARGS) -v
+	$(RUN) go test ./... -timeout 60s $(ARGS) -v
 
 testone:
 	$(RUN) go test ./... -timeout 4s -run $(TEST) $(ARGS) -v

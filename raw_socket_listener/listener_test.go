@@ -203,7 +203,7 @@ func testChunkedSequence(t *testing.T, listener *Listener, packets ...*TCPPacket
 	var r, req, resp *TCPMessage
 
 	for _, p := range packets {
-		listener.processTCPPacket(p)
+		listener.packetsChan <- p.Dump()
 	}
 
 	select {
@@ -255,10 +255,26 @@ func testChunkedSequence(t *testing.T, listener *Listener, packets ...*TCPPacket
 		t.Error("Resp and Req UUID should be equal", string(resp.UUID()), string(req.UUID()))
 	}
 
-	time.Sleep(15 * time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
 
 	if len(listener.messages) != 0 {
-		t.Error("Messages non empty:", listener.messages)
+		t.Fatal("Messages non empty:", listener.messages)
+	}
+
+	if len(listener.ackAliases) != 0 {
+		t.Fatal("ackAliases non empty:", listener.ackAliases)
+	}
+
+	if len(listener.seqWithData) != 0 {
+		t.Fatal("seqWithData non empty:", listener.seqWithData)
+	}
+
+	if len(listener.respAliases) != 0 {
+		t.Fatal("respAliases non empty:", listener.respAliases)
+	}
+
+	if len(listener.respWithoutReq) != 0 {
+		t.Fatal("respWithoutReq non empty:", listener.respWithoutReq)
 	}
 }
 
@@ -295,7 +311,14 @@ func TestRawListenerChunkedWrongOrder(t *testing.T) {
 
 	// Should re-construct message from all possible combinations
 	for i := 0; i < 6*5*4*3*2*1; i++ {
+
+		if i != 87 {
+			continue
+		}
+
 		packets := permutation(i, []*TCPPacket{reqPacket1, reqPacket2, reqPacket3, reqPacket4, respPacket1, respPacket2})
+
+		t.Log("permutation:", i, packets)
 		testChunkedSequence(t, listener, packets...)
 	}
 }
