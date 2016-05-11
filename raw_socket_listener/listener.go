@@ -273,12 +273,19 @@ func (t *Listener) readPcap() {
 		go func(device pcap.Interface) {
 			handle, err := pcap.OpenLive(device.Name, 65536, true, t.messageExpire)
 			if err != nil {
-				log.Fatal(err)
+				log.Println("Pcap Error while opening device", device.Name, err)
+				wg.Done()
+				return
 			}
 			defer handle.Close()
 
-			if err := handle.SetBPFFilter("tcp and port " + strconv.Itoa(int(t.port))); err != nil {
-				log.Fatal(err)
+			bpf := "port " + strconv.Itoa(int(t.port))
+
+			// log.Println("Applying bpf programm:", bpf, " Device:", device.Name)
+			if err := handle.SetBPFFilter(bpf); err != nil {
+				log.Println("BPF filter error:", err, "Device:", device.Name)
+				wg.Done()
+				return
 			}
 
 			source := gopacket.NewPacketSource(handle, handle.LinkType())
