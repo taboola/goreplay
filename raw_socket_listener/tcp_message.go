@@ -23,12 +23,11 @@ type TCPMessage struct {
 	Seq          uint32
 	Ack          uint32
 	ResponseAck  uint32
-	RequestStart time.Time
+	ResponseID   tcpID
 	DataAck      uint32
 	DataSeq      uint32
-	RequestAck   uint32
-	RequestID    tcpID
-	ResponseID   tcpID
+
+	AssocMessage *TCPMessage
 	Start        time.Time
 	End          time.Time
 	IsIncoming   bool
@@ -153,7 +152,7 @@ func (t *TCPMessage) IsFinished() bool {
 	} else {
 		// Request not found
 		// Can be because response came first or request request was just missing
-		if t.RequestAck == 0 {
+		if t.AssocMessage == nil {
 			return false
 		}
 
@@ -182,11 +181,13 @@ func (t *TCPMessage) UUID() []byte {
 	var key []byte
 
 	if t.IsIncoming {
+		// log.Println("UUID:", t.Ack, t.Start.UnixNano())
 		key = strconv.AppendInt(key, t.Start.UnixNano(), 10)
 		key = strconv.AppendUint(key, uint64(t.Ack), 10)
 	} else {
-		key = strconv.AppendInt(key, t.RequestStart.UnixNano(), 10)
-		key = strconv.AppendUint(key, uint64(t.RequestAck), 10)
+		// log.Println("RequestMessage:", t.AssocMessage.Ack, t.AssocMessage.Start.UnixNano())
+		key = strconv.AppendInt(key, t.AssocMessage.Start.UnixNano(), 10)
+		key = strconv.AppendUint(key, uint64(t.AssocMessage.Ack), 10)
 	}
 
 	uuid := make([]byte, 40)

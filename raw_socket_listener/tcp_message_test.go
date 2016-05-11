@@ -114,40 +114,40 @@ func TestTCPMessageIsFinished(t *testing.T) {
 
 	// Responses
 	msg = buildMessage(buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\n\r\n")))
-	msg.RequestAck = 1
+	msg.AssocMessage = &TCPMessage{}
 	if !msg.IsFinished() {
 		t.Error("Should mark simple response as finished")
 	}
 
 	msg = buildMessage(buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\n\r\n")))
-	msg.RequestAck = 0
+	msg.AssocMessage = nil
 	if msg.IsFinished() {
 		t.Error("Should not mark responses without associated requests")
 	}
 
 	msg = buildMessage(buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n")))
-	msg.RequestAck = 1
+	msg.AssocMessage = &TCPMessage{}
 
 	if msg.IsFinished() {
 		t.Error("Should mark chunked response as non finished")
 	}
 
 	msg = buildMessage(buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n")))
-	msg.RequestAck = 1
+	msg.AssocMessage = &TCPMessage{}
 
 	if !msg.IsFinished() {
 		t.Error("Should mark Content-Length: 0 respones as finished")
 	}
 
 	msg = buildMessage(buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\nContent-Length: 1\r\n\r\na")))
-	msg.RequestAck = 1
+	msg.AssocMessage = &TCPMessage{}
 
 	if !msg.IsFinished() {
 		t.Error("Should mark valid Content-Length respones as finished")
 	}
 
 	msg = buildMessage(buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\nContent-Length: 10\r\n\r\na")))
-	msg.RequestAck = 1
+	msg.AssocMessage = &TCPMessage{}
 
 	if msg.IsFinished() {
 		t.Error("Should not mark not valid Content-Length respones as finished")

@@ -45,7 +45,7 @@ type Listener struct {
 	seqWithData map[uint32]uint32
 
 	// Ack -> Req
-	respAliases map[uint32]*request
+	respAliases map[uint32]*TCPMessage
 
 	// Ack -> ID
 	respWithoutReq map[uint32]tcpID
@@ -90,7 +90,7 @@ func NewListener(addr string, port string, engine int, expire time.Duration) (l 
 	l.messages = make(map[tcpID]*TCPMessage)
 	l.ackAliases = make(map[uint32]uint32)
 	l.seqWithData = make(map[uint32]uint32)
-	l.respAliases = make(map[uint32]*request)
+	l.respAliases = make(map[uint32]*TCPMessage)
 	l.respWithoutReq = make(map[uint32]tcpID)
 
 	l.addr = addr
@@ -167,31 +167,33 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 
 	t.deleteMessage(message)
 
-	log.Println("Dispatching, message", message.Seq, message.Ack, message.RequestAck, string(message.Bytes()))
+	// log.Println("Dispatching, message", message.Start.UnixNano(), message.Seq, message.Ack, string(message.Bytes()))
 
 	if message.IsIncoming {
 		// If there were response before request
 		// log.Println("Looking for Response: ", t.respWithoutReq, message.ResponseAck)
 		if respID, ok := t.respWithoutReq[message.ResponseAck]; ok {
 			if resp, rok := t.messages[respID]; rok {
-				if resp.RequestAck == 0 {
+				// if resp.AssocMessage == nil {
 					// log.Println("FOUND RESPONSE")
-					resp.RequestAck = message.Ack
-					resp.RequestStart = message.Start
+					resp.AssocMessage = message
+					message.AssocMessage = resp
 
 					if resp.IsFinished() {
 						defer t.dispatchMessage(resp)
 					}
-				}
+				// }
 			}
 		}
 
-
+		if resp, ok := t.messages[message.ResponseID]; ok {
+			resp.AssocMessage = message
+		}
 	} else {
-		if message.RequestAck == 0 {
+		if message.AssocMessage == nil {
 			if responseRequest, ok := t.respAliases[message.Ack]; ok {
-				message.RequestStart = responseRequest.start
-				message.RequestAck = responseRequest.ack
+				message.AssocMessage = responseRequest
+				responseRequest.AssocMessage = message
 			}
 		}
 
@@ -199,7 +201,7 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 		delete(t.respWithoutReq, message.Ack)
 
 		// Do not track responses which have no associated requests
-		if message.RequestAck == 0 {
+		if message.AssocMessage == nil {
 			// log.Println("Can't dispatch resp", message.Seq, message.Ack, string(message.Bytes()))
 			return
 		}
@@ -399,6 +401,10 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 			if m.Ack == packet.Ack && bytes.Equal(m.packets[0].Addr, packet.Addr) {
 				t.deleteMessage(m)
 
+				if m.AssocMessage != nil {
+					m.AssocMessage.AssocMessage = nil
+				}
+
 				for _, pkt := range m.packets {
 					// log.Println("Updating ack", parentAck, pkt.Ack)
 					pkt.UpdateAck(parentAck)
@@ -416,7 +422,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 		packet.UpdateAck(alias)
 	}
 
-	var responseRequest *request
+	var responseRequest *TCPMessage
 
 	if !isIncoming {
 		responseRequest, _ = t.respAliases[packet.Ack]
@@ -430,9 +436,8 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 
 		if !isIncoming {
 			if responseRequest != nil {
-				message.RequestStart = responseRequest.start
-				message.RequestAck = responseRequest.ack
-				message.RequestID = responseRequest.id
+				message.AssocMessage = responseRequest
+				responseRequest.AssocMessage = message
 			} else {
 				t.respWithoutReq[packet.Ack] = packet.ID
 			}
@@ -454,6 +459,9 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 			for _, m := range t.messages {
 				if m.Seq == seq {
 					t.deleteMessage(m)
+					if m.AssocMessage != nil {
+						message.AssocMessage = m.AssocMessage
+					}
 					// log.Println("2: Adding ack alias:", m.Ack, packet.Ack)
 					t.ackAliases[m.Ack] = packet.Ack
 
@@ -480,7 +488,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 		}
 
 		message.UpdateResponseAck()
-		t.respAliases[message.ResponseAck] = &request{message.ID(), message.Start, message.Ack}
+		t.respAliases[message.ResponseAck] = message
 	}
 
 	// If message contains only single packet immediately dispatch it
@@ -493,7 +501,11 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 				}
 			}
 		} else {
-			if req, ok := t.messages[message.RequestID]; ok {
+			if message.AssocMessage == nil {
+				return
+			}
+
+			if req, ok := t.messages[message.AssocMessage.ID()]; ok {
 				if req.IsFinished() {
 					t.dispatchMessage(req)
 					t.dispatchMessage(message)

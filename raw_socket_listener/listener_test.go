@@ -257,6 +257,14 @@ func testChunkedSequence(t *testing.T, listener *Listener, packets ...*TCPPacket
 
 	time.Sleep(20 * time.Millisecond)
 
+	if len(listener.packetsChan) != 0 {
+		t.Fatal("packetsChan non empty:", listener.packetsChan)
+	}
+
+	if len(listener.messagesChan) != 0 {
+		t.Fatal("messagesChan non empty:", <- listener.messagesChan)
+	}
+
 	if len(listener.messages) != 0 {
 		t.Fatal("Messages non empty:", listener.messages)
 	}
@@ -312,13 +320,13 @@ func TestRawListenerChunkedWrongOrder(t *testing.T) {
 	// Should re-construct message from all possible combinations
 	for i := 0; i < 6*5*4*3*2*1; i++ {
 
-		if i != 87 {
+		if i < 54 || i > 57 {
 			continue
 		}
 
 		packets := permutation(i, []*TCPPacket{reqPacket1, reqPacket2, reqPacket3, reqPacket4, respPacket1, respPacket2})
 
-		t.Log("permutation:", i, packets)
+		t.Log("permutation:", i)
 		testChunkedSequence(t, listener, packets...)
 	}
 }
