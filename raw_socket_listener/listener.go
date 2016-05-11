@@ -131,7 +131,7 @@ func (t *Listener) listen() {
 			}
 			return
 		case data := <- t.packetsChan:
-			packet := ParseTCPPacket(data[:4], data[4:])
+			packet := ParseTCPPacket(data[:16], data[16:])
 			t.processTCPPacket(packet)
 		case <- gcTicker:
 			now := time.Now()
@@ -241,7 +241,7 @@ func findPcapDevice(addr string) (*pcap.Interface, error) {
 
 	for _, device := range devices {
 		for _, address := range device.Addresses {
-			if address.IP.String() == addr {
+			if device.Name == addr || address.IP.String() == addr {
 				return &device, nil
 			}
 		}
@@ -272,8 +272,6 @@ func (t *Listener) readPcap() {
 
 	t.readyCh <- true
 
-	// log.Println(handle.Stats())
-
 	for {
 		packet, err := source.NextPacket()
 
@@ -285,15 +283,30 @@ func (t *Listener) readPcap() {
 
 		// Skip ethernet layer, 14 bytes
 		data := packet.Data()[14:]
-		ihl := uint8(data[0]) & 0x0F
+		version := uint8(data[0]) >> 4
 
-		// Truncated IP info
-		if len(data) < int(ihl*4) {
-			continue
+		var srcIP []byte
+
+		if version == 4 {
+			ihl := uint8(data[0]) & 0x0F
+
+			// Truncated IP info
+			if len(data) < int(ihl*4) {
+				continue
+			}
+
+			srcIP = data[12:16]
+			data = data[ihl*4:]
+		} else {
+			// Truncated IP info
+			if len(data) < 40 {
+				continue
+			}
+
+			srcIP = data[8:24]
+
+			data = data[40:]
 		}
-
-		srcIP := data[12:16]
-		data = data[ihl*4:]
 
 		// Truncated TCP info
 		if len(data) < 13 {
@@ -305,9 +318,9 @@ func (t *Listener) readPcap() {
 		// We need only packets with data inside
 		// Check that the buffer is larger than the size of the TCP header
 		if len(data) > int(dataOffset*4) {
-			newBuf := make([]byte, len(data) + 4)
-			copy(newBuf[:4], srcIP)
-			copy(newBuf[4:], data)
+			newBuf := make([]byte, len(data) + 16)
+			copy(newBuf[:16], srcIP)
+			copy(newBuf[16:], data)
 
 			t.packetsChan <- newBuf
 		}
@@ -343,8 +356,8 @@ func (t *Listener) readRAWSocket() {
 		if n > 0 {
 			if t.isValidPacket(buf[:n]) {
 				newBuf := make([]byte, n + 4)
-				copy(newBuf[4:], buf[:n])
-				copy(newBuf[:4], []byte(addr.(*net.IPAddr).IP))
+				copy(newBuf[16:], buf[:n])
+				copy(newBuf[:16], []byte(addr.(*net.IPAddr).IP))
 
 				t.packetsChan <- newBuf
 			}

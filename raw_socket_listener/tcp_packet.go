@@ -19,7 +19,7 @@ const (
 	fNS
 )
 
-type tcpID [12]byte
+type tcpID [24]byte
 
 // TCPPacket provides tcp packet parser
 // Packet structure: http://en.wikipedia.org/wiki/Transmission_Control_Protocol
@@ -48,10 +48,10 @@ func ParseTCPPacket(addr []byte, data []byte) (p *TCPPacket) {
 }
 
 func (p *TCPPacket) GenID() {
-	copy(p.ID[:4], p.Addr)
-	copy(p.ID[4:], p.Raw[0:2]) // Src port
-	copy(p.ID[6:], p.Raw[2:4]) // Dest port
-	copy(p.ID[8:], p.Raw[8:12]) // Ack
+	copy(p.ID[:16], p.Addr)
+	copy(p.ID[16:], p.Raw[0:2]) // Src port
+	copy(p.ID[18:], p.Raw[2:4]) // Dest port
+	copy(p.ID[20:], p.Raw[8:12]) // Ack
 }
 
 func (p *TCPPacket) UpdateAck(ack uint32) {
@@ -73,16 +73,17 @@ func (t *TCPPacket) ParseBasic() {
 }
 
 func (t *TCPPacket) Dump() []byte {
-	buf := make([]byte, len(t.Data) + 16 + 4)
+	buf := make([]byte, len(t.Data) + 16 + 16)
+	tcpBuf := buf[16:]
 
-	binary.BigEndian.PutUint16(buf[6:8], t.DestPort)
-	binary.BigEndian.PutUint16(buf[4:6], t.SrcPort)
+	binary.BigEndian.PutUint16(tcpBuf[2:4], t.DestPort)
+	binary.BigEndian.PutUint16(buf[0:2], t.SrcPort)
 
-	binary.BigEndian.PutUint32(buf[8:12], t.Seq)
-	binary.BigEndian.PutUint32(buf[12:16], t.Ack)
+	binary.BigEndian.PutUint32(buf[4:8], t.Seq)
+	binary.BigEndian.PutUint32(buf[8:12], t.Ack)
 
-	buf[16] = 64
-	copy(buf[20:], t.Data)
+	tcpBuf[16] = 64
+	copy(tcpBuf[20:], t.Data)
 
 	return buf
 }

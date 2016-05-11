@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
@@ -25,9 +26,20 @@ func TestRAWInput(t *testing.T) {
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
-	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-	defer origin.Close()
-	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
+	listener, err := net.Listen("tcp", "[::1]:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	origin := &http.Server{
+		Handler:        http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}),
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+	}
+	go origin.Serve(listener)
+	defer listener.Close()
+
+	originAddr := listener.Addr().String()
+
 
 	var respCounter, reqCounter int64
 
@@ -51,7 +63,7 @@ func TestRAWInput(t *testing.T) {
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
 
-	client := NewHTTPClient(origin.URL, &HTTPClientConfig{})
+	client := NewHTTPClient("http://" + listener.Addr().String(), &HTTPClientConfig{})
 
 	go Start(quit)
 

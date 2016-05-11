@@ -3,6 +3,7 @@ SOURCE_PATH = /go/src/github.com/buger/gor/
 RUN = docker run -v `pwd`:$(SOURCE_PATH) -p 0.0.0.0:8000:8000 -t -i gor
 BENCHMARK = BenchmarkRAWInput
 TEST = TestRawListenerBench
+VERSION = DEV-$(shell date +%s)
 
 release: release-x64
 
@@ -53,7 +54,7 @@ profile_test:
 
 # Used mainly for debugging, because docker container do not have access to parent machine ports
 run:
-	$(RUN) go run $(SOURCE) --input-dummy=0 --output-http="http://localhost:9000" --input-raw :9000 --input-http :9000 --verbose --debug --middleware "./examples/middleware/echo.sh"
+	$(RUN) go run $(SOURCE) --input-dummy=0 --output-http="http://localhost:9000" --input-raw 127.0.0.1:9000 --input-http 127.0.0.1:9000 --verbose --debug --middleware "./examples/middleware/echo.sh"
 
 run-2:
 	$(RUN) go run $(SOURCE) --input-file ./fixtures/requests.gor --output-dummy=0
