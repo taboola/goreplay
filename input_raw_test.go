@@ -54,7 +54,6 @@ func TestRAWInput(t *testing.T) {
 	client := NewHTTPClient(origin.URL, &HTTPClientConfig{})
 
 	go Start(quit)
-	time.Sleep(100 * time.Millisecond)
 
 	for i := 0; i < 100; i++ {
 		// request + response
@@ -118,7 +117,6 @@ func TestInputRAW100Expect(t *testing.T) {
 	Plugins.Outputs = []io.Writer{testOutput, httpOutput}
 
 	go Start(quit)
-	time.Sleep(100 * time.Millisecond)
 
 	// Origin + Response/Request Test Output + Request Http Output
 	wg.Add(4)
@@ -169,7 +167,6 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 	Plugins.Outputs = []io.Writer{httpOutput}
 
 	go Start(quit)
-	time.Sleep(100 * time.Millisecond)
 
 	wg.Add(2)
 
@@ -237,8 +234,6 @@ func TestInputRAWLargePayload(t *testing.T) {
 
 	go Start(quit)
 
-	time.Sleep(100 * time.Millisecond)
-
 	wg.Add(2)
 	curl := exec.Command("curl", "http://"+originAddr, "--header", "Transfer-Encoding: chunked", "--header", "Expect:", "--data-binary", "@/tmp/large")
 	err = curl.Run()
@@ -274,8 +269,6 @@ func BenchmarkRAWInput(b *testing.B) {
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
-
-	time.Sleep(time.Millisecond)
 
 	go Start(quit)
 

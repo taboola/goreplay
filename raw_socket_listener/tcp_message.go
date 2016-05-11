@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
+	"encoding/binary"
 	"github.com/buger/gor/proto"
 	"log"
 	"strconv"
 	"time"
 )
+
+var _ = log.Println
 
 // TCPMessage ensure that all TCP packets for given request is received, and processed in right sequence
 // Its needed because all TCP message can be fragmented or re-transmitted
@@ -17,13 +20,14 @@ import (
 // Message can be compiled from unique packets with same message_id which sorted by sequence
 // Message is received if we didn't receive any packets for 2000ms
 type TCPMessage struct {
-	ID           string // Message ID
 	Seq          uint32
 	Ack          uint32
 	ResponseAck  uint32
-	RequestStart time.Time
-	RequestAck   uint32
-	RequestID    string
+	ResponseID   tcpID
+	DataAck      uint32
+	DataSeq      uint32
+
+	AssocMessage *TCPMessage
 	Start        time.Time
 	End          time.Time
 	IsIncoming   bool
@@ -34,8 +38,8 @@ type TCPMessage struct {
 }
 
 // NewTCPMessage pointer created from a Acknowledgment number and a channel of messages readuy to be deleted
-func NewTCPMessage(ID string, Seq, Ack uint32, IsIncoming bool) (msg *TCPMessage) {
-	msg = &TCPMessage{ID: ID, Seq: Seq, Ack: Ack, IsIncoming: IsIncoming}
+func NewTCPMessage(Seq, Ack uint32, IsIncoming bool) (msg *TCPMessage) {
+	msg = &TCPMessage{Seq: Seq, Ack: Ack, IsIncoming: IsIncoming}
 	msg.Start = time.Now()
 
 	return
@@ -90,9 +94,7 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 		}
 	}
 
-	if packetFound {
-		log.Println("Received packet with same sequence")
-	} else {
+	if !packetFound {
 		// Packets not always captured in same Seq order, and sometimes we need to prepend
 		if len(t.packets) == 0 || packet.Seq > t.packets[len(t.packets)-1].Seq {
 			t.packets = append(t.packets, packet)
@@ -112,6 +114,10 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 			t.End = time.Now()
 		} else {
 			t.End = time.Now().Add(time.Millisecond)
+		}
+
+		if packet.OrigAck != 0 {
+			t.DataAck = packet.OrigAck
 		}
 	}
 }
@@ -146,7 +152,7 @@ func (t *TCPMessage) IsFinished() bool {
 	} else {
 		// Request not found
 		// Can be because response came first or request request was just missing
-		if t.RequestAck == 0 {
+		if t.AssocMessage == nil {
 			return false
 		}
 
@@ -175,11 +181,13 @@ func (t *TCPMessage) UUID() []byte {
 	var key []byte
 
 	if t.IsIncoming {
+		// log.Println("UUID:", t.Ack, t.Start.UnixNano())
 		key = strconv.AppendInt(key, t.Start.UnixNano(), 10)
 		key = strconv.AppendUint(key, uint64(t.Ack), 10)
 	} else {
-		key = strconv.AppendInt(key, t.RequestStart.UnixNano(), 10)
-		key = strconv.AppendUint(key, uint64(t.RequestAck), 10)
+		// log.Println("RequestMessage:", t.AssocMessage.Ack, t.AssocMessage.Start.UnixNano())
+		key = strconv.AppendInt(key, t.AssocMessage.Start.UnixNano(), 10)
+		key = strconv.AppendUint(key, uint64(t.AssocMessage.Ack), 10)
 	}
 
 	uuid := make([]byte, 40)
@@ -192,11 +200,21 @@ func (t *TCPMessage) UUID() []byte {
 // UpdateResponseAck should be called after packet is added
 func (t *TCPMessage) UpdateResponseAck() uint32 {
 	lastPacket := t.packets[len(t.packets)-1]
-	t.ResponseAck = lastPacket.Seq + uint32(len(lastPacket.Data))
+	respAck := lastPacket.Seq + uint32(len(lastPacket.Data))
+
+	if t.ResponseAck != respAck {
+		t.ResponseAck = lastPacket.Seq + uint32(len(lastPacket.Data))
+
+		// We swappwed src and dst port
+		copy(t.ResponseID[:4], lastPacket.Addr)
+		copy(t.ResponseID[4:], lastPacket.Raw[2:4]) // Src port
+		copy(t.ResponseID[6:], lastPacket.Raw[0:2]) // Dest port
+		binary.BigEndian.PutUint32(t.ResponseID[8:12], t.ResponseAck)
+    }
+
 	return t.ResponseAck
 }
 
-// ResponseID generate message ID for request response
-func (t *TCPMessage) ResponseID() string {
-	return t.packets[0].Addr + strconv.Itoa(int(t.packets[0].SrcPort)) + strconv.Itoa(int(t.ResponseAck))
+func (t *TCPMessage) ID() tcpID {
+	return t.packets[0].ID
 }

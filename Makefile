@@ -2,6 +2,7 @@ SOURCE = emitter.go gor.go gor_stat.go input_dummy.go input_file.go input_raw.go
 SOURCE_PATH = /go/src/github.com/buger/gor/
 RUN = docker run -v `pwd`:$(SOURCE_PATH) -p 0.0.0.0:8000:8000 -t -i gor
 BENCHMARK = BenchmarkRAWInput
+TEST = TestRawListenerBench
 
 release: release-x64
 
@@ -28,7 +29,7 @@ test:
 	$(RUN) go test ./. -timeout 30s $(ARGS) -v
 
 test_all:
-	$(RUN) go test ./... -timeout 30s $(ARGS) -v
+	$(RUN) go test ./... -timeout 60s $(ARGS) -v
 
 testone:
 	$(RUN) go test ./... -timeout 4s -run $(TEST) $(ARGS) -v
@@ -47,9 +48,8 @@ bench:
 	$(RUN) go test -v -run NOT_EXISTING -bench $(BENCHMARK) -benchtime 5s
 
 profile_test:
-	$(RUN) go test $(LDFLAGS) -run NOT_EXISTING -test.benchmem -bench $(BENCHMARK) ./. $(ARGS) -benchtime 5s -memprofile mem.mprof -v
-	$(RUN) go test $(LDFLAGS) -run NOT_EXISTING -test.benchmem -bench $(BENCHMARK) ./. $(ARGS) -benchtime 5s -cpuprofile cpu.out -v
-	$(RUN) go test $(LDFLAGS) -run NOT_EXISTING -test.benchmem -bench $(BENCHMARK) ./. $(ARGS) -c
+	$(RUN) go test $(LDFLAGS) -run $(TEST) ./raw_socket_listener/. $(ARGS) -memprofile mem.mprof -cpuprofile cpu.out
+	$(RUN) go test $(LDFLAGS) -run $(TEST) ./raw_socket_listener/. $(ARGS) -c
 
 # Used mainly for debugging, because docker container do not have access to parent machine ports
 run:

@@ -3,37 +3,40 @@ package rawSocket
 import (
 	"bytes"
 	_ "log"
-	"strconv"
 	"testing"
+	"encoding/binary"
 )
 
 func buildPacket(isIncoming bool, Ack, Seq uint32, Data []byte) (packet *TCPPacket) {
-	packet = &TCPPacket{
-		Addr: "",
-		Ack:  Ack,
-		Seq:  Seq,
-		Data: Data,
-	}
+	var srcPort, destPort uint16
 
 	// For tests `listening` port is 0
 	if isIncoming {
-		packet.SrcPort = 1
+		srcPort = 1
 	} else {
-		packet.DestPort = 1
+		destPort = 1
 	}
+
+	buf := make([]byte, 16)
+	binary.BigEndian.PutUint16(buf[2:4], destPort)
+	binary.BigEndian.PutUint16(buf[0:2], srcPort)
+	binary.BigEndian.PutUint32(buf[4:8], Seq)
+	binary.BigEndian.PutUint32(buf[8:12], Ack)
+	buf[12] = 64
+	buf = append(buf, Data...)
+
+	packet = ParseTCPPacket([]byte("123"), buf)
 
 	return packet
 }
 
 func buildMessage(p *TCPPacket) *TCPMessage {
-	id := p.Addr + strconv.Itoa(int(p.DestPort)) + strconv.Itoa(int(p.Ack))
-
 	isIncoming := false
 	if p.SrcPort == 1 {
 		isIncoming = true
 	}
 
-	m := NewTCPMessage(id, p.Seq, p.Ack, isIncoming)
+	m := NewTCPMessage(p.Seq, p.Ack, isIncoming)
 	m.AddPacket(p)
 
 	return m
@@ -111,40 +114,40 @@ func TestTCPMessageIsFinished(t *testing.T) {
 
 	// Responses
 	msg = buildMessage(buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\n\r\n")))
-	msg.RequestAck = 1
+	msg.AssocMessage = &TCPMessage{}
 	if !msg.IsFinished() {
 		t.Error("Should mark simple response as finished")
 	}
 
 	msg = buildMessage(buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\n\r\n")))
-	msg.RequestAck = 0
+	msg.AssocMessage = nil
 	if msg.IsFinished() {
 		t.Error("Should not mark responses without associated requests")
 	}
 
 	msg = buildMessage(buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n")))
-	msg.RequestAck = 1
+	msg.AssocMessage = &TCPMessage{}
 
 	if msg.IsFinished() {
 		t.Error("Should mark chunked response as non finished")
 	}
 
 	msg = buildMessage(buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n")))
-	msg.RequestAck = 1
+	msg.AssocMessage = &TCPMessage{}
 
 	if !msg.IsFinished() {
 		t.Error("Should mark Content-Length: 0 respones as finished")
 	}
 
 	msg = buildMessage(buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\nContent-Length: 1\r\n\r\na")))
-	msg.RequestAck = 1
+	msg.AssocMessage = &TCPMessage{}
 
 	if !msg.IsFinished() {
 		t.Error("Should mark valid Content-Length respones as finished")
 	}
 
 	msg = buildMessage(buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\nContent-Length: 10\r\n\r\na")))
-	msg.RequestAck = 1
+	msg.AssocMessage = &TCPMessage{}
 
 	if msg.IsFinished() {
 		t.Error("Should not mark not valid Content-Length respones as finished")
