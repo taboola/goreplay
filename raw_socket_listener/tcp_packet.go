@@ -4,7 +4,10 @@ import (
 	"encoding/binary"
 	"strconv"
 	"strings"
+	"log"
 )
+
+var _ = log.Println
 
 // TCP Flags
 const (
@@ -68,6 +71,8 @@ func (t *TCPPacket) ParseBasic() {
 	t.Seq = binary.BigEndian.Uint32(t.Raw[4:8])
 	t.Ack = binary.BigEndian.Uint32(t.Raw[8:12])
 	t.DataOffset = (t.Raw[12] & 0xF0) >> 4
+
+	// log.Println("DataOffset:", t.DataOffset, t.DestPort, t.SrcPort, t.Seq, t.Ack)
 
 	t.Data = t.Raw[t.DataOffset*4:]
 }

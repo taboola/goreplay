@@ -5,6 +5,7 @@ BENCHMARK = BenchmarkRAWInput
 TEST = TestRawListenerBench
 VERSION = DEV-$(shell date +%s)
 LDFLAGS = -ldflags "-X main.VERSION=$(VERSION) -extldflags \"-static\""
+MAC_LDFLAGS = -ldflags "-X main.VERSION=$(VERSION)"
 
 release: release-x64
 
@@ -13,6 +14,9 @@ release-x64:
 
 release-x86:
 	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=386 -i gor go build $(LDFLAGS) && tar -czf gor_$(VERSION)_x86.tar.gz gor && rm gor
+
+release-mac:
+	go build $(MAC_LDFLAGS) && tar -czf gor_$(VERSION)_x86.tar.gz gor
 
 build:
 	docker build -t gor .

@@ -254,10 +254,10 @@ func TestInputRAWLargePayload(t *testing.T) {
 	}
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
-	sizeKb := 100
+	sizeB := 100 * 1000
 
 	// Generate 100kb file
-	dd := exec.Command("dd", "if=/dev/urandom", "of=/tmp/large", "bs=1KB", "count="+strconv.Itoa(sizeKb))
+	dd := exec.Command("dd", "if=/dev/urandom", "of=/tmp/large", "bs=1", "count="+strconv.Itoa(sizeB))
 	err := dd.Run()
 	if err != nil {
 		log.Fatal("dd error:", err)
@@ -267,7 +267,7 @@ func TestInputRAWLargePayload(t *testing.T) {
 		defer req.Body.Close()
 		body, _ := ioutil.ReadAll(req.Body)
 
-		if len(body) != sizeKb*1000 {
+		if len(body) != sizeB {
 			t.Error("File size should be 1mb:", len(body))
 		}
 
@@ -285,8 +285,8 @@ func TestInputRAWLargePayload(t *testing.T) {
 		// n, _ := req.Body.Read(buf)
 		// body := buf[0:n]
 
-		if len(body) != sizeKb*1000 {
-			t.Errorf("File size should be %d bytes: %d", sizeKb*1000, len(body))
+		if len(body) != sizeB {
+			t.Errorf("File size should be %d bytes: %d", sizeB, len(body))
 		}
 
 		wg.Done()

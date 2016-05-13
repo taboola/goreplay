@@ -17,7 +17,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/google/gopacket"
-	_ "github.com/google/gopacket/layers"
+	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"io"
 	"log"
@@ -27,6 +27,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"runtime"
 )
 
 var _ = fmt.Println
@@ -268,6 +269,11 @@ func (t *Listener) readPcap() {
 		log.Fatal(err)
 	}
 
+	bpfSupported := true
+	if runtime.GOOS == "darwin" {
+ 	   bpfSupported = false
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(len(devices))
 
@@ -285,21 +291,22 @@ func (t *Listener) readPcap() {
 			t.pcapHandles = append(t.pcapHandles, handle)
 			t.mu.Unlock()
 
-			bpf := "tcp port " + strconv.Itoa(int(t.port))
-
-			// log.Println("Applying bpf programm:", bpf, " Device:", device.Name)
-			if err := handle.SetBPFFilter(bpf); err != nil {
-				log.Println("BPF filter error:", err, "Device:", device.Name)
-				wg.Done()
-				return
+			if bpfSupported {
+				bpf := "tcp port " + strconv.Itoa(int(t.port))
+				if err := handle.SetBPFFilter(bpf); err != nil {
+					log.Println("BPF filter error:", err, "Device:", device.Name)
+					wg.Done()
+					return
+				}
 			}
-			// log.Println("BPF appplied", device.Name)
-
-			source := gopacket.NewPacketSource(handle, handle.LinkType())
+			linkType := handle.LinkType()
+			source := gopacket.NewPacketSource(handle, linkType)
 			source.Lazy = true
 			source.NoCopy = true
 
 			wg.Done()
+
+			var data, srcIP []byte
 
 			for {
 				packet, err := source.NextPacket()
@@ -310,11 +317,14 @@ func (t *Listener) readPcap() {
 					continue
 				}
 
-				// Skip ethernet layer, 14 bytes
-				data := packet.Data()[14:]
-				version := uint8(data[0]) >> 4
+				if linkType == layers.LinkTypeEthernet {
+					// Skip ethernet layer, 14 bytes
+					data = packet.Data()[14:]
+				} else if linkType == layers.LinkTypeNull || linkType == layers.LinkTypeLoop {
+					data = packet.Data()[4:]
+				}
 
-				var srcIP []byte
+				version := uint8(data[0]) >> 4
 
 				if version == 4 {
 					ihl := uint8(data[0]) & 0x0F
@@ -347,6 +357,17 @@ func (t *Listener) readPcap() {
 				// We need only packets with data inside
 				// Check that the buffer is larger than the size of the TCP header
 				if len(data) > int(dataOffset*4) {
+					if !bpfSupported {
+						destPort := binary.BigEndian.Uint16(data[2:4])
+						srcPort := binary.BigEndian.Uint16(data[0:2])
+
+						// log.Println(t.port, destPort, srcPort, packet)
+
+						if destPort != t.port && srcPort != t.port {
+							continue
+						}
+					}
+
 					newBuf := make([]byte, len(data)+16)
 					copy(newBuf[:16], srcIP)
 					copy(newBuf[16:], data)
