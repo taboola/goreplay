@@ -4,14 +4,19 @@ RUN = docker run -v `pwd`:$(SOURCE_PATH) -p 0.0.0.0:8000:8000 -t -i gor
 BENCHMARK = BenchmarkRAWInput
 TEST = TestRawListenerBench
 VERSION = DEV-$(shell date +%s)
+LDFLAGS = -ldflags "-X main.VERSION=$(VERSION) -extldflags \"-static\""
+MAC_LDFLAGS = -ldflags "-X main.VERSION=$(VERSION)"
 
 release: release-x64
 
 release-x64:
-	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=amd64  -i gor go build -ldflags "-X main.VERSION=$(VERSION) -extldflags \"-static\"" && tar -czf gor_$(VERSION)_x64.tar.gz gor && rm gor
+	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=amd64  -i gor go build $(LDFLAGS) && tar -czf gor_$(VERSION)_x64.tar.gz gor && rm gor
 
 release-x86:
-	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=386 -i gor go build -ldflags "-X main.VERSION=$(VERSION)" && tar -czf gor_$(VERSION)_x86.tar.gz gor && rm gor
+	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=386 -i gor go build $(LDFLAGS) && tar -czf gor_$(VERSION)_x86.tar.gz gor && rm gor
+
+release-mac:
+	go build $(MAC_LDFLAGS) && tar -czf gor_$(VERSION)_x86.tar.gz gor
 
 build:
 	docker build -t gor .
@@ -27,13 +32,13 @@ race:
 	$(RUN) go test ./... $(ARGS) -v -race -timeout 15s
 
 test:
-	$(RUN) go test ./. -timeout 30s $(ARGS) -v
+	$(RUN) go test ./. -race -timeout 30s $(LDFLAGS) $(ARGS)  -v
 
 test_all:
-	$(RUN) go test ./... -timeout 60s $(ARGS) -v
+	$(RUN) go test ./... -timeout 60s $(LDFLAGS) $(ARGS) -v
 
 testone:
-	$(RUN) go test ./... -timeout 4s -run $(TEST) $(ARGS) -v
+	$(RUN) go test ./... -timeout 4s $(LDFLAGS) -run $(TEST) $(ARGS) -v
 
 cover:
 	$(RUN) go test $(ARGS) -race -v -timeout 15s -coverprofile=coverage.out
@@ -46,7 +51,7 @@ vet:
 	$(RUN) go vet
 
 bench:
-	$(RUN) go test -v -run NOT_EXISTING -bench $(BENCHMARK) -benchtime 5s
+	$(RUN) go test $(LDFLAGS) -v -run NOT_EXISTING -bench $(BENCHMARK) -benchtime 5s
 
 profile_test:
 	$(RUN) go test $(LDFLAGS) -run $(TEST) ./raw_socket_listener/. $(ARGS) -memprofile mem.mprof -cpuprofile cpu.out
@@ -54,7 +59,7 @@ profile_test:
 
 # Used mainly for debugging, because docker container do not have access to parent machine ports
 run:
-	$(RUN) go run $(SOURCE) --input-dummy=0 --output-http="http://localhost:9000" --input-raw 127.0.0.1:9000 --input-http 127.0.0.1:9000 --verbose --debug --middleware "./examples/middleware/echo.sh"
+	$(RUN) go run $(LDFLAGS) $(SOURCE) --input-dummy=0 --output-http="http://localhost:9000" --input-raw 127.0.0.1:9000 --input-http 127.0.0.1:9000 --verbose --debug --middleware "./examples/middleware/echo.sh"
 
 run-2:
 	$(RUN) go run $(SOURCE) --input-file ./fixtures/requests.gor --output-dummy=0

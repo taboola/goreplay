@@ -4,6 +4,7 @@ import (
 	"io"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -11,7 +12,10 @@ import (
 type InOutPlugins struct {
 	Inputs  []io.Reader
 	Outputs []io.Writer
+	All     []interface{}
 }
+
+var pluginMu sync.Mutex
 
 // Plugins holds all the plugin objects
 var Plugins *InOutPlugins = new(InOutPlugins)
@@ -67,10 +71,15 @@ func registerPlugin(constructor interface{}, options ...interface{}) {
 	if isW {
 		Plugins.Outputs = append(Plugins.Outputs, pluginWrapper.(io.Writer))
 	}
+
+	Plugins.All = append(Plugins.All, plugin)
 }
 
 // InitPlugins specify and initialize all available plugins
 func InitPlugins() {
+	pluginMu.Lock()
+	defer pluginMu.Unlock()
+
 	for _, options := range Settings.inputDummy {
 		registerPlugin(NewDummyInput, options)
 	}

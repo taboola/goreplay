@@ -41,8 +41,7 @@ func TestInputHTTPLargePayload(t *testing.T) {
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
-	// Generate 1000kb file
-	dd := exec.Command("dd", "if=/dev/urandom", "of=/tmp/large", "bs=1MB", "count=4")
+	dd := exec.Command("dd", "if=/dev/urandom", "of=/tmp/large", "bs=1", "count=4000000")
 	err := dd.Run()
 	if err != nil {
 		log.Fatal("dd error:", err)

@@ -10,9 +10,12 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
+
+var httpMu sync.Mutex
 
 var defaultPorts = map[string]string{
 	"http":  "80",
@@ -176,7 +179,8 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 		return
 	}
 
-	payload := c.respBuf[:n]
+	payload := make([]byte, n)
+	copy(payload, c.respBuf[:n])
 
 	if c.config.Debug {
 		Debug("[HTTPClient] Received:", string(payload))
