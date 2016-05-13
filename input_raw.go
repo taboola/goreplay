@@ -69,7 +69,7 @@ func (i *RAWInput) listen(address string) {
 
 	ch := i.listener.Receiver()
 
-	go func(){
+	go func() {
 		for {
 			select {
 			case <-i.quit:

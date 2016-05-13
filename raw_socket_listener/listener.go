@@ -61,7 +61,7 @@ type Listener struct {
 
 	messageExpire time.Duration
 
-	conn    net.PacketConn
+	conn        net.PacketConn
 	pcapHandles []*pcap.Handle
 
 	quit    chan bool

@@ -10,9 +10,9 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
-	"sync"
 )
 
 var httpMu sync.Mutex

@@ -5,14 +5,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/signal"
-	"syscall"
-	"io"
 	"runtime"
 	_ "runtime/debug"
 	"runtime/pprof"
+	"syscall"
 	"time"
 )
 
@@ -56,16 +56,16 @@ func main() {
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func(){
-	    <- c
+	go func() {
+		<-c
 
-	    for _, p := range Plugins.All {
+		for _, p := range Plugins.All {
 			if cp, ok := p.(io.Closer); ok {
 				cp.Close()
 			}
 		}
 
-	    os.Exit(1)
+		os.Exit(1)
 	}()
 }
 

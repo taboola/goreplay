@@ -4,19 +4,19 @@ import (
 	"io"
 	"reflect"
 	"strings"
-	"time"
 	"sync"
+	"time"
 )
 
 // InOutPlugins struct for holding references to plugins
 type InOutPlugins struct {
 	Inputs  []io.Reader
 	Outputs []io.Writer
-	All []interface{}
+	All     []interface{}
 }
 
-
 var pluginMu sync.Mutex
+
 // Plugins holds all the plugin objects
 var Plugins *InOutPlugins = new(InOutPlugins)
 
