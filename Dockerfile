@@ -10,7 +10,8 @@ RUN apt-get update -y
 RUN echo oracle-java7-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections
 RUN apt-get install oracle-java8-installer -y
 
-RUN apt-get install libpcap-dev -y
+RUN apt-get install flex bison -y
+RUN wget http://www.tcpdump.org/release/libpcap-1.7.4.tar.gz && tar xzf libpcap-1.7.4.tar.gz && cd libpcap-1.7.4 && ./configure && make install
 RUN go get github.com/google/gopacket
 RUN go get -u github.com/golang/lint/golint
 

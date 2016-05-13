@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
+	"io"
 	"runtime"
 	_ "runtime/debug"
 	"runtime/pprof"
@@ -50,6 +53,20 @@ func main() {
 	}
 
 	Start(nil)
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func(){
+	    <- c
+
+	    for _, p := range Plugins.All {
+			if cp, ok := p.(io.Closer); ok {
+				cp.Close()
+			}
+		}
+
+	    os.Exit(1)
+	}()
 }
 
 func profileCPU(cpuprofile string) {

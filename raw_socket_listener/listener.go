@@ -62,6 +62,8 @@ type Listener struct {
 	messageExpire time.Duration
 
 	conn    net.PacketConn
+	pcapHandles []*pcap.Handle
+
 	quit    chan bool
 	readyCh chan bool
 }
@@ -279,7 +281,11 @@ func (t *Listener) readPcap() {
 			}
 			defer handle.Close()
 
-			bpf := "port " + strconv.Itoa(int(t.port))
+			t.mu.Lock()
+			t.pcapHandles = append(t.pcapHandles, handle)
+			t.mu.Unlock()
+
+			bpf := "tcp port " + strconv.Itoa(int(t.port))
 
 			// log.Println("Applying bpf programm:", bpf, " Device:", device.Name)
 			if err := handle.SetBPFFilter(bpf); err != nil {
@@ -287,6 +293,7 @@ func (t *Listener) readPcap() {
 				wg.Done()
 				return
 			}
+			// log.Println("BPF appplied", device.Name)
 
 			source := gopacket.NewPacketSource(handle, handle.LinkType())
 			source.Lazy = true
@@ -574,5 +581,10 @@ func (t *Listener) Close() {
 	if t.conn != nil {
 		t.conn.Close()
 	}
+
+	for _, h := range t.pcapHandles {
+		h.Close()
+	}
+
 	return
 }

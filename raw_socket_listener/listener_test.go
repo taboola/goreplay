@@ -20,8 +20,8 @@ func TestRawListenerInput(t *testing.T) {
 	respAck := reqPacket.Seq + uint32(len(reqPacket.Data))
 	respPacket := buildPacket(false, respAck, reqPacket.Seq+1, []byte("HTTP/1.1 200 OK\r\n\r\n"))
 
-	listener.processTCPPacket(reqPacket)
-	listener.processTCPPacket(respPacket)
+	listener.packetsChan <- reqPacket.Dump()
+	listener.packetsChan <- respPacket.Dump()
 
 	select {
 	case req = <-listener.messagesChan:
@@ -56,8 +56,8 @@ func TestRawListenerResponse(t *testing.T) {
 	respPacket := buildPacket(false, 1+uint32(len(reqPacket.Data)), 2, []byte("HTTP/1.1 200 OK\r\n\r\n"))
 
 	// If response packet comes before request
-	listener.processTCPPacket(respPacket)
-	listener.processTCPPacket(reqPacket)
+	listener.packetsChan <- respPacket.Dump()
+	listener.packetsChan <- reqPacket.Dump()
 
 	select {
 	case req = <-listener.messagesChan:
@@ -102,12 +102,12 @@ func TestRawListener100Continue(t *testing.T) {
 	// panic(int(uint32(len(reqPacket1.Data)) + uint32(len(reqPacket2.Data)) + uint32(len(reqPacket3.Data))))
 	respPacket2 := buildPacket(false, reqPacket3.Seq+1 /* len of data */, 2, []byte("HTTP/1.1 200 OK\r\n"))
 
-	listener.processTCPPacket(reqPacket1)
-	listener.processTCPPacket(reqPacket2)
-	listener.processTCPPacket(reqPacket3)
+	listener.packetsChan <- reqPacket1.Dump()
+	listener.packetsChan <- reqPacket2.Dump()
+	listener.packetsChan <- reqPacket3.Dump()
 
-	listener.processTCPPacket(respPacket1)
-	listener.processTCPPacket(respPacket2)
+	listener.packetsChan <- respPacket1.Dump()
+	listener.packetsChan <- respPacket2.Dump()
 
 	select {
 	case req = <-listener.messagesChan:
@@ -159,12 +159,12 @@ func TestRawListener100ContinueWrongOrder(t *testing.T) {
 	// panic(int(uint32(len(reqPacket1.Data)) + uint32(len(reqPacket2.Data)) + uint32(len(reqPacket3.Data))))
 	respPacket2 := buildPacket(false, reqPacket3.Seq+1 /* len of data */, 2, []byte("HTTP/1.1 200 OK\r\n"))
 
-	listener.processTCPPacket(respPacket1)
-	listener.processTCPPacket(respPacket2)
+	listener.packetsChan <- respPacket1.Dump()
+	listener.packetsChan <- respPacket2.Dump()
 
-	listener.processTCPPacket(reqPacket1)
-	listener.processTCPPacket(reqPacket2)
-	listener.processTCPPacket(reqPacket3)
+	listener.packetsChan <- reqPacket1.Dump()
+	listener.packetsChan <- reqPacket2.Dump()
+	listener.packetsChan <- reqPacket3.Dump()
 
 	select {
 	case req = <-listener.messagesChan:
@@ -386,7 +386,7 @@ func TestRawListenerBench(t *testing.T) {
 
 	// Should re-construct message from all possible combinations
 	for i := 0; i < 1000; i++ {
-		go func() {
+		go func(i int) {
 			for j := 0; j < 100; j++ {
 				var packets []*TCPPacket
 
@@ -412,7 +412,7 @@ func TestRawListenerBench(t *testing.T) {
 
 				time.Sleep(5 * time.Millisecond)
 			}
-		}()
+		}(i)
 	}
 
 	ch := l.Receiver()

@@ -32,11 +32,7 @@ func NewRAWInput(address string, engine int, expire time.Duration) (i *RAWInput)
 	i.engine = engine
 	i.quit = make(chan bool)
 
-	go i.listen(address)
-
-	for i.listener == nil {
-		time.Sleep(time.Millisecond)
-	}
+	i.listen(address)
 	i.listener.IsReady()
 
 	return
@@ -73,18 +69,20 @@ func (i *RAWInput) listen(address string) {
 
 	ch := i.listener.Receiver()
 
-	for {
-		select {
-		case <-i.quit:
-			return
-		default:
+	go func(){
+		for {
+			select {
+			case <-i.quit:
+				return
+			default:
+			}
+
+			// Receiving TCPMessage object
+			m := <-ch
+
+			i.data <- m
 		}
-
-		// Receiving TCPMessage object
-		m := <-ch
-
-		i.data <- m
-	}
+	}()
 }
 
 func (i *RAWInput) String() string {
