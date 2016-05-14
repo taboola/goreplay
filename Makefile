@@ -16,7 +16,7 @@ release-x86:
 	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=386 -i gor go build $(LDFLAGS) && tar -czf gor_$(VERSION)_x86.tar.gz gor && rm gor
 
 release-mac:
-	go build $(MAC_LDFLAGS) && tar -czf gor_$(VERSION)_x86.tar.gz gor && rm gor
+	go build $(MAC_LDFLAGS) && tar -czf gor_$(VERSION)_mac.tar.gz gor && rm gor
 
 build:
 	docker build -t gor .
