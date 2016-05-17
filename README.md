@@ -9,8 +9,17 @@ Now you can test your code on real user sessions in an automated and repeatable 
 
 Here is basic workflow: The listener server catches http traffic and sends it to the replay server or saves to file. The replay server forwards traffic to a given address.
 
-
 ![Diagram](http://i.imgur.com/9mqj2SK.png)
+
+## Installation
+Download latest binary from https://github.com/buger/gor/releases or (compile by yourself)[Compilation].
+
+## Getting started
+
+The most basic setup will be `sudo ./gor --input-raw :8000 --output-dummy=""` which acts like tcpdump.
+If you already have test environment you can start replaying: `sudo ./gor --input-raw :8000 --output-http http://staging.env`.
+
+See the our wiki and especially [[Getting started]] wiki page for more info. 
 
 
 ## Want to Upgrade?
@@ -19,11 +28,21 @@ I also sell Gor Pro, extensions to Gor which provide more features, a commercial
 
 Subscribe to the [quarterly newsletter](https://tinyletter.com/gor) to stay informed about the latest features and changes to Gor and its bigger siblings.
 
-## Questions and support 
+## Problems?
 
-All bug-reports and suggestions should go though Github Issues or our [Google Group](https://groups.google.com/forum/#!forum/gor-users). Or you can just send email to gor-users@googlegroups.com
+**Please do not directly email any Sidekiq committers with questions or problems.** A community is best served when discussions are held in public.
 
-If you have some private questions you can send direct mail to leonsbox@gmail.com
+If you have a problem, please review the [[FAQ]] and [[Troubleshooting wiki]] pages. Searching the (issues)[http://github.com/buger/gor] for your problem is also a good idea.
+
+All bug-reports and suggestions should go though Github Issues or our [Google Group](https://groups.google.com/forum/#!forum/gor-users) (you can just send email to gor-users@googlegroups.com).
+
+Useful resources:
+
+* Product documentation is in the (wiki)[http://github.com/buger/gor/wiki].
+* Release announcements are made to the [@buger](http://twitter.com/buger) Twitter account and our [newsleter](https://tinyletter.com/gor)
+
+
+If you need commercial support read more about Pro and Enterprise versions at our site [https://gortool.com/](https://gortool.com/)
 
 
 ## Contributing
@@ -47,4 +66,4 @@ If you have some private questions you can send direct mail to leonsbox@gmail.co
 * [Granify](http://granify.com) - AI backed SaaS solution that enables online retailers to maximise their sales
 * And many more!
 
-If you are using Gor we are happy add you to the list and share your story, just write to: leonsbox@gmail.com
+If you are using Gor we are happy add you to the list and share your story, just write to: hello@gortool.com
