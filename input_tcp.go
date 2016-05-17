@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -18,7 +20,7 @@ type TCPInput struct {
 // NewTCPInput constructor for TCPInput, accepts address with port
 func NewTCPInput(address string) (i *TCPInput) {
 	i = new(TCPInput)
-	i.data = make(chan []byte)
+	i.data = make(chan []byte, 1000)
 	i.address = address
 
 	i.listen(address)
@@ -58,16 +60,32 @@ func (i *TCPInput) listen(address string) {
 func (i *TCPInput) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
+	payloadSeparatorAsBytes := []byte(payloadSeparator)
 	reader := bufio.NewReader(conn)
-	scanner := bufio.NewScanner(reader)
-	scanner.Split(payloadScanner)
+	var buffer bytes.Buffer
 
-	for scanner.Scan() {
-		i.data <- scanner.Bytes()
-	}
+	for {
+		line, err := reader.ReadBytes('\n')
 
-	if err := scanner.Err(); err != nil {
-		fmt.Fprintln(os.Stderr, "Unexpected error in input tcp connection:", err)
+		if err != nil {
+			if err != io.EOF {
+				fmt.Fprintln(os.Stderr, "Unexpected error in input tcp connection:", err)
+			}
+			break
+
+		}
+
+		if bytes.Equal(payloadSeparatorAsBytes[1:], line) {
+			asBytes := buffer.Bytes()
+			buffer.Reset()
+
+			newBuf := make([]byte, len(asBytes)-1)
+			copy(newBuf, asBytes)
+
+			i.data <- newBuf
+		} else {
+			buffer.Write(line)
+		}
 	}
 }
 

@@ -71,7 +71,7 @@ func (i *FileInput) emit() {
 		}
 
 		if bytes.Equal(payloadSeparatorAsBytes[1:], line) {
-			asBytes := buffer.Bytes()[:buffer.Len()-1]
+			asBytes := buffer.Bytes()
 			buffer.Reset()
 
 			meta := payloadMeta(asBytes)
@@ -93,7 +93,7 @@ func (i *FileInput) emit() {
 			}
 
 			// Bytes() returns only pointer, so to remove data-race copy the data to an array
-			newBuf := make([]byte, len(asBytes))
+			newBuf := make([]byte, len(asBytes)-1)
 			copy(newBuf, asBytes)
 
 			i.data <- newBuf
