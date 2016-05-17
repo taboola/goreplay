@@ -32,7 +32,7 @@ Subscribe to the [quarterly newsletter](https://tinyletter.com/gor) to stay info
 
 **Please do not directly email any Sidekiq committers with questions or problems.** A community is best served when discussions are held in public.
 
-If you have a problem, please review the [[FAQ]] and [[Troubleshooting wiki]] pages. Searching the (issues)[http://github.com/buger/gor] for your problem is also a good idea.
+If you have a problem, please review the [FAQ](https://github.com/buger/gor/wiki/FAQ) and [Troubleshooting](https://github.com/buger/gor/wiki/Troubleshooting) wiki pages. Searching the (issues)[http://github.com/buger/gor] for your problem is also a good idea.
 
 All bug-reports and suggestions should go though Github Issues or our [Google Group](https://groups.google.com/forum/#!forum/gor-users) (you can just send email to gor-users@googlegroups.com).
 
