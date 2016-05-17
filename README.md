@@ -38,7 +38,7 @@ All bug-reports and suggestions should go though Github Issues or our [Google Gr
 
 Useful resources:
 
-* Product documentation is in the (wiki)[http://github.com/buger/gor/wiki].
+* Product documentation is in the [wiki](http://github.com/buger/gor/wiki).
 * Release announcements are made to the [@buger](http://twitter.com/buger) Twitter account and our [newsleter](https://tinyletter.com/gor)
 
 
@@ -67,3 +67,7 @@ If you need commercial support read more about Pro and Enterprise versions at ou
 * And many more!
 
 If you are using Gor we are happy add you to the list and share your story, just write to: hello@gortool.com
+
+## Author
+
+Leonid Bugaev, [@buger](https://twitter.com/buger), https://leonsbox.com
