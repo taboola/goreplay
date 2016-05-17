@@ -29,12 +29,10 @@ I also sell Gor Pro, extensions to Gor which provide more features, a commercial
 Subscribe to the [quarterly newsletter](https://tinyletter.com/gor) to stay informed about the latest features and changes to Gor and its bigger siblings.
 
 ## Problems?
-
-**Please do not directly email any Sidekiq committers with questions or problems.** A community is best served when discussions are held in public.
-
 If you have a problem, please review the [FAQ](https://github.com/buger/gor/wiki/FAQ) and [Troubleshooting](https://github.com/buger/gor/wiki/Troubleshooting) wiki pages. Searching the (issues)[http://github.com/buger/gor] for your problem is also a good idea.
 
 All bug-reports and suggestions should go though Github Issues or our [Google Group](https://groups.google.com/forum/#!forum/gor-users) (you can just send email to gor-users@googlegroups.com).
+If you have a private question feel free to send email to support@gortool.com.
 
 Useful resources:
 
