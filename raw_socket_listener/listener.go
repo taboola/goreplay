@@ -22,12 +22,12 @@ import (
 	"io"
 	"log"
 	"net"
+	"runtime"
 	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"runtime"
 )
 
 var _ = fmt.Println
@@ -221,6 +221,10 @@ type DeviceNotFoundError struct {
 func (e *DeviceNotFoundError) Error() string {
 	devices, _ := pcap.FindAllDevs()
 
+	if len(devices) == 0 {
+		return "Can't get list of network interfaces, ensure that you running Gor as root user or sudo.\nTo run as non-root users see this docs https://github.com/buger/gor/wiki/Running-as-non-root-user"
+	}
+
 	var msg string
 	msg += "Can't find interfaces with addr: " + e.addr + ". Provide available IP for intercepting traffic: \n"
 	for _, device := range devices {
@@ -271,7 +275,7 @@ func (t *Listener) readPcap() {
 
 	bpfSupported := true
 	if runtime.GOOS == "darwin" {
- 	   bpfSupported = false
+		bpfSupported = false
 	}
 
 	var wg sync.WaitGroup
