@@ -23,7 +23,7 @@ const (
 	maxResponseSize = 1073741824
 )
 
-var chunkedSuffix []byte("0\r\n\r\n")
+var chunkedSuffix = []byte("0\r\n\r\n")
 
 var defaultPorts = map[string]string{
 	"http":  "80",
