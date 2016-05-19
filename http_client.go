@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"github.com/buger/gor/proto"
 	"io"
@@ -13,15 +14,15 @@ import (
 	"sync"
 	"syscall"
 	"time"
-	"bytes"
 )
 
 var httpMu sync.Mutex
 
 const (
-	readChunkSize   = 64*1024
+	readChunkSize   = 64 * 1024
 	maxResponseSize = 1073741824
 )
+
 var chunkedSuffix []byte = []byte("0\r\n\r\n")
 
 var defaultPorts = map[string]string{
@@ -193,7 +194,7 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 			}
 
 			// First chunk
-			if (chunked || contentLength != -1) {
+			if chunked || contentLength != -1 {
 				currentContentLength += n
 			} else {
 				if bytes.Equal(proto.Header(c.respBuf, []byte("Transfer-Encoding")), []byte("chunked")) {
@@ -208,19 +209,19 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 				currentContentLength += len(proto.Body(c.respBuf))
 			}
 
-	        if chunked {
-	        	// Check if chunked message finished
-	        	if bytes.HasSuffix(c.respBuf[:readBytes], chunkedSuffix) {
-	        		break
-	        	}
-	        } else if contentLength != -1 {
-	        	if currentContentLength > contentLength {
-	        		c.Disconnect()
-	        		break
-	        	} else if currentContentLength == contentLength {
-	        		break
-	        	}
-	        }
+			if chunked {
+				// Check if chunked message finished
+				if bytes.HasSuffix(c.respBuf[:readBytes], chunkedSuffix) {
+					break
+				}
+			} else if contentLength != -1 {
+				if currentContentLength > contentLength {
+					c.Disconnect()
+					break
+				} else if currentContentLength == contentLength {
+					break
+				}
+			}
 		} else {
 			if currentChunk == nil {
 				currentChunk = make([]byte, readChunkSize)
@@ -229,42 +230,42 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 			n, err = c.conn.Read(currentChunk)
 
 			if err == io.EOF {
-        		break
-        	} else if err != nil {
-        		Debug("[HTTPClient] Read the whole body error:", err, c.baseURL)
-        		break
-        	}
+				break
+			} else if err != nil {
+				Debug("[HTTPClient] Read the whole body error:", err, c.baseURL)
+				break
+			}
 
-	        readBytes += int(n)
-	        chunks++
-	        currentContentLength += n
+			readBytes += int(n)
+			chunks++
+			currentContentLength += n
 
-	        if chunked {
-	        	// Check if chunked message finished
-	        	if bytes.HasSuffix(currentChunk[:n], chunkedSuffix) {
-	        		break
-	        	}
-	        } else if contentLength != -1 {
-	        	if currentContentLength > contentLength {
-	        		c.Disconnect()
-	        		break
-	        	} else if currentContentLength == contentLength {
-	        		break
-	        	}
-	        } else {
-	        	c.Disconnect()
-	        	break
-	        }
-	    }
+			if chunked {
+				// Check if chunked message finished
+				if bytes.HasSuffix(currentChunk[:n], chunkedSuffix) {
+					break
+				}
+			} else if contentLength != -1 {
+				if currentContentLength > contentLength {
+					c.Disconnect()
+					break
+				} else if currentContentLength == contentLength {
+					break
+				}
+			} else {
+				c.Disconnect()
+				break
+			}
+		}
 
-	    if readBytes >= maxResponseSize {
-	        Debug("[HTTPClient] Body is more than the max size", maxResponseSize,
-	            c.baseURL)
-	        break
-	    }
+		if readBytes >= maxResponseSize {
+			Debug("[HTTPClient] Body is more than the max size", maxResponseSize,
+				c.baseURL)
+			break
+		}
 
-	    // For following chunks expect less timeout
-	    timeout = time.Now().Add(c.config.Timeout / 5)
+		// For following chunks expect less timeout
+		timeout = time.Now().Add(c.config.Timeout / 5)
 	}
 
 	if err != nil {

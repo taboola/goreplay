@@ -2,9 +2,9 @@ package rawSocket
 
 import (
 	"encoding/binary"
+	"log"
 	"strconv"
 	"strings"
-	"log"
 )
 
 var _ = log.Println

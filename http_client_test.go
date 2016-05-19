@@ -90,22 +90,22 @@ func TestHTTPClientSend(t *testing.T) {
 // https://github.com/buger/gor/issues/184
 func TestHTTPClientResponseBuffer(t *testing.T) {
 	testCases := []struct {
-		name string
-        responseSize int
-        buffserSize int
-        expectedSize int
-        timeout time.Duration
-    }{
-    	{ "Chunked, buffer overflow", 10 * 1024, 1024, 1024, 50*time.Millisecond },
+		name         string
+		responseSize int
+		buffserSize  int
+		expectedSize int
+		timeout      time.Duration
+	}{
+		{"Chunked, buffer overflow", 10 * 1024, 1024, 1024, 50 * time.Millisecond},
 
-    	{ "Chunked, fits buffer", 10 * 1024, 64 * 1024, 10*1024 + 145 /* headers length + chunked meta */, 50*time.Millisecond },
+		{"Chunked, fits buffer", 10 * 1024, 64 * 1024, 10*1024 + 145 /* headers length + chunked meta */, 50 * time.Millisecond},
 
-    	{ "Content-Length, buffer overflow", 1024, 1000, 1000, 50*time.Millisecond },
+		{"Content-Length, buffer overflow", 1024, 1000, 1000, 50 * time.Millisecond},
 
-    	{ "Content-Length, fits buffer", 1024, 64 * 1024, 1024 + 118, 50*time.Millisecond },
-    }
+		{"Content-Length, fits buffer", 1024, 64 * 1024, 1024 + 118, 50 * time.Millisecond},
+	}
 
-    for _, tc := range testCases {
+	for _, tc := range testCases {
 		wg := new(sync.WaitGroup)
 
 		payload := []byte("GET / HTTP/1.1\r\n\r\n")
@@ -402,26 +402,6 @@ func TestHTTPClientErrors(t *testing.T) {
 	defer ln1.Close()
 
 	client = NewHTTPClient("http://"+ln1.Addr().String(), &HTTPClientConfig{Debug: true, Timeout: 10 * time.Millisecond})
-
-	if resp, err := client.Send(req); err != nil {
-		if s := proto.Status(resp); !bytes.Equal(s, []byte("524")) {
-			t.Error("Should return status 524 for connection reset by peer, instead:", string(s))
-		}
-	} else {
-		t.Error("Should throw error")
-	}
-
-	ln2, _ := net.Listen("tcp", "127.0.0.1:0")
-	go func() {
-		buf := make([]byte, 64*1024)
-		conn, _ := ln2.Accept()
-
-		conn.Read(buf)
-		defer conn.Close()
-	}()
-	defer ln2.Close()
-
-	client = NewHTTPClient("http://"+ln2.Addr().String(), &HTTPClientConfig{Debug: true, Timeout: 10 * time.Millisecond})
 
 	if resp, err := client.Send(req); err != nil {
 		if s := proto.Status(resp); !bytes.Equal(s, []byte("524")) {

@@ -22,12 +22,12 @@ import (
 	"io"
 	"log"
 	"net"
+	"runtime"
 	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"runtime"
 )
 
 var _ = fmt.Println
@@ -275,7 +275,7 @@ func (t *Listener) readPcap() {
 
 	bpfSupported := true
 	if runtime.GOOS == "darwin" {
- 	   bpfSupported = false
+		bpfSupported = false
 	}
 
 	var wg sync.WaitGroup
