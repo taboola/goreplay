@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"crypto/tls"
-	"github.com/buger/gor/proto"
 	"io"
 	"log"
 	"net"
@@ -14,6 +13,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/buger/gor/proto"
 )
 
 var httpMu sync.Mutex
