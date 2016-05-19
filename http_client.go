@@ -122,6 +122,9 @@ func (c *HTTPClient) isAlive() bool {
 	if err == nil {
 		return true
 	} else if err == io.EOF {
+		if c.config.Debug {
+			Debug("[HTTPClient] connection closed, reconnecting")
+		}
 		return false
 	} else if err == syscall.EPIPE {
 		Debug("Detected broken pipe.", err)
@@ -198,16 +201,19 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 			if chunked || contentLength != -1 {
 				currentContentLength += n
 			} else {
-				if bytes.Equal(proto.Header(c.respBuf, []byte("Transfer-Encoding")), []byte("chunked")) {
-					chunked = true
-				} else {
-					l := proto.Header(c.respBuf, []byte("Content-Length"))
-					if len(l) > 0 {
-						contentLength, _ = strconv.Atoi(string(l))
+				// If headers are finished
+				if bytes.Contains(c.respBuf[:readBytes], proto.EmptyLine) {
+					if bytes.Equal(proto.Header(c.respBuf, []byte("Transfer-Encoding")), []byte("chunked")) {
+						chunked = true
+					} else {
+						l := proto.Header(c.respBuf, []byte("Content-Length"))
+						if len(l) > 0 {
+							contentLength, _ = strconv.Atoi(string(l))
+						}
 					}
-				}
 
-				currentContentLength += len(proto.Body(c.respBuf))
+					currentContentLength += len(proto.Body(c.respBuf[:readBytes]))
+				}
 			}
 
 			if chunked {
@@ -217,6 +223,7 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 				}
 			} else if contentLength != -1 {
 				if currentContentLength > contentLength {
+					Debug("[HTTPClient] disconnected, wrong length", currentContentLength, contentLength)
 					c.Disconnect()
 					break
 				} else if currentContentLength == contentLength {
@@ -248,12 +255,14 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 				}
 			} else if contentLength != -1 {
 				if currentContentLength > contentLength {
+					Debug("[HTTPClient] disconnected, wrong length", currentContentLength, contentLength)
 					c.Disconnect()
 					break
 				} else if currentContentLength == contentLength {
 					break
 				}
 			} else {
+				Debug("[HTTPClient] disconnected, can't find Content-Length or Chunked")
 				c.Disconnect()
 				break
 			}
