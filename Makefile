@@ -62,7 +62,7 @@ run:
 	$(RUN) go run $(LDFLAGS) $(SOURCE) --input-dummy=0 --output-http="http://localhost:9000" --input-raw 127.0.0.1:9000 --input-http 127.0.0.1:9000 --verbose --debug --middleware "./examples/middleware/echo.sh"
 
 run-2:
-	$(RUN) go run $(SOURCE) --input-file ./fixtures/requests.gor --output-dummy=0
+	sudo -E go run $(SOURCE) --input-raw :8000 --output-http "http://localhost:8001" --verbose --output-http-workers 1
 
 record:
 	$(RUN) go run $(SOURCE) --input-dummy=0 --output-file=requests.gor --verbose --debug

@@ -14,7 +14,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-	_ "time"
 )
 
 func TestHTTPClientURLPort(t *testing.T) {
@@ -90,33 +89,67 @@ func TestHTTPClientSend(t *testing.T) {
 
 // https://github.com/buger/gor/issues/184
 func TestHTTPClientResponseBuffer(t *testing.T) {
-	wg := new(sync.WaitGroup)
+	testCases := []struct {
+		name string
+        responseSize int
+        buffserSize int
+        expectedSize int
+        timeout time.Duration
+    }{
+    	{ "Chunked, buffer overflow", 10 * 1024, 1024, 1024, 50*time.Millisecond },
 
-	payload := []byte("GET / HTTP/1.1\r\n\r\n")
+    	{ "Chunked, fits buffer", 10 * 1024, 64 * 1024, 10*1024 + 145 /* headers length + chunked meta */, 50*time.Millisecond },
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    	{ "Content-Length, buffer overflow", 1024, 1000, 1000, 50*time.Millisecond },
 
-		size := 10 * 1024 // 10kb
-		rb := make([]byte, size)
-		rand.Read(rb)
+    	{ "Content-Length, fits buffer", 1024, 64 * 1024, 1024 + 118, 50*time.Millisecond },
+    }
 
-		w.Write(rb)
+    for _, tc := range testCases {
+		wg := new(sync.WaitGroup)
 
-		wg.Done()
-	}))
-	defer server.Close()
+		payload := []byte("GET / HTTP/1.1\r\n\r\n")
 
-	client := NewHTTPClient(server.URL, &HTTPClientConfig{Debug: false, ResponseBufferSize: 1024})
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-	wg.Add(2)
-	client.Send(payload)
-	resp, _ := client.Send(payload)
+			size := tc.responseSize // 1kb
+			rb := make([]byte, size)
+			rand.Read(rb)
 
-	if !bytes.Equal(resp[0:8], []byte("HTTP/1.1")) {
-		t.Error("Response buffer contains data from previous request", string(resp[0:5]))
+			w.Write(rb[:size/2])
+			w.Write(rb[size/2:])
+
+			wg.Done()
+		}))
+
+		client := NewHTTPClient(server.URL, &HTTPClientConfig{Debug: true, ResponseBufferSize: tc.buffserSize, Timeout: 100 * time.Millisecond})
+
+		wg.Add(2)
+
+		start := time.Now()
+		client.Send(payload)
+		resp, err := client.Send(payload)
+		stop := time.Now()
+
+		if err != nil {
+			t.Error("Request error", err)
+		}
+
+		if stop.Sub(start) > tc.timeout {
+			t.Error("Request took too long", stop.Sub(start), tc.timeout)
+		}
+
+		if len(resp) != tc.expectedSize {
+			t.Error(tc.name, " - Wrong response size:", tc.expectedSize, len(resp))
+		} else {
+			if !bytes.Equal(resp[0:8], []byte("HTTP/1.1")) {
+				t.Error(tc.name, " - Response buffer contains data from previous request", string(resp), len(resp))
+			}
+		}
+
+		wg.Wait()
+		server.Close()
 	}
-
-	wg.Wait()
 }
 
 func TestHTTPClientHTTPSSend(t *testing.T) {
