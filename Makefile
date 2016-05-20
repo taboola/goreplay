@@ -59,7 +59,7 @@ profile_test:
 
 # Used mainly for debugging, because docker container do not have access to parent machine ports
 run:
-	$(RUN) go run $(LDFLAGS) $(SOURCE) --input-dummy=0 --output-http="http://localhost:9000" --input-raw 127.0.0.1:9000 --input-http 127.0.0.1:9000 --verbose --debug --middleware "./examples/middleware/echo.sh"
+	$(RUN) go run $(LDFLAGS) $(SOURCE) --input-dummy=0 --output-http="http://localhost:9000" --input-raw-track-response --input-raw 127.0.0.1:9000 --input-http 127.0.0.1:9000 --verbose --debug --middleware "./examples/middleware/echo.sh"
 
 run-2:
 	sudo -E go run $(SOURCE) --input-raw :8000 --output-http "http://localhost:8001" --verbose --output-http-workers 1

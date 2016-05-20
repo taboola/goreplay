@@ -206,10 +206,10 @@ func (t *TCPMessage) UpdateResponseAck() uint32 {
 		t.ResponseAck = lastPacket.Seq + uint32(len(lastPacket.Data))
 
 		// We swappwed src and dst port
-		copy(t.ResponseID[:4], lastPacket.Addr)
-		copy(t.ResponseID[4:], lastPacket.Raw[2:4]) // Src port
-		copy(t.ResponseID[6:], lastPacket.Raw[0:2]) // Dest port
-		binary.BigEndian.PutUint32(t.ResponseID[8:12], t.ResponseAck)
+		copy(t.ResponseID[:16], lastPacket.Addr)
+		copy(t.ResponseID[16:], lastPacket.Raw[2:4]) // Src port
+		copy(t.ResponseID[18:], lastPacket.Raw[0:2]) // Dest port
+		binary.BigEndian.PutUint32(t.ResponseID[20:24], t.ResponseAck)
 	}
 
 	return t.ResponseAck

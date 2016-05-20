@@ -9,12 +9,13 @@ import (
 
 // RAWInput used for intercepting traffic for given address
 type RAWInput struct {
-	data     chan *raw.TCPMessage
-	address  string
-	expire   time.Duration
-	quit     chan bool
-	engine   int
-	listener *raw.Listener
+	data          chan *raw.TCPMessage
+	address       string
+	expire        time.Duration
+	quit          chan bool
+	engine        int
+	trackResponse bool
+	listener      *raw.Listener
 }
 
 // Available engines for intercepting traffic
@@ -24,13 +25,14 @@ const (
 )
 
 // NewRAWInput constructor for RAWInput. Accepts address with port as argument.
-func NewRAWInput(address string, engine int, expire time.Duration) (i *RAWInput) {
+func NewRAWInput(address string, engine int, trackResponse bool, expire time.Duration) (i *RAWInput) {
 	i = new(RAWInput)
 	i.data = make(chan *raw.TCPMessage)
 	i.address = address
 	i.expire = expire
 	i.engine = engine
 	i.quit = make(chan bool)
+	i.trackResponse = trackResponse
 
 	i.listen(address)
 	i.listener.IsReady()
@@ -65,7 +67,7 @@ func (i *RAWInput) listen(address string) {
 		log.Fatal("input-raw: error while parsing address", err)
 	}
 
-	i.listener = raw.NewListener(host, port, i.engine, i.expire)
+	i.listener = raw.NewListener(host, port, i.engine, i.trackResponse, i.expire)
 
 	ch := i.listener.Receiver()
 

@@ -41,8 +41,9 @@ type AppSettings struct {
 	inputFile  MultiOption
 	outputFile MultiOption
 
-	inputRAW       MultiOption
-	inputRAWEngine string
+	inputRAW              MultiOption
+	inputRAWEngine        string
+	inputRAWTrackResponse bool
 
 	middleware string
 
@@ -82,6 +83,8 @@ func init() {
 	flag.Var(&Settings.outputFile, "output-file", "Write incoming requests to file: \n\tgor --input-raw :80 --output-file ./requests.gor")
 
 	flag.Var(&Settings.inputRAW, "input-raw", "Capture traffic from given port (use RAW sockets and require *sudo* access):\n\t# Capture traffic from 8080 port\n\tgor --input-raw :8080 --output-http staging.com")
+
+	flag.BoolVar(&Settings.inputRAWTrackResponse, "input-raw-track-response", false, "If turned on Gor will track responses in addition to requests, and they will be available to middleware and file output.")
 
 	flag.StringVar(&Settings.inputRAWEngine, "input-raw-engine", "libpcap", "Intercept traffic using `libpcap` (default), and `raw_socket`")
 

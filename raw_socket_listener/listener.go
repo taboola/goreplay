@@ -60,6 +60,7 @@ type Listener struct {
 	addr string // IP to listen
 	port uint16 // Port to listen
 
+	trackResponse bool
 	messageExpire time.Duration
 
 	conn        net.PacketConn
@@ -82,7 +83,7 @@ const (
 )
 
 // NewListener creates and initializes new Listener object
-func NewListener(addr string, port string, engine int, expire time.Duration) (l *Listener) {
+func NewListener(addr string, port string, engine int, trackResponse bool, expire time.Duration) (l *Listener) {
 	l = &Listener{}
 
 	l.packetsChan = make(chan []byte, 10000)
@@ -95,6 +96,7 @@ func NewListener(addr string, port string, engine int, expire time.Duration) (l 
 	l.seqWithData = make(map[uint32]uint32)
 	l.respAliases = make(map[uint32]*TCPMessage)
 	l.respWithoutReq = make(map[uint32]tcpID)
+	l.trackResponse = trackResponse
 
 	l.addr = addr
 	_port, _ := strconv.Atoi(port)
@@ -175,22 +177,24 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 	if message.IsIncoming {
 		// If there were response before request
 		// log.Println("Looking for Response: ", t.respWithoutReq, message.ResponseAck)
-		if respID, ok := t.respWithoutReq[message.ResponseAck]; ok {
-			if resp, rok := t.messages[respID]; rok {
-				// if resp.AssocMessage == nil {
-				// log.Println("FOUND RESPONSE")
-				resp.AssocMessage = message
-				message.AssocMessage = resp
+		if t.trackResponse {
+			if respID, ok := t.respWithoutReq[message.ResponseAck]; ok {
+				if resp, rok := t.messages[respID]; rok {
+					// if resp.AssocMessage == nil {
+					// log.Println("FOUND RESPONSE")
+					resp.AssocMessage = message
+					message.AssocMessage = resp
 
-				if resp.IsFinished() {
-					defer t.dispatchMessage(resp)
+					if resp.IsFinished() {
+						defer t.dispatchMessage(resp)
+					}
+					// }
 				}
-				// }
 			}
-		}
 
-		if resp, ok := t.messages[message.ResponseID]; ok {
-			resp.AssocMessage = message
+			if resp, ok := t.messages[message.ResponseID]; ok {
+				resp.AssocMessage = message
+			}
 		}
 	} else {
 		if message.AssocMessage == nil {
@@ -296,7 +300,13 @@ func (t *Listener) readPcap() {
 			t.mu.Unlock()
 
 			if bpfSupported {
-				bpf := "tcp port " + strconv.Itoa(int(t.port))
+				var bpf string
+
+				if t.trackResponse {
+					bpf = "tcp port " + strconv.Itoa(int(t.port))
+				} else {
+					bpf = "tcp dst port " + strconv.Itoa(int(t.port))
+				}
 				if err := handle.SetBPFFilter(bpf); err != nil {
 					log.Println("BPF filter error:", err, "Device:", device.Name)
 					wg.Done()
@@ -367,7 +377,7 @@ func (t *Listener) readPcap() {
 
 						// log.Println(t.port, destPort, srcPort, packet)
 
-						if destPort != t.port && srcPort != t.port {
+						if !(destPort == t.port || (t.trackResponse && srcPort == t.port)) {
 							continue
 						}
 					}
@@ -431,7 +441,7 @@ func (t *Listener) isValidPacket(buf []byte) bool {
 	srcPort := binary.BigEndian.Uint16(buf[0:2])
 
 	// Because RAW_SOCKET can't be bound to port, we have to control it by ourself
-	if destPort == t.port || srcPort == t.port {
+	if destPort == t.port || (t.trackResponse && srcPort == t.port) {
 		// Get the 'data offset' (size of the TCP header in 32-bit words)
 		dataOffset := (buf[12] & 0xF0) >> 4
 
@@ -566,11 +576,16 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 	// If message contains only single packet immediately dispatch it
 	if message.IsFinished() {
 		if isIncoming {
-			if resp, ok := t.messages[message.ResponseID]; ok {
-				t.dispatchMessage(message)
-				if resp.IsFinished() {
-					t.dispatchMessage(resp)
+			// log.Println("I'm finished", string(message.Bytes()), message.ResponseID, t.messages)
+			if t.trackResponse {
+				if resp, ok := t.messages[message.ResponseID]; ok {
+					t.dispatchMessage(message)
+					if resp.IsFinished() {
+						t.dispatchMessage(resp)
+					}
 				}
+			} else {
+				t.dispatchMessage(message)
 			}
 		} else {
 			if message.AssocMessage == nil {
