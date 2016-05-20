@@ -41,8 +41,8 @@ type AppSettings struct {
 	inputFile  MultiOption
 	outputFile MultiOption
 
-	inputRAW       MultiOption
-	inputRAWEngine string
+	inputRAW              MultiOption
+	inputRAWEngine        string
 	inputRAWTrackResponse bool
 
 	middleware string

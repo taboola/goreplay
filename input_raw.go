@@ -9,13 +9,13 @@ import (
 
 // RAWInput used for intercepting traffic for given address
 type RAWInput struct {
-	data     chan *raw.TCPMessage
-	address  string
-	expire   time.Duration
-	quit     chan bool
-	engine   int
+	data          chan *raw.TCPMessage
+	address       string
+	expire        time.Duration
+	quit          chan bool
+	engine        int
 	trackResponse bool
-	listener *raw.Listener
+	listener      *raw.Listener
 }
 
 // Available engines for intercepting traffic
