@@ -122,6 +122,40 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 	}
 }
 
+// Check if there is missing packet
+func (t *TCPMessage) isSeqMissing() bool {
+	if len(t.packets) == 1 {
+		return false
+	}
+
+	for i, p := range t.packets {
+		// If final packet
+		if len(t.packets) == i + 1 {
+			return false
+		}
+		np := t.packets[i + 1]
+
+		if np.Seq != p.Seq + uint32(len(p.Data)) {
+			return true
+		}
+	}
+
+	return false
+}
+
+var EmptyLine = []byte("\r\n\r\n")
+var ChunkEnd = []byte("0\r\n\r\n")
+
+func (t *TCPMessage) isHeadersReceived() bool {
+	for _, p := range t.packets {
+		if bytes.LastIndex(p.Data, EmptyLine) != -1 {
+			return true
+		}
+	}
+
+	return false
+}
+
 // isMultipart returns true if message contains from multiple tcp packets
 func (t *TCPMessage) IsFinished() bool {
 	payload := t.packets[0].Data
@@ -135,16 +169,23 @@ func (t *TCPMessage) IsFinished() bool {
 	if t.IsIncoming {
 		// If one GET, OPTIONS, or HEAD request
 		if bytes.Equal(m, []byte("GET ")) || bytes.Equal(m, []byte("OPTI")) || bytes.Equal(m, []byte("HEAD")) {
-			return true
+			if !t.isSeqMissing() && t.isHeadersReceived() {
+				return true
+			} else {
+				return false
+			}
 		} else {
 			// Sometimes header comes after the body :(
 			if bytes.Equal(m, []byte("POST")) || bytes.Equal(m, []byte("PUT ")) || bytes.Equal(m, []byte("PATC")) {
-				if length := proto.Header(payload, []byte("Content-Length")); len(length) > 0 {
-					l, _ := strconv.Atoi(string(length))
 
-					// If content-length equal current body length
-					if l > 0 && l == t.BodySize() {
-						return true
+				if t.isHeadersReceived() {
+					if length := proto.Header(payload, []byte("Content-Length")); len(length) > 0 {
+						l, _ := strconv.Atoi(string(length))
+
+						// If content-length equal current body length
+						if l > 0 && l == t.BodySize() {
+							return true
+						}
 					}
 				}
 			}
@@ -153,6 +194,10 @@ func (t *TCPMessage) IsFinished() bool {
 		// Request not found
 		// Can be because response came first or request request was just missing
 		if t.AssocMessage == nil {
+			return false
+		}
+
+		if !bytes.Equal(m, []byte("HTTP")) {
 			return false
 		}
 
@@ -170,6 +215,10 @@ func (t *TCPMessage) IsFinished() bool {
 		} else {
 			if enc := proto.Header(payload, []byte("Transfer-Encoding")); len(enc) == 0 {
 				return true
+			} else {
+				if len(t.packets) > 1 && bytes.LastIndex(t.packets[len(t.packets) - 1].Data, ChunkEnd) != -1 {
+					return true
+				}
 			}
 		}
 	}
