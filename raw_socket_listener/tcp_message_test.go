@@ -84,7 +84,7 @@ func TestTCPMessageIsFinished(t *testing.T) {
 	methodsWithoutBodies := []string{"GET", "OPTIONS", "HEAD"}
 
 	for _, m := range methodsWithoutBodies {
-		msg := buildMessage(buildPacket(true, 1, 1, []byte(m+" / HTTP/1.1")))
+		msg := buildMessage(buildPacket(true, 1, 1, []byte(m+" / HTTP/1.1\r\n\r\n")))
 
 		if !msg.IsFinished() {
 			t.Error(m, " request should be finished")
@@ -151,5 +151,41 @@ func TestTCPMessageIsFinished(t *testing.T) {
 
 	if msg.IsFinished() {
 		t.Error("Should not mark not valid Content-Length respones as finished")
+	}
+}
+
+func TestTCPMessageIsSeqMissing(t *testing.T) {
+	p1 := buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\n"))
+	p2 := buildPacket(false, 1, p1.Seq + uint32(len(p1.Data)), []byte("Content-Length: 10\r\n\r\n"))
+	p3 := buildPacket(false, 1, p2.Seq + uint32(len(p2.Data)), []byte("a"))
+
+	msg := buildMessage(p1)
+	if msg.isSeqMissing() {
+		t.Error("Should be complete if have only 1 packet")
+	}
+
+	msg.AddPacket(p3)
+	if !msg.isSeqMissing() {
+		t.Error("Should be incomplete because missing middle component")
+	}
+
+	msg.AddPacket(p2)
+	if msg.isSeqMissing() {
+		t.Error("Should be complete once missing packet added")
+	}
+}
+
+func TestTCPMessageIsHeadersReceived(t *testing.T) {
+	p1 := buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\n"))
+	p2 := buildPacket(false, 1, p1.Seq + uint32(len(p1.Data)), []byte("Content-Length: 10\r\n\r\n"))
+
+	msg := buildMessage(p1)
+	if msg.isHeadersReceived() {
+		t.Error("Should be complete if have only 1 packet")
+	}
+
+	msg.AddPacket(p2)
+	if !msg.isHeadersReceived() {
+		t.Error("Should found double new line: headers received")
 	}
 }
