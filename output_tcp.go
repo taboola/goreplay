@@ -38,9 +38,22 @@ func NewTCPOutput(address string) io.Writer {
 }
 
 func (o *TCPOutput) worker() {
+	retries := 1
 	conn, err := o.connect(o.address)
-	for ; err != nil; conn, err = o.connect(o.address) {
-		time.Sleep(2 * time.Second)
+	for {
+		if err == nil {
+			break
+		}
+
+		log.Println("Can't connect to aggregator instance, reconnecting in 1 second. Retries:", retries)
+		time.Sleep(1 * time.Second)
+
+		conn, err = o.connect(o.address)
+		retries++
+	}
+
+	if retries > 0 {
+		log.Println("Connected to aggregator instance after ", retries, " retries")
 	}
 
 	defer conn.Close()
@@ -50,7 +63,7 @@ func (o *TCPOutput) worker() {
 		_, err := conn.Write([]byte(payloadSeparator))
 
 		if err != nil {
-			log.Println("Worker failed on write, exitings and starting new worker:", err)
+			log.Println("Lost connection with aggregator instance, reconnecting")
 			go o.worker()
 			break
 		}
@@ -77,10 +90,6 @@ func (o *TCPOutput) Write(data []byte) (n int, err error) {
 
 func (o *TCPOutput) connect(address string) (conn net.Conn, err error) {
 	conn, err = net.Dial("tcp", address)
-
-	if err != nil {
-		log.Println("Connection error ", err, o.address)
-	}
 
 	return
 }
