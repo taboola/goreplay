@@ -36,6 +36,7 @@ func extractLimitOptions(options string) (string, string) {
 //
 // See this article if curious about relfect stuff below: http://blog.burntsushi.net/type-parametric-functions-golang
 func registerPlugin(constructor interface{}, options ...interface{}) {
+	var path, limit string
 	vc := reflect.ValueOf(constructor)
 
 	// Pre-processing options to make it work with reflect
@@ -44,11 +45,13 @@ func registerPlugin(constructor interface{}, options ...interface{}) {
 		vo = append(vo, reflect.ValueOf(oi))
 	}
 
-	// Removing limit options from path
-	path, limit := extractLimitOptions(vo[0].String())
+	if len(vo) > 0 {
+		// Removing limit options from path
+		path, limit = extractLimitOptions(vo[0].String())
 
-	// Writing value back without limiter "|" options
-	vo[0] = reflect.ValueOf(path)
+		// Writing value back without limiter "|" options
+		vo[0] = reflect.ValueOf(path)
+	}
 
 	// Calling our constructor with list of given options
 	plugin := vc.Call(vo)[0].Interface()
