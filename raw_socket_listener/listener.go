@@ -297,7 +297,6 @@ func (t *Listener) readPcap() {
 
 			t.mu.Lock()
 			t.pcapHandles = append(t.pcapHandles, handle)
-			t.mu.Unlock()
 
 			if bpfSupported {
 				var bpf string
@@ -313,6 +312,8 @@ func (t *Listener) readPcap() {
 					return
 				}
 			}
+			t.mu.Unlock()
+
 			linkType := handle.LinkType()
 			source := gopacket.NewPacketSource(handle, linkType)
 			source.Lazy = true
