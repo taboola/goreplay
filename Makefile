@@ -67,6 +67,9 @@ run-2:
 run-3:
 	sudo -E go run $(SOURCE) --input-tcp :27001 --output-stdout
 
+run-4:
+	sudo -E go run $(SOURCE) --input-http 127.0.0.1:8081 --input-raw 127.0.0.1:8081 --output-stdout --input-raw-engine raw_socket
+
 record:
 	$(RUN) go run $(SOURCE) --input-dummy=0 --output-file=requests.gor --verbose --debug
 
