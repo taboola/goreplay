@@ -14,6 +14,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"runtime"
 )
 
 func TestHTTPClientURLPort(t *testing.T) {
@@ -202,6 +203,10 @@ func TestHTTPClientHTTPSSend(t *testing.T) {
 }
 
 func TestHTTPClientServerInstantDisconnect(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		return
+	}
+
 	wg := new(sync.WaitGroup)
 
 	GETPayload := []byte("GET / HTTP/1.1\r\n\r\n")
