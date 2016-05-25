@@ -227,7 +227,7 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 }
 
 func (t *Listener) readRAWSocket() {
-	conn, e := net.ListenPacket("ip4:tcp", t.addr)
+	conn, e := net.ListenPacket("ip:tcp", t.addr)
 	t.connHandles = append(t.connHandles, conn)
 
 	if e != nil {
@@ -244,8 +244,6 @@ func (t *Listener) readRAWSocket() {
 		// Note: ReadFrom receive messages without IP header
 		n, addr, err := conn.ReadFrom(buf)
 
-		log.Println("received", n)
-
 		if err != nil {
 			if strings.HasSuffix(err.Error(), "closed network connection") {
 				return
@@ -256,7 +254,7 @@ func (t *Listener) readRAWSocket() {
 
 		if n > 0 {
 			if t.isValidPacket(buf[:n]) {
-				newBuf := make([]byte, n+4)
+				newBuf := make([]byte, n+16)
 				copy(newBuf[16:], buf[:n])
 				copy(newBuf[:16], []byte(addr.(*net.IPAddr).IP))
 
