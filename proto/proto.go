@@ -41,7 +41,6 @@ func MIMEHeadersStartPos(payload []byte) int {
 	return bytes.Index(payload, CLRF) + 2 // Find first line end
 }
 
-
 func isLower(b byte) bool {
 	if 'a' <= b && b <= 'z' {
 		return true
@@ -82,10 +81,10 @@ func headerIndex(payload []byte, name []byte) int {
 			}
 
 			if payload[i] == name[0] ||
-			   (!isLower && payload[i] == toLower(name[0])) ||
-			   ( isLower && payload[i] == toUpper(name[0])) {
+				(!isLower && payload[i] == toLower(name[0])) ||
+				(isLower && payload[i] == toUpper(name[0])) {
 
-			   	i++
+				i++
 				j := 1
 				for {
 					if j == len(name) {
@@ -103,10 +102,10 @@ func headerIndex(payload []byte, name []byte) int {
 						j++
 
 						if !(payload[i] == name[j] ||
-			   			   (!isLower && payload[i] == toLower(name[j])) ||
-			   			   ( isLower && payload[i] == toUpper(name[j]))) {
+							(!isLower && payload[i] == toLower(name[j])) ||
+							(isLower && payload[i] == toUpper(name[j]))) {
 							break
-			   			}
+						}
 					}
 
 					j++

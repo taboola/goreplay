@@ -31,8 +31,8 @@ type AppSettings struct {
 
 	splitOutput bool
 
-	inputDummy  MultiOption
-	outputDummy MultiOption
+	inputDummy   MultiOption
+	outputDummy  MultiOption
 	outputStdout bool
 
 	inputTCP       MultiOption
