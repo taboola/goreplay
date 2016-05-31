@@ -1,9 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"io"
+	"log"
+	"os"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func TestFileOutput(t *testing.T) {
@@ -11,7 +16,7 @@ func TestFileOutput(t *testing.T) {
 	quit := make(chan int)
 
 	input := NewTestInput()
-	output := NewFileOutput("/tmp/test_requests.gor")
+	output := NewFileOutput("/tmp/test_requests.gor", time.Minute)
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
@@ -23,12 +28,18 @@ func TestFileOutput(t *testing.T) {
 		input.EmitGET()
 		input.EmitPOST()
 	}
+	time.Sleep(100 * time.Millisecond)
+	output.Flush()
+
 	close(quit)
 
 	quit = make(chan int)
 
+	var counter int64
 	input2 := NewFileInput("/tmp/test_requests.gor")
 	output2 := NewTestOutput(func(data []byte) {
+		atomic.AddInt64(&counter, 1)
+		log.Println(counter)
 		wg.Done()
 	})
 
@@ -39,4 +50,45 @@ func TestFileOutput(t *testing.T) {
 
 	wg.Wait()
 	close(quit)
+}
+
+func TestFileOutputPathTemplate(t *testing.T) {
+	output := &FileOutput{pathTemplate: "/tmp/log-%Y-%m-%d-%S"}
+	now := time.Now()
+	expectedPath := fmt.Sprintf("/tmp/log-%s-%s-%s-%s", now.Format("2006"), now.Format("01"), now.Format("02"), now.Format("05"))
+	path := output.filename()
+
+	if expectedPath != path {
+		t.Errorf("Expected path %s but got %s", expectedPath, path)
+	}
+}
+
+func TestFileOutputMultipleFiles(t *testing.T) {
+	output := NewFileOutput("/tmp/log-%Y-%m-%d-%S", time.Minute)
+
+	if output.file != nil {
+		t.Error("Should not initialize file if no writes")
+	}
+
+	output.Write([]byte("1 1 1\r\ntest"))
+	name1 := output.file.Name()
+
+	output.Write([]byte("1 1 1\r\ntest"))
+	name2 := output.file.Name()
+
+	time.Sleep(time.Second)
+
+	output.Write([]byte("1 1 1\r\ntest"))
+	name3 := output.file.Name()
+
+	if name2 != name1 {
+		t.Errorf("Fast changes should happen in same file:", name1, name2)
+	}
+
+	if name3 == name1 {
+		t.Errorf("File name should change:", name1, name3)
+	}
+
+	os.Remove(name1)
+	os.Remove(name3)
 }

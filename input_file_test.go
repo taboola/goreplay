@@ -161,7 +161,7 @@ func CreateCaptureFile(requestGenerator *RequestGenerator) *CaptureFile {
 		requestGenerator.wg.Done()
 	})
 
-	outputFile := NewFileOutput(f.Name())
+	outputFile := NewFileOutput(f.Name(), time.Minute)
 
 	Plugins.Inputs = requestGenerator.inputs
 	Plugins.Outputs = []io.Writer{output, outputFile}

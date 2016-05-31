@@ -39,8 +39,9 @@ type AppSettings struct {
 	outputTCP      MultiOption
 	outputTCPStats bool
 
-	inputFile  MultiOption
-	outputFile MultiOption
+	inputFile               MultiOption
+	outputFile              MultiOption
+	outputFileFlushInterval time.Duration
 
 	inputRAW              MultiOption
 	inputRAWEngine        string
@@ -84,6 +85,7 @@ func init() {
 
 	flag.Var(&Settings.inputFile, "input-file", "Read requests from file: \n\tgor --input-file ./requests.gor --output-http staging.com")
 	flag.Var(&Settings.outputFile, "output-file", "Write incoming requests to file: \n\tgor --input-raw :80 --output-file ./requests.gor")
+	flag.DurationVar(&Settings.outputFileFlushInterval, "output-file-flush-interval", time.Minute, "Interval for forcing buffer flush to the file, default: 60s.")
 
 	flag.Var(&Settings.inputRAW, "input-raw", "Capture traffic from given port (use RAW sockets and require *sudo* access):\n\t# Capture traffic from 8080 port\n\tgor --input-raw :8080 --output-http staging.com")
 
