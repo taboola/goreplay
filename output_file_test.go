@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -39,7 +38,6 @@ func TestFileOutput(t *testing.T) {
 	input2 := NewFileInput("/tmp/test_requests.gor")
 	output2 := NewTestOutput(func(data []byte) {
 		atomic.AddInt64(&counter, 1)
-		log.Println(counter)
 		wg.Done()
 	})
 
