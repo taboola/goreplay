@@ -3,14 +3,19 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
+	"math/rand"
 	"os"
 	"sync"
 	"syscall"
 	"testing"
 	"time"
 )
+
+var _ = log.Println
 
 func TestInputFileWithGET(t *testing.T) {
 
@@ -35,7 +40,6 @@ func TestInputFileWithGET(t *testing.T) {
 			t.Error("Request read back from file should match")
 		}
 	}
-
 }
 
 func TestInputFileWithPayloadLargerThan64Kb(t *testing.T) {
@@ -91,6 +95,41 @@ func TestInputFileWithGETAndPOST(t *testing.T) {
 		}
 	}
 
+}
+
+func TestInputFileMultipleFiles(t *testing.T) {
+	rnd := rand.Int63()
+
+	file1, _ := os.OpenFile(fmt.Sprintf("/tmp/%d_0", rnd), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+	file1.Write([]byte("1 1 1\ntest1"))
+	file1.Write([]byte(payloadSeparator))
+	file1.Write([]byte("1 1 2\ntest2"))
+	file1.Write([]byte(payloadSeparator))
+	file1.Close()
+
+	file2, _ := os.OpenFile(fmt.Sprintf("/tmp/%d_1", rnd), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+	file2.Write([]byte("1 1 3\ntest3"))
+	file2.Write([]byte(payloadSeparator))
+	file2.Close()
+
+	input := NewFileInput(fmt.Sprintf("/tmp/%d*", rnd))
+	buf := make([]byte, 1000)
+	n, _ := input.Read(buf)
+	if buf[10] != '1' {
+		t.Error("Shound emit requests in right order", string(buf[:n]))
+	}
+	input.Read(buf)
+	if buf[10] != '2' {
+		t.Error("Shound emit requests in right order", string(buf[:n]))
+	}
+
+	input.Read(buf)
+	if buf[10] != '3' {
+		t.Error("Shound emit requests from second file", string(buf[:n]))
+	}
+
+	os.Remove(file1.Name())
+	os.Remove(file2.Name())
 }
 
 type CaptureFile struct {
@@ -155,7 +194,6 @@ func CreateCaptureFile(requestGenerator *RequestGenerator) *CaptureFile {
 
 	readPayloads := [][]byte{}
 	output := NewTestOutput(func(data []byte) {
-
 		readPayloads = append(readPayloads, Duplicate(data))
 
 		requestGenerator.wg.Done()
@@ -170,6 +208,9 @@ func CreateCaptureFile(requestGenerator *RequestGenerator) *CaptureFile {
 
 	requestGenerator.emit()
 	requestGenerator.wg.Wait()
+
+	time.Sleep(100 * time.Millisecond)
+	outputFile.Close()
 
 	close(quit)
 

@@ -3,9 +3,12 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"io"
 	"log"
 	"os"
+	"path/filepath"
+	"sort"
 	"strconv"
 	"time"
 )
@@ -14,7 +17,7 @@ import (
 type FileInput struct {
 	data        chan []byte
 	path        string
-	file        *os.File
+	currentFile *os.File
 	speedFactor float64
 }
 
@@ -24,21 +27,54 @@ func NewFileInput(path string) (i *FileInput) {
 	i.data = make(chan []byte)
 	i.path = path
 	i.speedFactor = 1
-	i.init(path)
+
+	if err := i.updateFile(); err != nil {
+		return
+	}
 
 	go i.emit()
 
 	return
 }
 
-func (i *FileInput) init(path string) {
-	file, err := os.Open(path)
+// path can be a pattern
+// It sort paths lexicographically and tries to choose next one
+func (i *FileInput) updateFile() (err error) {
+	var matches []string
 
-	if err != nil {
-		log.Fatal(i, "Cannot open file %q. Error: %s", path, err)
+	if matches, err = filepath.Glob(i.path); err != nil {
+		log.Println("Wrong file pattern", i.path, err)
+		return
 	}
 
-	i.file = file
+	if len(matches) == 0 {
+		log.Println("No files match pattern: ", i.path)
+		return errors.New("No matching files")
+	}
+
+	sort.Strings(matches)
+
+	if i.currentFile == nil {
+		if i.currentFile, err = os.Open(matches[0]); err != nil {
+			log.Println("Can't read file ", matches[0], err)
+			return
+		}
+
+		return
+	} else {
+		for idx, p := range matches {
+			if p == i.currentFile.Name() && idx != len(matches)-1 {
+				if i.currentFile, err = os.Open(matches[idx+1]); err != nil {
+					log.Println("Can't read file ", matches[idx+1], err)
+					return
+				} else {
+					return nil
+				}
+			}
+		}
+
+		return errors.New("There is no new files")
+	}
 }
 
 func (i *FileInput) Read(data []byte) (int, error) {
@@ -56,7 +92,7 @@ func (i *FileInput) emit() {
 	var lastTime int64
 
 	payloadSeparatorAsBytes := []byte(payloadSeparator)
-	reader := bufio.NewReader(i.file)
+	reader := bufio.NewReader(i.currentFile)
 	var buffer bytes.Buffer
 
 	for {
@@ -66,8 +102,16 @@ func (i *FileInput) emit() {
 			if err != io.EOF {
 				log.Fatal(err)
 			}
-			break
 
+			// If our path pattern match multiple files, try to find them
+			if err == io.EOF {
+				if i.updateFile() != nil {
+					break
+				}
+
+				reader = bufio.NewReader(i.currentFile)
+				continue
+			}
 		}
 
 		if bytes.Equal(payloadSeparatorAsBytes[1:], line) {
