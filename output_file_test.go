@@ -113,5 +113,5 @@ func TestFileOutputCompression(t *testing.T) {
 		t.Error("Should be compressed file:", s.Size())
 	}
 
-	// os.Remove(name)/
+	os.Remove(name)
 }
