@@ -29,7 +29,7 @@ func TestFileOutput(t *testing.T) {
 		input.EmitPOST()
 	}
 	time.Sleep(100 * time.Millisecond)
-	output.Flush()
+	output.flush()
 
 	close(quit)
 
@@ -77,18 +77,41 @@ func TestFileOutputMultipleFiles(t *testing.T) {
 	name2 := output.file.Name()
 
 	time.Sleep(time.Second)
+	output.updateName()
 
 	output.Write([]byte("1 1 1\r\ntest"))
 	name3 := output.file.Name()
 
 	if name2 != name1 {
-		t.Errorf("Fast changes should happen in same file:", name1, name2)
+		t.Error("Fast changes should happen in same file:", name1, name2, name3)
 	}
 
 	if name3 == name1 {
-		t.Errorf("File name should change:", name1, name3)
+		t.Error("File name should change:", name1, name2, name3)
 	}
 
 	os.Remove(name1)
 	os.Remove(name3)
+}
+
+func TestFileOutputCompression(t *testing.T) {
+	output := NewFileOutput("/tmp/log-%Y-%m-%d-%S.gz", time.Minute)
+
+	if output.file != nil {
+		t.Error("Should not initialize file if no writes")
+	}
+
+	for i := 0; i < 1000; i++ {
+		output.Write([]byte("1 1 1\r\ntest"))
+	}
+
+	name := output.file.Name()
+	output.Close()
+
+	s, _ := os.Stat(name)
+	if s.Size() == 12*1000 {
+		t.Error("Should be compressed file:", s.Size())
+	}
+
+	// os.Remove(name)/
 }

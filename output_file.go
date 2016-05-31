@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"compress/gzip"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -24,7 +26,7 @@ type FileOutput struct {
 	pathTemplate string
 	currentName  string
 	file         *os.File
-	writer       *bufio.Writer
+	writer       io.Writer
 }
 
 // NewFileOutput constructor for FileOutput, accepts path
@@ -37,9 +39,7 @@ func NewFileOutput(pathTemplate string, flushInterval time.Duration) *FileOutput
 	go func() {
 		for {
 			time.Sleep(flushInterval)
-			if err := o.writer.Flush(); err != nil {
-				break
-			}
+			o.flush()
 		}
 	}()
 
@@ -73,13 +73,15 @@ func (o *FileOutput) Write(data []byte) (n int, err error) {
 	}
 
 	if o.file == nil || o.currentName != o.file.Name() {
-		if o.file != nil {
-			o.writer.Flush()
-			o.file.Close()
-		}
+		o.Close()
 
 		o.file, err = os.OpenFile(o.currentName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
-		o.writer = bufio.NewWriter(o.file)
+
+		if strings.HasSuffix(o.currentName, ".gz") {
+			o.writer = gzip.NewWriter(o.file)
+		} else {
+			o.writer = bufio.NewWriter(o.file)
+		}
 
 		if err != nil {
 			log.Fatal(o, "Cannot open file %q. Error: %s", o.currentName, err)
@@ -92,9 +94,13 @@ func (o *FileOutput) Write(data []byte) (n int, err error) {
 	return len(data), nil
 }
 
-func (o *FileOutput) Flush() {
+func (o *FileOutput) flush() {
 	if o.file != nil {
-		o.writer.Flush()
+		if strings.HasSuffix(o.currentName, ".gz") {
+			o.writer.(*gzip.Writer).Flush()
+		} else {
+			o.writer.(*bufio.Writer).Flush()
+		}
 	}
 }
 
@@ -103,6 +109,12 @@ func (o *FileOutput) String() string {
 }
 
 func (o *FileOutput) Close() {
-	o.writer.Flush()
-	o.file.Close()
+	if o.file != nil {
+		if strings.HasSuffix(o.currentName, ".gz") {
+			o.writer.(*gzip.Writer).Close()
+		} else {
+			o.writer.(*bufio.Writer).Flush()
+		}
+		o.file.Close()
+	}
 }
