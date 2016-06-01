@@ -22,14 +22,16 @@ type FileInput struct {
 	currentFile   *os.File
 	currentReader *bufio.Reader
 	speedFactor   float64
+	loop          bool
 }
 
 // NewFileInput constructor for FileInput. Accepts file path as argument.
-func NewFileInput(path string) (i *FileInput) {
+func NewFileInput(path string, loop bool) (i *FileInput) {
 	i = new(FileInput)
 	i.data = make(chan []byte)
 	i.path = path
 	i.speedFactor = 1
+	i.loop = loop
 
 	if err := i.updateFile(); err != nil {
 		return
@@ -38,6 +40,12 @@ func NewFileInput(path string) (i *FileInput) {
 	go i.emit()
 
 	return
+}
+
+type NextFileNotFound struct{}
+
+func (_ *NextFileNotFound) Error() string {
+	return "There is no new files"
 }
 
 // path can be a pattern
@@ -57,6 +65,7 @@ func (i *FileInput) updateFile() (err error) {
 
 	sort.Strings(matches)
 
+	// Just pick first file, if there is many, and we are just started
 	if i.currentFile == nil {
 		if i.currentFile, err = os.Open(matches[0]); err != nil {
 			log.Println("Can't read file ", matches[0], err)
@@ -76,7 +85,7 @@ func (i *FileInput) updateFile() (err error) {
 		}
 
 		if !found {
-			return errors.New("There is no new files")
+			return new(NextFileNotFound)
 		}
 	}
 
@@ -121,8 +130,18 @@ func (i *FileInput) emit() {
 
 			// If our path pattern match multiple files, try to find them
 			if err == io.EOF {
-				if i.updateFile() != nil {
-					break
+				if e := i.updateFile(); e != nil {
+					if _, ok := e.(*NextFileNotFound); ok && i.loop {
+						// Start from the first file
+						i.currentFile = nil
+						i.currentReader = nil
+						lastTime = 0
+						i.updateFile()
+
+						continue
+					} else {
+						break
+					}
 				}
 
 				continue
@@ -163,4 +182,8 @@ func (i *FileInput) emit() {
 	}
 
 	log.Printf("FileInput: end of file '%s'\n", i.path)
+}
+
+func (i *FileInput) Close() {
+	i.currentFile.Close()
 }

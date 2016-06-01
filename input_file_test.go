@@ -112,7 +112,7 @@ func TestInputFileMultipleFiles(t *testing.T) {
 	file2.Write([]byte(payloadSeparator))
 	file2.Close()
 
-	input := NewFileInput(fmt.Sprintf("/tmp/%d*", rnd))
+	input := NewFileInput(fmt.Sprintf("/tmp/%d*", rnd), false)
 	buf := make([]byte, 1000)
 	n, _ := input.Read(buf)
 	if buf[10] != '1' {
@@ -132,6 +132,28 @@ func TestInputFileMultipleFiles(t *testing.T) {
 	os.Remove(file2.Name())
 }
 
+func TestInputFileLoop(t *testing.T) {
+	rnd := rand.Int63()
+
+	file, _ := os.OpenFile(fmt.Sprintf("/tmp/%d", rnd), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+	file.Write([]byte("1 1 1\ntest1"))
+	file.Write([]byte(payloadSeparator))
+	file.Write([]byte("1 1 2\ntest2"))
+	file.Write([]byte(payloadSeparator))
+	file.Close()
+
+	input := NewFileInput(fmt.Sprintf("/tmp/%d", rnd), true)
+	buf := make([]byte, 1000)
+
+	// Even if we have just 2 requests in file, it should indifinitly loop
+	for i := 0; i < 1000; i++ {
+		input.Read(buf)
+	}
+	input.Close()
+
+	os.Remove(file.Name())
+}
+
 func TestInputFileCompressed(t *testing.T) {
 	rnd := rand.Int63()
 
@@ -149,7 +171,7 @@ func TestInputFileCompressed(t *testing.T) {
 	name2 := output2.file.Name()
 	output2.Close()
 
-	input := NewFileInput(fmt.Sprintf("/tmp/%d*", rnd))
+	input := NewFileInput(fmt.Sprintf("/tmp/%d*", rnd), false)
 	buf := make([]byte, 1000)
 	for i := 0; i < 2000; i++ {
 		input.Read(buf)
@@ -250,7 +272,7 @@ func ReadFromCaptureFile(captureFile *os.File, count int, callback writeCallback
 	quit := make(chan int)
 	wg := new(sync.WaitGroup)
 
-	input := NewFileInput(captureFile.Name())
+	input := NewFileInput(captureFile.Name(), false)
 	output := NewTestOutput(func(data []byte) {
 		callback(data)
 		wg.Done()
