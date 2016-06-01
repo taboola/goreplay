@@ -132,6 +132,33 @@ func TestInputFileMultipleFiles(t *testing.T) {
 	os.Remove(file2.Name())
 }
 
+func TestInputFileCompressed(t *testing.T) {
+	rnd := rand.Int63()
+
+	output := NewFileOutput(fmt.Sprintf("/tmp/%d_0.gz", rnd), time.Minute)
+	for i := 0; i < 1000; i++ {
+		output.Write([]byte("1 1 1\r\ntest"))
+	}
+	name1 := output.file.Name()
+	output.Close()
+
+	output2 := NewFileOutput(fmt.Sprintf("/tmp/%d_1.gz", rnd), time.Minute)
+	for i := 0; i < 1000; i++ {
+		output2.Write([]byte("1 1 1\r\ntest"))
+	}
+	name2 := output2.file.Name()
+	output2.Close()
+
+	input := NewFileInput(fmt.Sprintf("/tmp/%d*", rnd))
+	buf := make([]byte, 1000)
+	for i := 0; i < 2000; i++ {
+		input.Read(buf)
+	}
+
+	os.Remove(name1)
+	os.Remove(name2)
+}
+
 type CaptureFile struct {
 	data [][]byte
 	file *os.File
