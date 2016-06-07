@@ -70,29 +70,27 @@ func NewFileOutput(pathTemplate string, config *FileOutputConfig) *FileOutput {
 
 func getFileIndex(name string) int {
 	ext := filepath.Ext(name)
-	without_ext := strings.TrimSuffix(name, ext)
+	withoutExt := strings.TrimSuffix(name, ext)
 
-	if idx := strings.LastIndex(without_ext, "_"); idx != -1 {
-		if i, err := strconv.Atoi(without_ext[idx+1:]); err == nil {
+	if idx := strings.LastIndex(withoutExt, "_"); idx != -1 {
+		if i, err := strconv.Atoi(withoutExt[idx+1:]); err == nil {
 			return i
-		} else {
-			return -1
 		}
-	} else {
-		return -1
 	}
+
+	return -1
 }
 
 func setFileIndex(name string, idx int) string {
 	idxS := strconv.Itoa(idx)
 	ext := filepath.Ext(name)
-	without_ext := strings.TrimSuffix(name, ext)
+	withoutExt := strings.TrimSuffix(name, ext)
 
-	if u_i := strings.LastIndex(without_ext, "_"); u_i != -1 {
-		without_ext = without_ext[:u_i]
+	if i := strings.LastIndex(withoutExt, "_"); i != -1 {
+		withoutExt = withoutExt[:i]
 	}
 
-	return without_ext + "_" + idxS + ext
+	return withoutExt + "_" + idxS + ext
 }
 
 func (o *FileOutput) filename() string {
@@ -112,9 +110,9 @@ func (o *FileOutput) filename() string {
 		}
 
 		ext := filepath.Ext(path)
-		without_ext := strings.TrimSuffix(path, ext)
+		withoutExt := strings.TrimSuffix(path, ext)
 
-		if matches, err := filepath.Glob(without_ext + "*" + ext); err == nil {
+		if matches, err := filepath.Glob(withoutExt + "*" + ext); err == nil {
 			if len(matches) == 0 {
 				return setFileIndex(path, 0)
 			}
