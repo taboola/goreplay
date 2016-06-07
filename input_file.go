@@ -120,6 +120,10 @@ func (i *FileInput) emit() {
 
 	var buffer bytes.Buffer
 
+	if i.currentReader == nil {
+		return
+	}
+
 	for {
 		line, err := i.currentReader.ReadBytes('\n')
 

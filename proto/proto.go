@@ -295,7 +295,7 @@ func Status(payload []byte) []byte {
 }
 
 var httpMethods []string = []string{
-	"GET ", "OPTI", "HEAD", "POST", "PUT ", "DELE", "TRAC", "CONN", /* custom methods */"BAN", "PURG"
+	"GET ", "OPTI", "HEAD", "POST", "PUT ", "DELE", "TRAC", "CONN", /* custom methods */"BAN", "PURG",
 }
 
 func IsHTTPPayload(payload []byte) bool {

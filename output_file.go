@@ -9,6 +9,9 @@ import (
 	"os"
 	"strings"
 	"time"
+	"path/filepath"
+	"strconv"
+	"sort"
 )
 
 var dateFileNameFuncs = map[string]func() string{
@@ -21,24 +24,36 @@ var dateFileNameFuncs = map[string]func() string{
 	"%NS": func() string { return fmt.Sprint(time.Now().Nanosecond()) },
 }
 
+type FileOutputConfig struct {
+	flushInterval time.Duration
+	chunkLimit unitSizeVar
+	queueLimit int
+	append bool
+}
+
 // FileOutput output plugin
 type FileOutput struct {
 	pathTemplate string
 	currentName  string
 	file         *os.File
+	queueLength  int
+	chunkSize    int
 	writer       io.Writer
+
+	config *FileOutputConfig
 }
 
 // NewFileOutput constructor for FileOutput, accepts path
-func NewFileOutput(pathTemplate string, flushInterval time.Duration) *FileOutput {
+func NewFileOutput(pathTemplate string, config *FileOutputConfig) *FileOutput {
 	o := new(FileOutput)
 	o.pathTemplate = pathTemplate
+	o.config = config
 	o.updateName()
 
 	// Force flushing every minute
 	go func() {
 		for {
-			time.Sleep(flushInterval)
+			time.Sleep(o.config.flushInterval)
 			o.flush()
 		}
 	}()
@@ -53,11 +68,70 @@ func NewFileOutput(pathTemplate string, flushInterval time.Duration) *FileOutput
 	return o
 }
 
+func getFileIndex(name string) int {
+	ext := filepath.Ext(name)
+	without_ext := strings.TrimSuffix(name, ext)
+
+	if idx := strings.LastIndex(without_ext, "_"); idx != -1 {
+		if i, err := strconv.Atoi(without_ext[idx+1:]); err == nil {
+			return i
+		} else {
+			return -1
+		}
+	} else {
+		return -1
+	}
+}
+
+func setFileIndex(name string, idx int) string {
+	idxS := strconv.Itoa(idx)
+	ext := filepath.Ext(name)
+	without_ext := strings.TrimSuffix(name, ext)
+
+	if u_i := strings.LastIndex(without_ext, "_"); u_i != -1 {
+		without_ext = without_ext[:u_i]
+	}
+
+	return without_ext + "_" + idxS + ext
+}
+
 func (o *FileOutput) filename() string {
 	path := o.pathTemplate
 
 	for name, fn := range dateFileNameFuncs {
 		path = strings.Replace(path, name, fn(), -1)
+	}
+
+	if !o.config.append {
+		nextChunk := false
+
+		if o.currentName == "" ||
+	   	 ((o.config.queueLimit > 0 && o.queueLength >= o.config.queueLimit) ||
+	   	  (o.config.chunkLimit > 0 && o.chunkSize >= int(o.config.chunkLimit))) {
+	   	 	nextChunk = true
+	   	}
+
+	   	ext := filepath.Ext(path)
+		without_ext := strings.TrimSuffix(path, ext)
+
+		if matches, err := filepath.Glob(without_ext + "*" + ext); err == nil {
+			if len(matches) == 0 {
+				return setFileIndex(path, 0)
+			}
+			sort.Strings(matches)
+
+			last := matches[len(matches) - 1]
+
+			if idx := getFileIndex(last); idx != -1 {
+				if nextChunk {
+					return setFileIndex(last, idx + 1)
+				} else {
+					return setFileIndex(last, idx)
+				}
+			} else {
+				return setFileIndex(last, 0)
+			}
+		}
 	}
 
 	return path
@@ -76,6 +150,7 @@ func (o *FileOutput) Write(data []byte) (n int, err error) {
 		o.Close()
 
 		o.file, err = os.OpenFile(o.currentName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+		o.file.Sync()
 
 		if strings.HasSuffix(o.currentName, ".gz") {
 			o.writer = gzip.NewWriter(o.file)
@@ -86,10 +161,14 @@ func (o *FileOutput) Write(data []byte) (n int, err error) {
 		if err != nil {
 			log.Fatal(o, "Cannot open file %q. Error: %s", o.currentName, err)
 		}
+
+		o.queueLength = 0
 	}
 
 	o.writer.Write(data)
 	o.writer.Write([]byte(payloadSeparator))
+
+	o.queueLength++
 
 	return len(data), nil
 }
@@ -101,6 +180,10 @@ func (o *FileOutput) flush() {
 		} else {
 			o.writer.(*bufio.Writer).Flush()
 		}
+	}
+
+	if stat, err := o.file.Stat(); err != nil {
+		o.chunkSize = int(stat.Size())
 	}
 }
 

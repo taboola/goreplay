@@ -42,7 +42,7 @@ type AppSettings struct {
 	inputFile               MultiOption
 	inputFileLoop           bool
 	outputFile              MultiOption
-	outputFileFlushInterval time.Duration
+	outputFileConfig        FileOutputConfig
 
 	inputRAW              MultiOption
 	inputRAWEngine        string
@@ -88,7 +88,13 @@ func init() {
 	flag.BoolVar(&Settings.inputFileLoop, "input-file-loop", false, "Loop input files, useful for performance testing.")
 
 	flag.Var(&Settings.outputFile, "output-file", "Write incoming requests to file: \n\tgor --input-raw :80 --output-file ./requests.gor")
-	flag.DurationVar(&Settings.outputFileFlushInterval, "output-file-flush-interval", time.Minute, "Interval for forcing buffer flush to the file, default: 60s.")
+	flag.DurationVar(&Settings.outputFileConfig.flushInterval, "output-file-flush-interval", time.Minute, "Interval for forcing buffer flush to the file, default: 60s.")
+	flag.BoolVar(&Settings.outputFileConfig.append, "output-file-append", false, "The flushed chunk is appended to existence file or not. ")
+
+	// Set default
+	Settings.outputFileConfig.chunkLimit.Set("32mb")
+	flag.Var(&Settings.outputFileConfig.chunkLimit, "output-file-chunk-limit", "The length of the chunk queue. Default: 32mb")
+	flag.IntVar(&Settings.outputFileConfig.queueLimit, "output-file-queue-limit", 256, "Size of each chunk. Default: 256")
 
 	flag.Var(&Settings.inputRAW, "input-raw", "Capture traffic from given port (use RAW sockets and require *sudo* access):\n\t# Capture traffic from 8080 port\n\tgor --input-raw :8080 --output-http staging.com")
 
