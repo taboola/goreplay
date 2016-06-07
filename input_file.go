@@ -63,7 +63,7 @@ func (i *FileInput) updateFile() (err error) {
 		return errors.New("No matching files")
 	}
 
-	sort.Strings(matches)
+	sort.Sort(sortByFileIndex(matches))
 
 	// Just pick first file, if there is many, and we are just started
 	if i.currentFile == nil {

@@ -93,6 +93,32 @@ func setFileIndex(name string, idx int) string {
 	return withoutExt + "_" + idxS + ext
 }
 
+func withoutIndex(s string) string {
+	if i := strings.LastIndex(s, "_"); i != -1 {
+		return s[:i]
+	}
+
+	return s
+}
+
+type sortByFileIndex []string
+
+func (s sortByFileIndex) Len() int {
+    return len(s)
+}
+
+func (s sortByFileIndex) Swap(i, j int) {
+    s[i], s[j] = s[j], s[i]
+}
+
+func (s sortByFileIndex) Less(i, j int) bool {
+    if withoutIndex(s[i]) == withoutIndex(s[j]) {
+    	return getFileIndex(s[i]) < getFileIndex(s[j])
+    }
+
+    return s[i] < s[j]
+}
+
 func (o *FileOutput) filename() string {
 	path := o.pathTemplate
 
@@ -116,7 +142,7 @@ func (o *FileOutput) filename() string {
 			if len(matches) == 0 {
 				return setFileIndex(path, 0)
 			}
-			sort.Strings(matches)
+			sort.Sort(sortByFileIndex(matches))
 
 			last := matches[len(matches)-1]
 

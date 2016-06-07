@@ -9,6 +9,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+	"sort"
+	"reflect"
 )
 
 func TestFileOutput(t *testing.T) {
@@ -258,4 +260,14 @@ func TestFileOutputAppendQueueLimitGzips(t *testing.T) {
 
 	os.Remove(name1)
 	os.Remove(name3)
+}
+
+func TestFileOutputSort(t *testing.T) {
+	var files = []string{"2016_0", "2014_10", "2015_0", "2015_10", "2015_2"}
+	var expected = []string{"2014_10", "2015_0", "2015_2", "2015_10", "2016_0"}
+	sort.Sort(sortByFileIndex(files))
+
+	if !reflect.DeepEqual(files, expected) {
+		t.Error("Should properly sort file names using indexes", files, expected)
+	}
 }
