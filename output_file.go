@@ -26,7 +26,7 @@ var dateFileNameFuncs = map[string]func() string{
 
 type FileOutputConfig struct {
 	flushInterval time.Duration
-	chunkLimit unitSizeVar
+	sizeLimit unitSizeVar
 	queueLimit int
 	append bool
 }
@@ -107,7 +107,7 @@ func (o *FileOutput) filename() string {
 
 		if o.currentName == "" ||
 	   	 ((o.config.queueLimit > 0 && o.queueLength >= o.config.queueLimit) ||
-	   	  (o.config.chunkLimit > 0 && o.chunkSize >= int(o.config.chunkLimit))) {
+	   	  (o.config.sizeLimit > 0 && o.chunkSize >= int(o.config.sizeLimit))) {
 	   	 	nextChunk = true
 	   	}
 
