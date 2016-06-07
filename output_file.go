@@ -120,15 +120,16 @@ func (o *FileOutput) filename() string {
 
 			last := matches[len(matches)-1]
 
+			fileIndex := 0
 			if idx := getFileIndex(last); idx != -1 {
+				fileIndex = idx
+
 				if nextChunk {
-					return setFileIndex(last, idx+1)
-				} else {
-					return setFileIndex(last, idx)
+					fileIndex++
 				}
-			} else {
-				return setFileIndex(last, 0)
 			}
+
+			return setFileIndex(last, fileIndex)
 		}
 	}
 
