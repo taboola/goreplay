@@ -39,10 +39,10 @@ type AppSettings struct {
 	outputTCP      MultiOption
 	outputTCPStats bool
 
-	inputFile               MultiOption
-	inputFileLoop           bool
-	outputFile              MultiOption
-	outputFileConfig        FileOutputConfig
+	inputFile        MultiOption
+	inputFileLoop    bool
+	outputFile       MultiOption
+	outputFileConfig FileOutputConfig
 
 	inputRAW              MultiOption
 	inputRAWEngine        string

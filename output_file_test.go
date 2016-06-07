@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 	"io"
+	"math/rand"
 	"os"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
-	"math/rand"
 )
 
 func TestFileOutput(t *testing.T) {
@@ -16,7 +16,7 @@ func TestFileOutput(t *testing.T) {
 	quit := make(chan int)
 
 	input := NewTestInput()
-	output := NewFileOutput("/tmp/test_requests.gor", &FileOutputConfig{ flushInterval: time.Minute, append: true })
+	output := NewFileOutput("/tmp/test_requests.gor", &FileOutputConfig{flushInterval: time.Minute, append: true})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
@@ -52,7 +52,7 @@ func TestFileOutput(t *testing.T) {
 }
 
 func TestFileOutputPathTemplate(t *testing.T) {
-	output := &FileOutput{pathTemplate: "/tmp/log-%Y-%m-%d-%S", config: &FileOutputConfig{ flushInterval: time.Minute, append: true }}
+	output := &FileOutput{pathTemplate: "/tmp/log-%Y-%m-%d-%S", config: &FileOutputConfig{flushInterval: time.Minute, append: true}}
 	now := time.Now()
 	expectedPath := fmt.Sprintf("/tmp/log-%s-%s-%s-%s", now.Format("2006"), now.Format("01"), now.Format("02"), now.Format("05"))
 	path := output.filename()
@@ -63,7 +63,7 @@ func TestFileOutputPathTemplate(t *testing.T) {
 }
 
 func TestFileOutputMultipleFiles(t *testing.T) {
-	output := NewFileOutput("/tmp/log-%Y-%m-%d-%S", &FileOutputConfig{ append: true, flushInterval: time.Minute })
+	output := NewFileOutput("/tmp/log-%Y-%m-%d-%S", &FileOutputConfig{append: true, flushInterval: time.Minute})
 
 	if output.file != nil {
 		t.Error("Should not initialize file if no writes")
@@ -94,7 +94,7 @@ func TestFileOutputMultipleFiles(t *testing.T) {
 }
 
 func TestFileOutputCompression(t *testing.T) {
-	output := NewFileOutput("/tmp/log-%Y-%m-%d-%S.gz", &FileOutputConfig{ append: true, flushInterval: time.Minute })
+	output := NewFileOutput("/tmp/log-%Y-%m-%d-%S.gz", &FileOutputConfig{append: true, flushInterval: time.Minute})
 
 	if output.file != nil {
 		t.Error("Should not initialize file if no writes")
@@ -116,9 +116,9 @@ func TestFileOutputCompression(t *testing.T) {
 }
 
 func TestParseDataUnit(t *testing.T) {
-	var tests = []struct{
+	var tests = []struct {
 		value string
-		size int64
+		size  int64
 	}{
 		{"100kb", dataUnitMap['k'] * 100},
 		{"100k", dataUnitMap['k'] * 100},
@@ -136,8 +136,8 @@ func TestParseDataUnit(t *testing.T) {
 }
 
 func TestGetFileIndex(t *testing.T) {
-	var tests = []struct{
-		path string
+	var tests = []struct {
+		path  string
 		index int
 	}{
 		{"/tmp/logs", -1},
@@ -154,9 +154,9 @@ func TestGetFileIndex(t *testing.T) {
 }
 
 func TestSetFileIndex(t *testing.T) {
-	var tests = []struct{
-		path string
-		index int
+	var tests = []struct {
+		path    string
+		index   int
 		newPath string
 	}{
 		{"/tmp/logs", 0, "/tmp/logs_0"},
@@ -177,7 +177,7 @@ func TestFileOutputAppendQueueLimitOverflow(t *testing.T) {
 	rnd := rand.Int63()
 	name := fmt.Sprintf("/tmp/%d", rnd)
 
-	output := NewFileOutput(name, &FileOutputConfig{ append: false, flushInterval: time.Minute, queueLimit: 2 })
+	output := NewFileOutput(name, &FileOutputConfig{append: false, flushInterval: time.Minute, queueLimit: 2})
 
 	output.Write([]byte("1 1 1\r\ntest"))
 	name1 := output.file.Name()
@@ -206,7 +206,7 @@ func TestFileOutputAppendQueueLimitNoOverflow(t *testing.T) {
 	rnd := rand.Int63()
 	name := fmt.Sprintf("/tmp/%d", rnd)
 
-	output := NewFileOutput(name, &FileOutputConfig{ append: false, flushInterval: time.Minute, queueLimit: 3 })
+	output := NewFileOutput(name, &FileOutputConfig{append: false, flushInterval: time.Minute, queueLimit: 3})
 
 	output.Write([]byte("1 1 1\r\ntest"))
 	name1 := output.file.Name()
@@ -235,7 +235,7 @@ func TestFileOutputAppendQueueLimitGzips(t *testing.T) {
 	rnd := rand.Int63()
 	name := fmt.Sprintf("/tmp/%d.gz", rnd)
 
-	output := NewFileOutput(name, &FileOutputConfig{ append: false, flushInterval: time.Minute, queueLimit: 2 })
+	output := NewFileOutput(name, &FileOutputConfig{append: false, flushInterval: time.Minute, queueLimit: 2})
 
 	output.Write([]byte("1 1 1\r\ntest"))
 	name1 := output.file.Name()

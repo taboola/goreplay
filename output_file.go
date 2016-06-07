@@ -7,11 +7,11 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
-	"path/filepath"
-	"strconv"
-	"sort"
 )
 
 var dateFileNameFuncs = map[string]func() string{
@@ -26,9 +26,9 @@ var dateFileNameFuncs = map[string]func() string{
 
 type FileOutputConfig struct {
 	flushInterval time.Duration
-	sizeLimit unitSizeVar
-	queueLimit int
-	append bool
+	sizeLimit     unitSizeVar
+	queueLimit    int
+	append        bool
 }
 
 // FileOutput output plugin
@@ -106,12 +106,12 @@ func (o *FileOutput) filename() string {
 		nextChunk := false
 
 		if o.currentName == "" ||
-	   	 ((o.config.queueLimit > 0 && o.queueLength >= o.config.queueLimit) ||
-	   	  (o.config.sizeLimit > 0 && o.chunkSize >= int(o.config.sizeLimit))) {
-	   	 	nextChunk = true
-	   	}
+			((o.config.queueLimit > 0 && o.queueLength >= o.config.queueLimit) ||
+				(o.config.sizeLimit > 0 && o.chunkSize >= int(o.config.sizeLimit))) {
+			nextChunk = true
+		}
 
-	   	ext := filepath.Ext(path)
+		ext := filepath.Ext(path)
 		without_ext := strings.TrimSuffix(path, ext)
 
 		if matches, err := filepath.Glob(without_ext + "*" + ext); err == nil {
@@ -120,11 +120,11 @@ func (o *FileOutput) filename() string {
 			}
 			sort.Strings(matches)
 
-			last := matches[len(matches) - 1]
+			last := matches[len(matches)-1]
 
 			if idx := getFileIndex(last); idx != -1 {
 				if nextChunk {
-					return setFileIndex(last, idx + 1)
+					return setFileIndex(last, idx+1)
 				} else {
 					return setFileIndex(last, idx)
 				}
