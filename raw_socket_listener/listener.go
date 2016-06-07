@@ -321,6 +321,15 @@ func (t *Listener) readPcap() {
 
 			wg.Done()
 
+			var addr4, addr6 net.IP
+			for _, addr := range device.Addresses {
+				if len(addr.IP) == net.IPv4len {
+					addr4 = addr.IP
+				} else {
+					addr6 = addr.IP
+				}
+			}
+
 			var data, srcIP []byte
 
 			for {
@@ -372,6 +381,16 @@ func (t *Listener) readPcap() {
 				// We need only packets with data inside
 				// Check that the buffer is larger than the size of the TCP header
 				if len(data) > int(dataOffset*4) {
+					if version == 4 {
+						if !addr4.Equal(net.IP(srcIP)) {
+							continue
+						}
+					} else {
+						if !addr6.Equal(net.IP(srcIP)) {
+							continue
+						}
+					}
+
 					if !bpfSupported {
 						destPort := binary.BigEndian.Uint16(data[2:4])
 						srcPort := binary.BigEndian.Uint16(data[0:2])
