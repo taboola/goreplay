@@ -67,6 +67,9 @@ run-2:
 run-3:
 	sudo -E go run $(SOURCE) --input-tcp :27001 --output-stdout
 
+file-server:
+	go run $(SOURCE) file-server :8000
+
 record:
 	$(RUN) go run $(SOURCE) --input-dummy=0 --output-file=requests.gor --verbose --debug
 

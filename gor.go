@@ -14,6 +14,7 @@ import (
 	"runtime/pprof"
 	"syscall"
 	"time"
+	"net/http"
 )
 
 var (
@@ -35,10 +36,22 @@ func main() {
 		runtime.GOMAXPROCS(runtime.NumCPU() * 2)
 	}
 
-	fmt.Println("Version:", VERSION)
+	args := os.Args[1:]
+	if len(args) > 0 && args[0] == "file-server" {
+		if len(args) != 2 {
+			log.Fatal("You should specify port and IP (optional) for the file server. Example: `gor file-server :80`")
+		}
+		dir, _ := os.Getwd()
 
-	flag.Parse()
-	InitPlugins()
+		log.Println("Started example file server for current dirrectory on address ", args[1])
+
+		log.Fatal(http.ListenAndServe(args[1], http.FileServer(http.Dir(dir))))
+	} else {
+		flag.Parse()
+		InitPlugins()
+	}
+
+	fmt.Println("Version:", VERSION)
 
 	if len(Plugins.Inputs) == 0 || len(Plugins.Outputs) == 0 {
 		log.Fatal("Required at least 1 input and 1 output")
