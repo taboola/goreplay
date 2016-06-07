@@ -157,14 +157,14 @@ func TestInputFileLoop(t *testing.T) {
 func TestInputFileCompressed(t *testing.T) {
 	rnd := rand.Int63()
 
-	output := NewFileOutput(fmt.Sprintf("/tmp/%d_0.gz", rnd), time.Minute)
+	output := NewFileOutput(fmt.Sprintf("/tmp/%d_0.gz", rnd), &FileOutputConfig{flushInterval: time.Minute, append: true})
 	for i := 0; i < 1000; i++ {
 		output.Write([]byte("1 1 1\r\ntest"))
 	}
 	name1 := output.file.Name()
 	output.Close()
 
-	output2 := NewFileOutput(fmt.Sprintf("/tmp/%d_1.gz", rnd), time.Minute)
+	output2 := NewFileOutput(fmt.Sprintf("/tmp/%d_1.gz", rnd), &FileOutputConfig{flushInterval: time.Minute, append: true})
 	for i := 0; i < 1000; i++ {
 		output2.Write([]byte("1 1 1\r\ntest"))
 	}
@@ -248,7 +248,7 @@ func CreateCaptureFile(requestGenerator *RequestGenerator) *CaptureFile {
 		requestGenerator.wg.Done()
 	})
 
-	outputFile := NewFileOutput(f.Name(), time.Minute)
+	outputFile := NewFileOutput(f.Name(), &FileOutputConfig{flushInterval: time.Minute, append: true})
 
 	Plugins.Inputs = requestGenerator.inputs
 	Plugins.Outputs = []io.Writer{output, outputFile}

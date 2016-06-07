@@ -117,7 +117,7 @@ func InitPlugins() {
 	}
 
 	for _, options := range Settings.outputFile {
-		registerPlugin(NewFileOutput, options, Settings.outputFileFlushInterval)
+		registerPlugin(NewFileOutput, options, Settings.outputFileConfig)
 	}
 
 	for _, options := range Settings.inputHTTP {
