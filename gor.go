@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 	"net/http"
+	"net/http/httputil"
 )
 
 var (
@@ -22,6 +23,14 @@ var (
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 	memprofile = flag.String("memprofile", "", "write memory profile to this file")
 )
+
+func loggingMiddleware(next http.Handler) http.Handler {
+  return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    rb, _ := httputil.DumpRequest(r, false)
+    log.Println(string(rb))
+    next.ServeHTTP(w, r)
+  })
+}
 
 func main() {
 	// // Don't exit on panic
@@ -45,7 +54,7 @@ func main() {
 
 		log.Println("Started example file server for current dirrectory on address ", args[1])
 
-		log.Fatal(http.ListenAndServe(args[1], http.FileServer(http.Dir(dir))))
+		log.Fatal(http.ListenAndServe(args[1], loggingMiddleware(http.FileServer(http.Dir(dir)))))
 	} else {
 		flag.Parse()
 		InitPlugins()

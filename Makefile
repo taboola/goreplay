@@ -6,6 +6,7 @@ TEST = TestRawListenerBench
 VERSION = DEV-$(shell date +%s)
 LDFLAGS = -ldflags "-X main.VERSION=$(VERSION) -extldflags \"-static\""
 MAC_LDFLAGS = -ldflags "-X main.VERSION=$(VERSION)"
+FADDR = ":8000"
 
 release: release-x64 release-mac
 
@@ -68,7 +69,7 @@ run-3:
 	sudo -E go run $(SOURCE) --input-tcp :27001 --output-stdout
 
 file-server:
-	go run $(SOURCE) file-server :8000
+	go run $(SOURCE) file-server $(FADDR)
 
 record:
 	$(RUN) go run $(SOURCE) --input-dummy=0 --output-file=requests.gor --verbose --debug
