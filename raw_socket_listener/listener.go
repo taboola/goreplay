@@ -298,16 +298,27 @@ func (t *Listener) readPcap() {
 			t.mu.Lock()
 			t.pcapHandles = append(t.pcapHandles, handle)
 
+			var bpfDstHost, bpfSrcHost string
+			for i, addr := range device.Addresses {
+				bpfDstHost += "dst host " + addr.IP.String()
+				bpfSrcHost += "src host " + addr.IP.String()
+				if i != len(device.Addresses) - 1 {
+					bpfDstHost += " or "
+					bpfSrcHost += " or "
+				}
+			}
+
 			if bpfSupported {
 				var bpf string
 
 				if t.trackResponse {
-					bpf = "tcp port " + strconv.Itoa(int(t.port))
+					bpf = "(tcp dst port " + strconv.Itoa(int(t.port)) + " and (" + bpfDstHost + ")) or (" + "tcp src port " + strconv.Itoa(int(t.port)) + " and (" + bpfSrcHost + "))"
 				} else {
-					bpf = "tcp dst port " + strconv.Itoa(int(t.port))
+					bpf = "tcp dst port " + strconv.Itoa(int(t.port)) + " and (" + bpfDstHost + ")"
 				}
+
 				if err := handle.SetBPFFilter(bpf); err != nil {
-					log.Println("BPF filter error:", err, "Device:", device.Name)
+					log.Println("BPF filter error:", err, "Device:", device.Name, bpf)
 					wg.Done()
 					return
 				}
@@ -321,7 +332,7 @@ func (t *Listener) readPcap() {
 
 			wg.Done()
 
-			var data, srcIP []byte
+			var data, srcIP, dstIP []byte
 
 			for {
 				packet, err := source.NextPacket()
@@ -350,6 +361,7 @@ func (t *Listener) readPcap() {
 					}
 
 					srcIP = data[12:16]
+					dstIP = data[16:20]
 					data = data[ihl*4:]
 				} else {
 					// Truncated IP info
@@ -358,6 +370,7 @@ func (t *Listener) readPcap() {
 					}
 
 					srcIP = data[8:24]
+					dstIP = data[24:40]
 
 					data = data[40:]
 				}
@@ -376,9 +389,29 @@ func (t *Listener) readPcap() {
 						destPort := binary.BigEndian.Uint16(data[2:4])
 						srcPort := binary.BigEndian.Uint16(data[0:2])
 
-						// log.Println(t.port, destPort, srcPort, packet)
+						var addrCheck []byte
 
-						if !(destPort == t.port || (t.trackResponse && srcPort == t.port)) {
+						if destPort == t.port {
+							addrCheck = dstIP
+						}
+
+						if t.trackResponse && srcPort == t.port {
+							addrCheck = srcIP
+						}
+
+						if len(addrCheck) == 0 {
+							continue
+						}
+
+						addrMatched := false
+						for _, a := range device.Addresses {
+							if a.IP.Equal(net.IP(addrCheck)) {
+								addrMatched = true
+								break
+							}
+						}
+
+						if !addrMatched {
 							continue
 						}
 					}

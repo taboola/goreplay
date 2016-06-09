@@ -1,6 +1,8 @@
 SOURCE = emitter.go gor.go gor_stat.go input_dummy.go input_file.go input_raw.go input_tcp.go limiter.go output_dummy.go output_file.go input_http.go output_http.go output_tcp.go plugins.go settings.go test_input.go elasticsearch.go http_modifier.go http_modifier_settings.go http_client.go middleware.go protocol.go output_file_settings.go
 SOURCE_PATH = /go/src/github.com/buger/gor/
-RUN = docker run -v `pwd`:$(SOURCE_PATH) -p 0.0.0.0:8000:8000 -t -i gor
+PORT = 8000
+FADDR = :8000
+RUN = docker run -v `pwd`:$(SOURCE_PATH) -p 0.0.0.0:$(PORT):$(PORT) -t -i gor
 BENCHMARK = BenchmarkRAWInput
 TEST = TestRawListenerBench
 VERSION = DEV-$(shell date +%s)
@@ -67,6 +69,9 @@ run-2:
 
 run-3:
 	sudo -E go run $(SOURCE) --input-tcp :27001 --output-stdout
+
+run-arg:
+	sudo -E go run $(SOURCE) $(ARGS)
 
 file-server:
 	go run $(SOURCE) file-server $(FADDR)
