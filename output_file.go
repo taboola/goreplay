@@ -104,19 +104,19 @@ func withoutIndex(s string) string {
 type sortByFileIndex []string
 
 func (s sortByFileIndex) Len() int {
-    return len(s)
+	return len(s)
 }
 
 func (s sortByFileIndex) Swap(i, j int) {
-    s[i], s[j] = s[j], s[i]
+	s[i], s[j] = s[j], s[i]
 }
 
 func (s sortByFileIndex) Less(i, j int) bool {
-    if withoutIndex(s[i]) == withoutIndex(s[j]) {
-    	return getFileIndex(s[i]) < getFileIndex(s[j])
-    }
+	if withoutIndex(s[i]) == withoutIndex(s[j]) {
+		return getFileIndex(s[i]) < getFileIndex(s[j])
+	}
 
-    return s[i] < s[j]
+	return s[i] < s[j]
 }
 
 func (o *FileOutput) filename() string {

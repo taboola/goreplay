@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"github.com/buger/gor/proto"
 	"io"
 	"io/ioutil"
 	"log"
@@ -22,7 +23,7 @@ import (
 
 const testRawExpire = time.Millisecond * 200
 
-func TestRAWInput(t *testing.T) {
+func TestRAWInputIPv4(t *testing.T) {
 	wg := new(sync.WaitGroup)
 	quit := make(chan int)
 
@@ -42,11 +43,15 @@ func TestRAWInput(t *testing.T) {
 
 	var respCounter, reqCounter int64
 
-	input := NewRAWInput(originAddr, EnginePcap, true, testRawExpire)
+	input := NewRAWInput(originAddr, EnginePcap, true, testRawExpire, "X-Real-IP")
 	defer input.Close()
 
 	output := NewTestOutput(func(data []byte) {
 		if data[0] == '1' {
+			body := payloadBody(data)
+			if len(proto.Header(body, []byte("X-Real-IP"))) == 0 {
+				t.Error("Should have X-Real-IP header", string(body))
+			}
 			atomic.AddInt64(&reqCounter, 1)
 		} else {
 			atomic.AddInt64(&respCounter, 1)
@@ -97,7 +102,7 @@ func TestRAWInputIPv6(t *testing.T) {
 
 	var respCounter, reqCounter int64
 
-	input := NewRAWInput(originAddr, EnginePcap, true, testRawExpire)
+	input := NewRAWInput(originAddr, EnginePcap, true, testRawExpire, "")
 	defer input.Close()
 
 	output := NewTestOutput(func(data []byte) {
@@ -148,7 +153,7 @@ func TestInputRAW100Expect(t *testing.T) {
 
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr, EnginePcap, true, time.Second)
+	input := NewRAWInput(originAddr, EnginePcap, true, time.Second, "")
 	defer input.Close()
 
 	// We will use it to get content of raw HTTP request
@@ -211,7 +216,7 @@ func TestInputRAWChunkedEncoding(t *testing.T) {
 	}))
 
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
-	input := NewRAWInput(originAddr, EnginePcap, true, time.Second)
+	input := NewRAWInput(originAddr, EnginePcap, true, time.Second, "")
 	defer input.Close()
 
 	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -275,7 +280,7 @@ func TestInputRAWLargePayload(t *testing.T) {
 	}))
 	originAddr := strings.Replace(origin.Listener.Addr().String(), "[::]", "127.0.0.1", -1)
 
-	input := NewRAWInput(originAddr, EnginePcap, true, testRawExpire)
+	input := NewRAWInput(originAddr, EnginePcap, true, testRawExpire, "")
 	defer input.Close()
 
 	replay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -320,7 +325,7 @@ func BenchmarkRAWInput(b *testing.B) {
 
 	var respCounter, reqCounter int64
 
-	input := NewRAWInput(originAddr, EnginePcap, true, testRawExpire)
+	input := NewRAWInput(originAddr, EnginePcap, true, testRawExpire, "")
 	defer input.Close()
 
 	output := NewTestOutput(func(data []byte) {

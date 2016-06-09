@@ -9,6 +9,7 @@ import (
 	"log"
 	"strconv"
 	"time"
+	"net"
 )
 
 var _ = log.Println
@@ -266,4 +267,8 @@ func (t *TCPMessage) UpdateResponseAck() uint32 {
 
 func (t *TCPMessage) ID() tcpID {
 	return t.packets[0].ID
+}
+
+func (t *TCPMessage) IP() net.IP {
+	return net.IP(t.packets[0].Addr)
 }

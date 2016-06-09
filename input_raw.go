@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/buger/gor/proto"
 	raw "github.com/buger/gor/raw_socket_listener"
 	"log"
 	"net"
@@ -14,6 +15,7 @@ type RAWInput struct {
 	expire        time.Duration
 	quit          chan bool
 	engine        int
+	realIPHeader  []byte
 	trackResponse bool
 	listener      *raw.Listener
 }
@@ -25,12 +27,13 @@ const (
 )
 
 // NewRAWInput constructor for RAWInput. Accepts address with port as argument.
-func NewRAWInput(address string, engine int, trackResponse bool, expire time.Duration) (i *RAWInput) {
+func NewRAWInput(address string, engine int, trackResponse bool, expire time.Duration, realIPHeader string) (i *RAWInput) {
 	i = new(RAWInput)
 	i.data = make(chan *raw.TCPMessage)
 	i.address = address
 	i.expire = expire
 	i.engine = engine
+	i.realIPHeader = []byte(realIPHeader)
 	i.quit = make(chan bool)
 	i.trackResponse = trackResponse
 
@@ -48,6 +51,9 @@ func (i *RAWInput) Read(data []byte) (int, error) {
 
 	if msg.IsIncoming {
 		header = payloadHeader(RequestPayload, msg.UUID(), msg.Start.UnixNano())
+		if len(i.realIPHeader) > 0 {
+			buf = proto.SetHeader(buf, i.realIPHeader, []byte(msg.IP().String()))
+		}
 	} else {
 		header = payloadHeader(ResponsePayload, msg.UUID(), msg.End.UnixNano()-msg.AssocMessage.Start.UnixNano())
 	}
