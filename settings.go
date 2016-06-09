@@ -47,6 +47,7 @@ type AppSettings struct {
 	inputRAW              MultiOption
 	inputRAWEngine        string
 	inputRAWTrackResponse bool
+	inputRAWRealIPHeader  string
 
 	middleware string
 
@@ -101,6 +102,8 @@ func init() {
 	flag.BoolVar(&Settings.inputRAWTrackResponse, "input-raw-track-response", false, "If turned on Gor will track responses in addition to requests, and they will be available to middleware and file output.")
 
 	flag.StringVar(&Settings.inputRAWEngine, "input-raw-engine", "libpcap", "Intercept traffic using `libpcap` (default), and `raw_socket`")
+
+	flag.StringVar(&Settings.inputRAWRealIPHeader, "input-raw-realip-header", "", "If not blank, injects header with given name and real IP value to the request payload. Usually this header should be named: X-Real-IP")
 
 	flag.StringVar(&Settings.middleware, "middleware", "", "Used for modifying traffic using external command")
 

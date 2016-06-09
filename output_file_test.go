@@ -5,12 +5,12 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"reflect"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
-	"sort"
-	"reflect"
 )
 
 func TestFileOutput(t *testing.T) {

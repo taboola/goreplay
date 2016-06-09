@@ -101,7 +101,7 @@ func InitPlugins() {
 	}
 
 	for _, options := range Settings.inputRAW {
-		registerPlugin(NewRAWInput, options, engine, Settings.inputRAWTrackResponse, time.Duration(0))
+		registerPlugin(NewRAWInput, options, engine, Settings.inputRAWTrackResponse, time.Duration(0), Settings.inputRAWRealIPHeader)
 	}
 
 	for _, options := range Settings.inputTCP {

@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
+	"net/http/httputil"
 	"os"
 	"os/signal"
 	"runtime"
@@ -14,8 +16,6 @@ import (
 	"runtime/pprof"
 	"syscall"
 	"time"
-	"net/http"
-	"net/http/httputil"
 )
 
 var (
@@ -25,11 +25,11 @@ var (
 )
 
 func loggingMiddleware(next http.Handler) http.Handler {
-  return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-    rb, _ := httputil.DumpRequest(r, false)
-    log.Println(string(rb))
-    next.ServeHTTP(w, r)
-  })
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rb, _ := httputil.DumpRequest(r, false)
+		log.Println(string(rb))
+		next.ServeHTTP(w, r)
+	})
 }
 
 func main() {
