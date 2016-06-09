@@ -137,6 +137,7 @@ func (i *FileInput) emit() {
 				if e := i.updateFile(); e != nil {
 					if _, ok := e.(*NextFileNotFound); ok && i.loop {
 						// Start from the first file
+						i.Close()
 						i.currentFile = nil
 						i.currentReader = nil
 						lastTime = 0
