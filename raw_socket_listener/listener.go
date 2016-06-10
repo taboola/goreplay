@@ -348,6 +348,8 @@ func (t *Listener) readPcap() {
 					data = packet.Data()[14:]
 				} else if linkType == layers.LinkTypeNull || linkType == layers.LinkTypeLoop {
 					data = packet.Data()[4:]
+				} else {
+					log.Fatal("Unknown packet layer", packet)
 				}
 
 				version := uint8(data[0]) >> 4
