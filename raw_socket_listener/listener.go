@@ -325,8 +325,16 @@ func (t *Listener) readPcap() {
 			}
 			t.mu.Unlock()
 
-			linkType := handle.LinkType()
-			source := gopacket.NewPacketSource(handle, linkType)
+			var decoder gopacket.Decoder
+
+			// Special case for tunnel interface https://github.com/google/gopacket/issues/99
+			if handle.LinkType() == 12 {
+			    decoder = layers.LayerTypeIPv4
+			} else {
+			    decoder = handle.LinkType()
+			}
+
+			source := gopacket.NewPacketSource(handle, decoder)
 			source.Lazy = true
 			source.NoCopy = true
 
@@ -343,13 +351,14 @@ func (t *Listener) readPcap() {
 					continue
 				}
 
-				if linkType == layers.LinkTypeEthernet {
+				if decoder == layers.LinkTypeEthernet {
 					// Skip ethernet layer, 14 bytes
 					data = packet.Data()[14:]
-				} else if linkType == layers.LinkTypeNull || linkType == layers.LinkTypeLoop {
+				} else if decoder == layers.LinkTypeNull || decoder == layers.LinkTypeLoop {
 					data = packet.Data()[4:]
 				} else {
-					log.Fatal("Unknown packet layer", packet)
+					log.Println("Unknown packet layer", packet)
+					break
 				}
 
 				version := uint8(data[0]) >> 4
