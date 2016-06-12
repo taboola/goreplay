@@ -66,7 +66,7 @@ func NewHTTPClient(baseURL string, config *HTTPClientConfig) *HTTPClient {
 		config.Timeout = 5 * time.Second
 	}
 
-	config.ConnectionTimeout = time.Second
+	config.ConnectionTimeout = config.Timeout
 
 	if config.ResponseBufferSize == 0 {
 		config.ResponseBufferSize = 100 * 1024 // 100kb
