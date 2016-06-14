@@ -166,6 +166,7 @@ func TestSetFileIndex(t *testing.T) {
 		{"/tmp/logs_1", 0, "/tmp/logs_0"},
 		{"/tmp/logs_0", 10, "/tmp/logs_10"},
 		{"/tmp/logs_0.gz", 10, "/tmp/logs_10.gz"},
+		{"/tmp/logs_underscores.gz", 10, "/tmp/logs_underscores_10.gz"},
 	}
 
 	for _, c := range tests {
