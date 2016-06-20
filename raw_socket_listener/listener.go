@@ -351,15 +351,29 @@ func (t *Listener) readPcap() {
 					continue
 				}
 
-				if decoder == layers.LinkTypeEthernet {
-					// Skip ethernet layer, 14 bytes
-					data = packet.Data()[14:]
-				} else if decoder == layers.LinkTypeNull || decoder == layers.LinkTypeLoop {
-					data = packet.Data()[4:]
-				} else {
-					log.Println("Unknown packet layer", packet)
-					break
+				// We should remove network layer before parsing TCP/IP data
+				var of int
+				switch decoder {
+					case layers.LinkTypeEthernet:
+						of = 14
+					case layers.LinkTypePPP:
+						of = 1
+					case layers.LinkTypeFDDI:
+						of = 13
+					case layers.LinkTypeNull:
+						of = 4
+					case layers.LinkTypeLoop:
+						of = 4
+					case layers.LinkTypeRaw:
+						of = 0
+					case layers.LinkTypeLinuxSLL:
+						of = 16
+					default:
+						log.Println("Unknown packet layer", packet)
+						break
 				}
+
+				data = packet.Data()[of:]
 
 				version := uint8(data[0]) >> 4
 
