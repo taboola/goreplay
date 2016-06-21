@@ -147,7 +147,8 @@ func header(payload []byte, name []byte) (value []byte, headerStart, headerEnd, 
 		valueEnd--
 	}
 
-	for valueStart < valueEnd  {	// ignore empty space at end of header value
+	// ignore empty space at end of header value
+	for valueStart < valueEnd  {
 		if payload[valueEnd-1] == ' ' {
 			valueEnd--
 		} else {
@@ -195,7 +196,7 @@ func AddHeader(payload, name, value []byte) []byte {
 
 // DelHeader takes http payload and removes header name from headers section
 // Returns modified request payload
-func DelHeader(payload, name[]byte) []byte {
+func DeleteHeader(payload, name[]byte) []byte {
 	_, hs, he, _, _ := header(payload, name)
 	if hs != -1 {
 		newHeader := make([]byte, len(payload) - (he - hs) - 1)

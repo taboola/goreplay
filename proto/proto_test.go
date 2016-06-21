@@ -104,13 +104,13 @@ func TestSetHeader(t *testing.T) {
 	}
 }
 
-func TestDelHeader(t *testing.T) {
+func TestDeleteHeader(t *testing.T) {
 	var payload, payloadAfter []byte
 
 	payload = []byte("POST /post HTTP/1.1\r\nUser-Agent: Gor\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 	payloadAfter = []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 
-	if payload = DelHeader(payload, []byte("User-Agent")); !bytes.Equal(payload, payloadAfter) {
+	if payload = DeleteHeader(payload, []byte("User-Agent")); !bytes.Equal(payload, payloadAfter) {
 		t.Error("Should delete header if found", string(payload), string(payloadAfter))
 	}
 
@@ -118,7 +118,7 @@ func TestDelHeader(t *testing.T) {
 	payload = []byte("POST /post HTTP/1.1\r\nUser-Agent: Gor \r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 	payloadAfter = []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 
-	if payload = DelHeader(payload, []byte("User-Agent")); !bytes.Equal(payload, payloadAfter) {
+	if payload = DeleteHeader(payload, []byte("User-Agent")); !bytes.Equal(payload, payloadAfter) {
 		t.Error("Should delete header if found", string(payload), string(payloadAfter))
 	}
 }
