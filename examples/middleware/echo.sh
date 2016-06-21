@@ -2,6 +2,10 @@
 #
 # `xxd` utility included into vim-common package
 # It allow hex decoding/encoding
+# 
+# This example may broke if you request contains `null` string, you may consider using pipes instead.
+# See: https://github.com/buger/gor/issues/309
+# 
 
 function log {
     # Logging to stderr, because stdout/stdin used for data transfer
