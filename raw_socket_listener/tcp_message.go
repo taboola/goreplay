@@ -227,6 +227,35 @@ func (t *TCPMessage) IsFinished() bool {
 	return false
 }
 
+var bExpectHeader = []byte("Expect:")
+var bExpect100Value = []byte("100-continue")
+var bPOST = []byte("POST")
+var bCRLFx2 = []byte("\r\n\r\n")
+
+func (t *TCPMessage) Is100Continue() bool {
+	d := t.packets[0].Data
+
+	if len(d) < 25 {
+		return false
+	}
+
+	if !bytes.Equal(d[0:4], bPOST) {
+		return false
+	}
+
+	// reading last 4 bytes for double CRLF
+	if !bytes.Equal(d[len(d)-4:], bCRLFx2) {
+		return false
+	}
+
+	// look for an expect:100-continue header
+	if !bytes.Equal(bExpect100Value, proto.Header(d, bExpectHeader)) {
+		return false
+	}
+
+	return true
+}
+
 func (t *TCPMessage) UUID() []byte {
 	var key []byte
 

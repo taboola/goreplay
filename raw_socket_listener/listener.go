@@ -516,11 +516,6 @@ func (t *Listener) isValidPacket(buf []byte) bool {
 	return false
 }
 
-var bExpectHeader = []byte("Expect:")
-var bExpect100Value = []byte("100-continue")
-var bPOST = []byte("POST")
-var bCRLFx2 = []byte("\r\n\r\n")
-
 // Trying to add packet to existing message or creating new message
 //
 // For TCP message unique id is Acknowledgment number (see tcp_packet.go)
@@ -592,38 +587,30 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 	message.AddPacket(packet)
 
 	// Handling Expect: 100-continue requests
-	if len(packet.Data) > 4 && bytes.Equal(packet.Data[0:4], bPOST) {
-		// reading last 8 bytes for double CRLF
-		if bytes.Equal(packet.Data[len(packet.Data)-4:], bCRLFx2) {
-			// look for an expect:100-continue header
-			if bytes.Equal(bExpect100Value, proto.Header(packet.Data, bExpectHeader)) {
-				seq := packet.Seq + uint32(len(packet.Data))
-				t.seqWithData[seq] = packet.Ack
-				message.DataSeq = seq
+	if message.Is100Continue() {
+		seq := packet.Seq + uint32(len(packet.Data))
+		t.seqWithData[seq] = packet.Ack
+		message.DataSeq = seq
 
-				// In case if sequence packet came first
-				for _, m := range t.messages {
-					if m.Seq == seq {
-						t.deleteMessage(m)
-						if m.AssocMessage != nil {
-							message.AssocMessage = m.AssocMessage
-						}
-						// log.Println("2: Adding ack alias:", m.Ack, packet.Ack)
-						t.ackAliases[m.Ack] = packet.Ack
-
-						for _, pkt := range m.packets {
-							pkt.UpdateAck(packet.Ack)
-							message.AddPacket(pkt)
-						}
-					}
+		// In case if sequence packet came first
+		for _, m := range t.messages {
+			if m.Seq == seq {
+				t.deleteMessage(m)
+				if m.AssocMessage != nil {
+					message.AssocMessage = m.AssocMessage
 				}
+				// log.Println("2: Adding ack alias:", m.Ack, packet.Ack)
+				t.ackAliases[m.Ack] = packet.Ack
 
-				// Removing `Expect: 100-continue` header
-				packet.Data = proto.DelHeader(packet.Data, bExpectHeader)
-
-				// log.Println(string(packet.Data))
+				for _, pkt := range m.packets {
+					pkt.UpdateAck(packet.Ack)
+					message.AddPacket(pkt)
+				}
 			}
 		}
+
+		// Removing `Expect: 100-continue` header
+		packet.Data = proto.DeleteHeader(packet.Data, bExpectHeader)
 	}
 
 	// log.Println("Received message:", string(message.Bytes()), message.ID(), t.messages)
