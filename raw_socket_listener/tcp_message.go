@@ -7,9 +7,9 @@ import (
 	"encoding/hex"
 	"github.com/buger/gor/proto"
 	"log"
+	"net"
 	"strconv"
 	"time"
-	"net"
 )
 
 var _ = log.Println
@@ -36,6 +36,15 @@ type TCPMessage struct {
 	packets []*TCPPacket
 
 	delChan chan *TCPMessage
+
+	/* HTTP specific variables */
+	methodType    httpMethodType
+	bodyType      httpBodyType
+	expectType    httpExpectType
+	seqMissing    bool
+	headerPacket  int
+	contentLength int
+	complete      bool
 }
 
 // NewTCPMessage pointer created from a Acknowledgment number and a channel of messages readuy to be deleted
@@ -121,139 +130,294 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 			t.DataAck = packet.OrigAck
 		}
 	}
+
+	t.checkSeqIntegrity()
+	t.updateHeadersPacket()
+	t.updateMethodType()
+	t.updateBodyType()
+	t.checkIfComplete()
+	t.check100Continue()
 }
 
 // Check if there is missing packet
-func (t *TCPMessage) isSeqMissing() bool {
+func (t *TCPMessage) checkSeqIntegrity() {
 	if len(t.packets) == 1 {
-		return false
+		t.seqMissing = false
 	}
 
 	for i, p := range t.packets {
 		// If final packet
 		if len(t.packets) == i+1 {
-			return false
+			t.seqMissing = false
+			return
 		}
 		np := t.packets[i+1]
 
-		if np.Seq != p.Seq+uint32(len(p.Data)) {
-			return true
+		nextSeq := p.Seq + uint32(len(p.Data))
+
+		if np.Seq != nextSeq {
+			if t.expectType == httpExpect100Continue {
+				if np.Seq != nextSeq+22 {
+					t.seqMissing = true
+					return
+				}
+			} else {
+				t.seqMissing = true
+				return
+			}
 		}
 	}
 
-	return false
+	t.seqMissing = false
 }
 
-var EmptyLine = []byte("\r\n\r\n")
-var ChunkEnd = []byte("0\r\n\r\n")
+var bCLRF = []byte("\r\n")
+var bEmptyLine = []byte("\r\n\r\n")
+var bChunkEnd = []byte("0\r\n\r\n")
 
-func (t *TCPMessage) isHeadersReceived() bool {
-	for _, p := range t.packets {
-		if bytes.LastIndex(p.Data, EmptyLine) != -1 {
-			return true
+func (t *TCPMessage) updateHeadersPacket() {
+	if len(t.packets) == 1 {
+		t.headerPacket = -1
+	}
+
+	if t.headerPacket != -1 {
+		return
+	}
+
+	if t.seqMissing {
+		return
+	}
+
+	for i, p := range t.packets {
+		if bytes.LastIndex(p.Data, bEmptyLine) != -1 {
+			t.headerPacket = i
+			return
 		}
 	}
 
-	return false
+	return
 }
 
 // isMultipart returns true if message contains from multiple tcp packets
-func (t *TCPMessage) IsFinished() bool {
-	payload := t.packets[0].Data
-
-	if len(payload) < 4 {
-		return true
+func (t *TCPMessage) checkIfComplete() {
+	if t.seqMissing || t.headerPacket == -1 {
+		return
 	}
 
-	m := payload[:4]
+	if t.methodType == httpMethodNotFound {
+		return
+	}
+
+	// Responses can be emitted only if we found request
+	if !t.IsIncoming && t.AssocMessage == nil {
+		return
+	}
+
+	// If one GET, OPTIONS, or HEAD request
+	if t.methodType == httpMethodWithoutBody {
+		t.complete = true
+	} else {
+		switch t.bodyType {
+		case httpBodyEmpty:
+			t.complete = true
+		case httpBodyContentLength:
+			if t.contentLength == 0 || t.contentLength == t.BodySize() {
+				t.complete = true
+			}
+		case httpBodyChunked:
+			lastPacket := t.packets[len(t.packets)-1]
+			if bytes.LastIndex(lastPacket.Data, bChunkEnd) != -1 {
+				t.complete = true
+			}
+		}
+	}
+}
+
+type httpMethodType uint8
+
+const (
+	httpMethodNotSet      httpMethodType = 0
+	httpMethodWithBody    httpMethodType = 1
+	httpMethodWithoutBody httpMethodType = 2
+	httpMethodNotFound    httpMethodType = 3
+)
+
+var methodsWithBody = [][]byte{
+	[]byte("POST"),
+	[]byte("PUT"),
+	[]byte("PATCH"),
+	[]byte("CONNECT"),
+}
+
+func (t *TCPMessage) updateMethodType() {
+	// if there is cache
+	if t.methodType != httpMethodNotSet && t.methodType != httpMethodNotFound {
+		return
+	}
+
+	d := t.packets[0].Data
+
+	// Minimum length fo request: GET / HTTP/1.1\r\n
+
+	if len(d) < 16 {
+		t.methodType = httpMethodNotFound
+		return
+	}
 
 	if t.IsIncoming {
-		// If one GET, OPTIONS, or HEAD request
-		if bytes.Equal(m, []byte("GET ")) || bytes.Equal(m, []byte("OPTI")) || bytes.Equal(m, []byte("HEAD")) {
-			if !t.isSeqMissing() && t.isHeadersReceived() {
-				return true
-			} else {
-				return false
+		var method []byte
+		if mIdx := bytes.IndexByte(d[:8], ' '); mIdx != -1 {
+			method = d[:mIdx]
+
+			// Check that after method we have absolute or relative path
+			switch d[mIdx+1] {
+			case '/', 'h', '*':
+			default:
+				t.methodType = httpMethodNotFound
+				return
 			}
 		} else {
-			// Sometimes header comes after the body :(
-			if bytes.Equal(m, []byte("POST")) || bytes.Equal(m, []byte("PUT ")) || bytes.Equal(m, []byte("PATC")) {
+			t.methodType = httpMethodNotFound
+			return
+		}
 
-				if t.isHeadersReceived() {
-					if length := proto.Header(payload, []byte("Content-Length")); len(length) > 0 {
-						l, _ := strconv.Atoi(string(length))
-
-						// If content-length equal current body length
-						if l > 0 && l == t.BodySize() {
-							return true
-						}
-					}
-				}
+		for _, m := range methodsWithBody {
+			if len(m) == len(method) && bytes.Equal(m, method) {
+				t.methodType = httpMethodWithBody
+				return
 			}
 		}
+
+		t.methodType = httpMethodWithoutBody
 	} else {
-		// Request not found
-		// Can be because response came first or request request was just missing
-		if t.AssocMessage == nil {
-			return false
+		if !bytes.Equal(d[:6], []byte("HTTP/1")) {
+			t.methodType = httpMethodNotFound
+			return
 		}
 
-		if !bytes.Equal(m, []byte("HTTP")) {
-			return false
+		t.methodType = httpMethodWithBody
+	}
+}
+
+type httpBodyType uint8
+
+const (
+	httpBodyNotSet        httpBodyType = 0
+	httpBodyEmpty         httpBodyType = 1
+	httpBodyContentLength httpBodyType = 2
+	httpBodyChunked       httpBodyType = 3
+)
+
+func (t *TCPMessage) updateBodyType() {
+	// if there is cache
+	if t.bodyType != httpBodyNotSet {
+		return
+	}
+
+	// Headers not received
+	if t.headerPacket == -1 {
+		return
+	}
+
+	switch t.methodType {
+	case httpMethodNotFound:
+		return
+	case httpMethodWithoutBody:
+		t.bodyType = httpBodyEmpty
+		return
+	case httpMethodWithBody:
+		var lengthB, encB []byte
+
+		for _, p := range t.packets[:t.headerPacket+1] {
+			lengthB = proto.Header(p.Data, []byte("Content-Length"))
+
+			if len(lengthB) > 0 {
+				break
+			}
 		}
 
-		if length := proto.Header(payload, []byte("Content-Length")); len(length) > 0 {
-			if length[0] == '0' {
-				return true
-			}
-
-			l, _ := strconv.Atoi(string(length))
-
-			// If content-length equal current body length
-			if l > 0 && l == t.BodySize() {
-				return true
-			}
+		if len(lengthB) > 0 {
+			t.bodyType = httpBodyContentLength
+			t.contentLength, _ = strconv.Atoi(string(lengthB))
+			return
 		} else {
-			if enc := proto.Header(payload, []byte("Transfer-Encoding")); len(enc) == 0 {
-				return true
-			} else {
-				if len(t.packets) > 1 && bytes.LastIndex(t.packets[len(t.packets)-1].Data, ChunkEnd) != -1 {
-					return true
+			for _, p := range t.packets[:t.headerPacket+1] {
+				encB = proto.Header(p.Data, []byte("Transfer-Encoding"))
+
+				if len(encB) > 0 {
+					t.bodyType = httpBodyChunked
+					return
 				}
 			}
 		}
 	}
 
-	return false
+	t.bodyType = httpBodyEmpty
 }
+
+type httpExpectType uint8
+
+const (
+	httpExpectNotSet      httpExpectType = 0
+	httpExpectEmpty       httpExpectType = 1
+	httpExpect100Continue httpExpectType = 2
+)
 
 var bExpectHeader = []byte("Expect:")
 var bExpect100Value = []byte("100-continue")
-var bPOST = []byte("POST")
-var bCRLFx2 = []byte("\r\n\r\n")
 
-func (t *TCPMessage) Is100Continue() bool {
-	d := t.packets[0].Data
-
-	if len(d) < 25 {
-		return false
+func (t *TCPMessage) check100Continue() {
+	if t.expectType != httpExpectNotSet || len(t.packets[0].Data) < 25 {
+		return
 	}
 
-	if !bytes.Equal(d[0:4], bPOST) {
-		return false
+	if t.methodType != httpMethodWithBody {
+		return
 	}
 
+	if t.seqMissing || t.headerPacket == -1 {
+		return
+	}
+
+	last := t.packets[len(t.packets)-1]
 	// reading last 4 bytes for double CRLF
-	if !bytes.Equal(d[len(d)-4:], bCRLFx2) {
-		return false
+	if !bytes.HasSuffix(last.Data, bEmptyLine) {
+		return
 	}
 
-	// look for an expect:100-continue header
-	if !bytes.Equal(bExpect100Value, proto.Header(d, bExpectHeader)) {
-		return false
+	for _, p := range t.packets[:t.headerPacket+1] {
+		if h := proto.Header(p.Data, bExpectHeader); len(h) > 0 {
+			if bytes.Equal(bExpect100Value, h) {
+				t.expectType = httpExpect100Continue
+			}
+			return
+		}
 	}
 
-	return true
+	t.expectType = httpExpectEmpty
+}
+
+func (t *TCPMessage) setAssocMessage(m *TCPMessage) {
+	t.AssocMessage = m
+	t.checkIfComplete()
+}
+
+// UpdateResponseAck should be called after packet is added
+func (t *TCPMessage) UpdateResponseAck() uint32 {
+	lastPacket := t.packets[len(t.packets)-1]
+	respAck := lastPacket.Seq + uint32(len(lastPacket.Data))
+
+	if t.ResponseAck != respAck {
+		t.ResponseAck = lastPacket.Seq + uint32(len(lastPacket.Data))
+
+		// We swappwed src and dst port
+		copy(t.ResponseID[:16], lastPacket.Addr)
+		copy(t.ResponseID[16:], lastPacket.Raw[2:4]) // Src port
+		copy(t.ResponseID[18:], lastPacket.Raw[0:2]) // Dest port
+		binary.BigEndian.PutUint32(t.ResponseID[20:24], t.ResponseAck)
+	}
+
+	return t.ResponseAck
 }
 
 func (t *TCPMessage) UUID() []byte {
@@ -274,24 +438,6 @@ func (t *TCPMessage) UUID() []byte {
 	hex.Encode(uuid, sha[:20])
 
 	return uuid
-}
-
-// UpdateResponseAck should be called after packet is added
-func (t *TCPMessage) UpdateResponseAck() uint32 {
-	lastPacket := t.packets[len(t.packets)-1]
-	respAck := lastPacket.Seq + uint32(len(lastPacket.Data))
-
-	if t.ResponseAck != respAck {
-		t.ResponseAck = lastPacket.Seq + uint32(len(lastPacket.Data))
-
-		// We swappwed src and dst port
-		copy(t.ResponseID[:16], lastPacket.Addr)
-		copy(t.ResponseID[16:], lastPacket.Raw[2:4]) // Src port
-		copy(t.ResponseID[18:], lastPacket.Raw[0:2]) // Dest port
-		binary.BigEndian.PutUint32(t.ResponseID[20:24], t.ResponseAck)
-	}
-
-	return t.ResponseAck
 }
 
 func (t *TCPMessage) ID() tcpID {

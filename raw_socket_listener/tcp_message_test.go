@@ -80,77 +80,45 @@ func TestTCPMessageSize(t *testing.T) {
 	}
 }
 
-func TestTCPMessageIsFinished(t *testing.T) {
-	methodsWithoutBodies := []string{"GET", "OPTIONS", "HEAD"}
+func TestTCPMessageIsComplete(t *testing.T) {
+	testCases := []struct {
+		direction         bool
+		payload           string
+		assocMessage      bool
+		expectedCompleted bool
+	}{
+		{true, "GET / HTTP/1.1\r\n\r\n", false, true},
+		{true, "HEAD / HTTP/1.1\r\n\r\n", false, true},
+		{false, "HTTP/1.1 200 OK\r\n\r\n", true, true},
+		{true, "POST / HTTP/1.1\r\nContent-Length: 1\r\n\r\na", false, true},
+		{true, "PUT / HTTP/1.1\r\nContent-Length: 1\r\n\r\na", false, true},
+		{false, "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n", true, true},
+		{false, "HTTP/1.1 200 OK\r\nContent-Length: 1\r\n\r\na", true, true},
+		{false, "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n", true, true},
 
-	for _, m := range methodsWithoutBodies {
-		msg := buildMessage(buildPacket(true, 1, 1, []byte(m+" / HTTP/1.1\r\n\r\n")))
+		// chunked not finished
+		{false, "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n", true, false},
 
-		if !msg.IsFinished() {
-			t.Error(m, " request should be finished")
+		// content-length != actual length
+		{true, "POST / HTTP/1.1\r\nContent-Length: 2\r\n\r\na", false, false},
+		{false, "HTTP/1.1 200 OK\r\nContent-Length: 10\r\n\r\na", true, false},
+		// non-valid http request
+		{true, "UNKNOWN asd HTTP/1.1\r\n\r\n", false, false},
+
+		// response without associated request
+		{false, "HTTP/1.1 200 OK\r\n\r\n", false, false},
+	}
+
+	for _, tc := range testCases {
+		msg := buildMessage(buildPacket(tc.direction, 1, 1, []byte(tc.payload)))
+		if tc.assocMessage {
+			msg.AssocMessage = &TCPMessage{}
 		}
-	}
+		msg.checkIfComplete()
 
-	methodsWithBodies := []string{"POST", "PUT", "PATCH"}
-
-	for _, m := range methodsWithBodies {
-		msg := buildMessage(buildPacket(true, 1, 1, []byte(m+" / HTTP/1.1\r\nContent-Length: 1\r\n\r\na")))
-
-		if !msg.IsFinished() {
-			t.Error(m, " should be finished as body length == content length")
+		if msg.complete != tc.expectedCompleted {
+			t.Errorf("Payload %s: Expected %t, got %t.", tc.payload, tc.expectedCompleted, msg.complete)
 		}
-
-		msg = buildMessage(buildPacket(true, 1, 1, []byte(m+" / HTTP/1.1\r\nContent-Length: 2\r\n\r\na")))
-
-		if msg.IsFinished() {
-			t.Error(m, " should not be finished as body length != content length")
-		}
-	}
-
-	msg := buildMessage(buildPacket(true, 1, 1, []byte("UNKNOWN / HTTP/1.1\r\n\r\n")))
-	if msg.IsFinished() {
-		t.Error("non http or wrong methods considered as not finished")
-	}
-
-	// Responses
-	msg = buildMessage(buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\n\r\n")))
-	msg.AssocMessage = &TCPMessage{}
-	if !msg.IsFinished() {
-		t.Error("Should mark simple response as finished")
-	}
-
-	msg = buildMessage(buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\n\r\n")))
-	msg.AssocMessage = nil
-	if msg.IsFinished() {
-		t.Error("Should not mark responses without associated requests")
-	}
-
-	msg = buildMessage(buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n")))
-	msg.AssocMessage = &TCPMessage{}
-
-	if msg.IsFinished() {
-		t.Error("Should mark chunked response as non finished")
-	}
-
-	msg = buildMessage(buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n")))
-	msg.AssocMessage = &TCPMessage{}
-
-	if !msg.IsFinished() {
-		t.Error("Should mark Content-Length: 0 respones as finished")
-	}
-
-	msg = buildMessage(buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\nContent-Length: 1\r\n\r\na")))
-	msg.AssocMessage = &TCPMessage{}
-
-	if !msg.IsFinished() {
-		t.Error("Should mark valid Content-Length respones as finished")
-	}
-
-	msg = buildMessage(buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\nContent-Length: 10\r\n\r\na")))
-	msg.AssocMessage = &TCPMessage{}
-
-	if msg.IsFinished() {
-		t.Error("Should not mark not valid Content-Length respones as finished")
 	}
 }
 
@@ -160,32 +128,90 @@ func TestTCPMessageIsSeqMissing(t *testing.T) {
 	p3 := buildPacket(false, 1, p2.Seq+uint32(len(p2.Data)), []byte("a"))
 
 	msg := buildMessage(p1)
-	if msg.isSeqMissing() {
+	if msg.seqMissing {
 		t.Error("Should be complete if have only 1 packet")
 	}
 
 	msg.AddPacket(p3)
-	if !msg.isSeqMissing() {
+	if !msg.seqMissing {
 		t.Error("Should be incomplete because missing middle component")
 	}
 
 	msg.AddPacket(p2)
-	if msg.isSeqMissing() {
+	if msg.seqMissing {
 		t.Error("Should be complete once missing packet added")
 	}
 }
 
 func TestTCPMessageIsHeadersReceived(t *testing.T) {
-	p1 := buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\n"))
+	p1 := buildPacket(false, 1, 1, []byte("HTTP/1.1 200 OK\r\n\r\n"))
 	p2 := buildPacket(false, 1, p1.Seq+uint32(len(p1.Data)), []byte("Content-Length: 10\r\n\r\n"))
 
 	msg := buildMessage(p1)
-	if msg.isHeadersReceived() {
-		t.Error("Should be complete if have only 1 packet")
+	if msg.headerPacket == -1 {
+		t.Error("Should be complete if have only 1 packet", msg.headerPacket)
 	}
 
 	msg.AddPacket(p2)
-	if !msg.isHeadersReceived() {
+	if msg.headerPacket == -1 {
 		t.Error("Should found double new line: headers received")
+	}
+
+	msg = buildMessage(buildPacket(true, 1, 1, []byte("GET / HTTP/1.1\r\nContent-Length: 1\r\n")))
+	if msg.headerPacket != -1 {
+		t.Error("Should not find headers end")
+	}
+}
+
+func TestTCPMessageMethodType(t *testing.T) {
+	testCases := []struct {
+		direction          bool
+		payload            string
+		expectedMethodType httpMethodType
+	}{
+		{true, "GET / HTTP/1.1\r\n\r\n", httpMethodWithoutBody},
+		{true, "GET * HTTP/1.1\r\n\r\n", httpMethodWithoutBody},
+		{true, "UNKNOWN / HTTP/1.1\r\n\r\n", httpMethodWithoutBody},
+		{true, "GET http://example.com HTTP/1.1\r\n\r\n", httpMethodWithoutBody},
+		{true, "POST / HTTP/1.1\r\n\r\n", httpMethodWithBody},
+		{true, "PUT / HTTP/1.1\r\n\r\n", httpMethodWithBody},
+		{true, "GET zxc HTTP/1.1\r\n\r\n", httpMethodNotFound},
+		{true, "GET / HTTP\r\n\r\n", httpMethodNotFound},
+		{true, "VERYLONGMETHOD / HTTP/1.1\r\n\r\n", httpMethodNotFound},
+		{false, "HTTP/1.1 200 OK\r\n\r\n", httpMethodWithBody},
+		{false, "HTTP /1.1 200 OK\r\n\r\n", httpMethodNotFound},
+	}
+
+	for _, tc := range testCases {
+		msg := buildMessage(buildPacket(tc.direction, 1, 1, []byte(tc.payload)))
+
+		if msg.methodType != tc.expectedMethodType {
+			t.Errorf("Expected %d, got %d", tc.expectedMethodType, msg.methodType)
+		}
+	}
+}
+
+func TestTCPMessageBodyType(t *testing.T) {
+	testCases := []struct {
+		direction        bool
+		payload          string
+		expectedBodyType httpBodyType
+	}{
+		{true, "GET / HTTP/1.1\r\n\r\n", httpBodyEmpty},
+		{true, "POST / HTTP/1.1\r\n\r\n", httpBodyEmpty},
+		{true, "POST / HTTP/1.1\r\nUser-Agent: zxc\r\n\r\n", httpBodyEmpty},
+		{false, "HTTP/1.1 200 OK\r\n\r\n", httpBodyEmpty},
+		{true, "POST / HTTP/1.1\r\nContent-Length: 2\r\n\r\nab", httpBodyContentLength},
+		{false, "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nab", httpBodyContentLength},
+		{true, "POST / HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n2\r\nab\r\n0\r\n\r\n", httpBodyChunked},
+		{false, "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n2\r\nab\r\n0\r\n\r\n", httpBodyChunked},
+	}
+
+	for _, tc := range testCases {
+		msg := buildMessage(buildPacket(tc.direction, 1, 1, []byte(tc.payload)))
+
+		if msg.bodyType != tc.expectedBodyType {
+			t.Errorf("Expected %d, got %d", tc.expectedBodyType, msg.bodyType)
+		}
 	}
 }

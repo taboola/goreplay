@@ -16,6 +16,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/buger/gor/proto"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
@@ -28,7 +29,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"github.com/buger/gor/proto"
 )
 
 var _ = fmt.Println
@@ -173,7 +173,17 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 
 	t.deleteMessage(message)
 
-	// log.Println("Dispatching, message", message.Start.UnixNano(), message.Seq, message.Ack, string(message.Bytes()))
+	if message.methodType == httpMethodNotFound {
+		return
+	}
+
+	if !message.complete {
+		if !message.IsIncoming {
+			delete(t.respAliases, message.Ack)
+			delete(t.respWithoutReq, message.Ack)
+		}
+		return
+	}
 
 	if message.IsIncoming {
 		// If there were response before request
@@ -183,10 +193,10 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 				if resp, rok := t.messages[respID]; rok {
 					// if resp.AssocMessage == nil {
 					// log.Println("FOUND RESPONSE")
-					resp.AssocMessage = message
-					message.AssocMessage = resp
+					resp.setAssocMessage(message)
+					message.setAssocMessage(resp)
 
-					if resp.IsFinished() {
+					if resp.complete {
 						defer t.dispatchMessage(resp)
 					}
 					// }
@@ -194,14 +204,14 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 			}
 
 			if resp, ok := t.messages[message.ResponseID]; ok {
-				resp.AssocMessage = message
+				resp.setAssocMessage(message)
 			}
 		}
 	} else {
 		if message.AssocMessage == nil {
 			if responseRequest, ok := t.respAliases[message.Ack]; ok {
-				message.AssocMessage = responseRequest
-				responseRequest.AssocMessage = message
+				message.setAssocMessage(responseRequest)
+				responseRequest.setAssocMessage(message)
 			}
 		}
 
@@ -303,7 +313,7 @@ func (t *Listener) readPcap() {
 			for i, addr := range device.Addresses {
 				bpfDstHost += "dst host " + addr.IP.String()
 				bpfSrcHost += "src host " + addr.IP.String()
-				if i != len(device.Addresses) - 1 {
+				if i != len(device.Addresses)-1 {
 					bpfDstHost += " or "
 					bpfSrcHost += " or "
 				}
@@ -330,9 +340,9 @@ func (t *Listener) readPcap() {
 
 			// Special case for tunnel interface https://github.com/google/gopacket/issues/99
 			if handle.LinkType() == 12 {
-			    decoder = layers.LayerTypeIPv4
+				decoder = layers.LayerTypeIPv4
 			} else {
-			    decoder = handle.LinkType()
+				decoder = handle.LinkType()
 			}
 
 			source := gopacket.NewPacketSource(handle, decoder)
@@ -355,23 +365,23 @@ func (t *Listener) readPcap() {
 				// We should remove network layer before parsing TCP/IP data
 				var of int
 				switch decoder {
-					case layers.LinkTypeEthernet:
-						of = 14
-					case layers.LinkTypePPP:
-						of = 1
-					case layers.LinkTypeFDDI:
-						of = 13
-					case layers.LinkTypeNull:
-						of = 4
-					case layers.LinkTypeLoop:
-						of = 4
-					case layers.LinkTypeRaw:
-						of = 0
-					case layers.LinkTypeLinuxSLL:
-						of = 16
-					default:
-						log.Println("Unknown packet layer", packet)
-						break
+				case layers.LinkTypeEthernet:
+					of = 14
+				case layers.LinkTypePPP:
+					of = 1
+				case layers.LinkTypeFDDI:
+					of = 13
+				case layers.LinkTypeNull:
+					of = 4
+				case layers.LinkTypeLoop:
+					of = 4
+				case layers.LinkTypeRaw:
+					of = 0
+				case layers.LinkTypeLinuxSLL:
+					of = 16
+				default:
+					log.Println("Unknown packet layer", packet)
+					break
 				}
 
 				data = packet.Data()[of:]
@@ -541,7 +551,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 				t.deleteMessage(m)
 
 				if m.AssocMessage != nil {
-					m.AssocMessage.AssocMessage = nil
+					m.setAssocMessage(nil)
 				}
 
 				for _, pkt := range m.packets {
@@ -575,8 +585,8 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 
 		if !isIncoming {
 			if responseRequest != nil {
-				message.AssocMessage = responseRequest
-				responseRequest.AssocMessage = message
+				message.setAssocMessage(responseRequest)
+				responseRequest.setAssocMessage(message)
 			} else {
 				t.respWithoutReq[packet.Ack] = packet.ID
 			}
@@ -587,17 +597,18 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 	message.AddPacket(packet)
 
 	// Handling Expect: 100-continue requests
-	if message.Is100Continue() {
+	if message.expectType == httpExpect100Continue && len(message.packets) == message.headerPacket+1 {
 		seq := packet.Seq + uint32(len(packet.Data))
 		t.seqWithData[seq] = packet.Ack
 		message.DataSeq = seq
+		message.complete = false
 
 		// In case if sequence packet came first
 		for _, m := range t.messages {
 			if m.Seq == seq {
 				t.deleteMessage(m)
 				if m.AssocMessage != nil {
-					message.AssocMessage = m.AssocMessage
+					message.setAssocMessage(m.AssocMessage)
 				}
 				// log.Println("2: Adding ack alias:", m.Ack, packet.Ack)
 				t.ackAliases[m.Ack] = packet.Ack
@@ -626,13 +637,13 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 	}
 
 	// If message contains only single packet immediately dispatch it
-	if message.IsFinished() {
+	if message.complete {
 		if isIncoming {
 			// log.Println("I'm finished", string(message.Bytes()), message.ResponseID, t.messages)
 			if t.trackResponse {
 				if resp, ok := t.messages[message.ResponseID]; ok {
 					t.dispatchMessage(message)
-					if resp.IsFinished() {
+					if resp.complete {
 						t.dispatchMessage(resp)
 					}
 				}
@@ -645,7 +656,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 			}
 
 			if req, ok := t.messages[message.AssocMessage.ID()]; ok {
-				if req.IsFinished() {
+				if req.complete {
 					t.dispatchMessage(req)
 					t.dispatchMessage(message)
 				}
