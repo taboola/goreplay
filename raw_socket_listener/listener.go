@@ -28,6 +28,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"github.com/buger/gor/proto"
 )
 
 var _ = fmt.Println
@@ -351,15 +352,29 @@ func (t *Listener) readPcap() {
 					continue
 				}
 
-				if decoder == layers.LinkTypeEthernet {
-					// Skip ethernet layer, 14 bytes
-					data = packet.Data()[14:]
-				} else if decoder == layers.LinkTypeNull || decoder == layers.LinkTypeLoop {
-					data = packet.Data()[4:]
-				} else {
-					log.Println("Unknown packet layer", packet)
-					break
+				// We should remove network layer before parsing TCP/IP data
+				var of int
+				switch decoder {
+					case layers.LinkTypeEthernet:
+						of = 14
+					case layers.LinkTypePPP:
+						of = 1
+					case layers.LinkTypeFDDI:
+						of = 13
+					case layers.LinkTypeNull:
+						of = 4
+					case layers.LinkTypeLoop:
+						of = 4
+					case layers.LinkTypeRaw:
+						of = 0
+					case layers.LinkTypeLinuxSLL:
+						of = 16
+					default:
+						log.Println("Unknown packet layer", packet)
+						break
 				}
+
+				data = packet.Data()[of:]
 
 				version := uint8(data[0]) >> 4
 
@@ -501,9 +516,6 @@ func (t *Listener) isValidPacket(buf []byte) bool {
 	return false
 }
 
-var bExpect100ContinueCheck = []byte("Expect: 100-continue")
-var bPOST = []byte("POST")
-
 // Trying to add packet to existing message or creating new message
 //
 // For TCP message unique id is Acknowledgment number (see tcp_packet.go)
@@ -575,35 +587,30 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 	message.AddPacket(packet)
 
 	// Handling Expect: 100-continue requests
-	if len(packet.Data) > 4 && bytes.Equal(packet.Data[0:4], bPOST) {
-		// reading last 20 bytes (not counting CRLF): last header value (if no body presented)
-		if bytes.Equal(packet.Data[len(packet.Data)-24:len(packet.Data)-4], bExpect100ContinueCheck) {
-			seq := packet.Seq + uint32(len(packet.Data))
-			t.seqWithData[seq] = packet.Ack
-			message.DataSeq = seq
+	if message.Is100Continue() {
+		seq := packet.Seq + uint32(len(packet.Data))
+		t.seqWithData[seq] = packet.Ack
+		message.DataSeq = seq
 
-			// In case if sequence packet came first
-			for _, m := range t.messages {
-				if m.Seq == seq {
-					t.deleteMessage(m)
-					if m.AssocMessage != nil {
-						message.AssocMessage = m.AssocMessage
-					}
-					// log.Println("2: Adding ack alias:", m.Ack, packet.Ack)
-					t.ackAliases[m.Ack] = packet.Ack
+		// In case if sequence packet came first
+		for _, m := range t.messages {
+			if m.Seq == seq {
+				t.deleteMessage(m)
+				if m.AssocMessage != nil {
+					message.AssocMessage = m.AssocMessage
+				}
+				// log.Println("2: Adding ack alias:", m.Ack, packet.Ack)
+				t.ackAliases[m.Ack] = packet.Ack
 
-					for _, pkt := range m.packets {
-						pkt.UpdateAck(packet.Ack)
-						message.AddPacket(pkt)
-					}
+				for _, pkt := range m.packets {
+					pkt.UpdateAck(packet.Ack)
+					message.AddPacket(pkt)
 				}
 			}
-
-			// Removing `Expect: 100-continue` header
-			packet.Data = append(packet.Data[:len(packet.Data)-24], packet.Data[len(packet.Data)-2:]...)
-
-			// log.Println(string(packet.Data))
 		}
+
+		// Removing `Expect: 100-continue` header
+		packet.Data = proto.DeleteHeader(packet.Data, bExpectHeader)
 	}
 
 	// log.Println("Received message:", string(message.Bytes()), message.ID(), t.messages)
