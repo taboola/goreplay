@@ -117,10 +117,10 @@ func TestShort100Continue(t *testing.T) {
 	reqPacket2 := buildPacket(true, 2, reqPacket1.Seq+uint32(len(reqPacket1.Data)), []byte("a"))
 	reqPacket3 := buildPacket(true, 2, reqPacket2.Seq+1, []byte("b"))
 
-	respPacket1 := buildPacket(false, 10, 3, []byte("HTTP/1.1 100 Continue\r\n"))
+	respPacket1 := buildPacket(false, 10, 3, []byte("HTTP/1.1 100 Continue\r\n\r\n"))
 
 	// panic(int(uint32(len(reqPacket1.Data)) + uint32(len(reqPacket2.Data)) + uint32(len(reqPacket3.Data))))
-	respPacket2 := buildPacket(false, reqPacket3.Seq+1 /* len of data */, 2, []byte("HTTP/1.1 200 OK\r\n"))
+	respPacket2 := buildPacket(false, reqPacket3.Seq+1 /* len of data */, 2, []byte("HTTP/1.1 200 OK\r\n\r\n"))
 
 	result := []byte("POST / HTTP/1.1\r\nContent-Length: 2\r\n\r\nab")
 
@@ -140,7 +140,7 @@ func Test100ContinueWrongOrder(t *testing.T) {
 	respPacket1 := buildPacket(false, 10, 3, []byte("HTTP/1.1 100 Continue\r\n"))
 
 	// panic(int(uint32(len(reqPacket1.Data)) + uint32(len(reqPacket2.Data)) + uint32(len(reqPacket3.Data))))
-	respPacket2 := buildPacket(false, reqPacket3.Seq+1 /* len of data */, 2, []byte("HTTP/1.1 200 OK\r\n"))
+	respPacket2 := buildPacket(false, reqPacket3.Seq+1 /* len of data */, 2, []byte("HTTP/1.1 200 OK\r\n\r\n"))
 
 	result := []byte("POST / HTTP/1.1\r\nContent-Length: 2\r\n\r\nab")
 
@@ -159,14 +159,12 @@ func TestAlt100ContinueHeaderOrder(t *testing.T) {
 	respPacket1 := buildPacket(false, 10, 3, []byte("HTTP/1.1 100 Continue\r\n"))
 
 	// panic(int(uint32(len(reqPacket1.Data)) + uint32(len(reqPacket2.Data)) + uint32(len(reqPacket3.Data))))
-	respPacket2 := buildPacket(false, reqPacket3.Seq+1 /* len of data */, 2, []byte("HTTP/1.1 200 OK\r\n"))
+	respPacket2 := buildPacket(false, reqPacket3.Seq+1 /* len of data */, 2, []byte("HTTP/1.1 200 OK\r\n\r\n"))
 
 	result := []byte("POST / HTTP/1.1\r\nContent-Length: 2\r\n\r\nab")
 
 	testRawListener100Continue(t, listener, result, reqPacket1, reqPacket2, reqPacket3, respPacket1, respPacket2)
 }
-
-
 
 func testRawListener100Continue(t *testing.T, listener *Listener, result []byte, packets ...*TCPPacket) {
 	var req, resp *TCPMessage
@@ -320,17 +318,17 @@ func TestRawListenerChunkedWrongOrder(t *testing.T) {
 	reqPacket3 := buildPacket(true, 2, reqPacket2.Seq+uint32(len(reqPacket2.Data)), []byte("1\r\nb\r\n"))
 	reqPacket4 := buildPacket(true, 2, reqPacket3.Seq+uint32(len(reqPacket3.Data)), []byte("0\r\n\r\n"))
 
-	respPacket1 := buildPacket(false, 10, 3, []byte("HTTP/1.1 100 Continue\r\n"))
+	respPacket1 := buildPacket(false, 10, 3, []byte("HTTP/1.1 100 Continue\r\n\r\n"))
 
 	// panic(int(uint32(len(reqPacket1.Data)) + uint32(len(reqPacket2.Data)) + uint32(len(reqPacket3.Data))))
-	respPacket2 := buildPacket(false, reqPacket4.Seq+5 /* len of data */, 2, []byte("HTTP/1.1 200 OK\r\n"))
+	respPacket2 := buildPacket(false, reqPacket4.Seq+5 /* len of data */, 2, []byte("HTTP/1.1 200 OK\r\n\r\n"))
 
 	// Should re-construct message from all possible combinations
 	for i := 0; i < 6*5*4*3*2*1; i++ {
 
-		if i < 54 || i > 57 {
-			continue
-		}
+		// if i < 54 || i > 57 {
+		// 	continue
+		// }
 
 		packets := permutation(i, []*TCPPacket{reqPacket1, reqPacket2, reqPacket3, reqPacket4, respPacket1, respPacket2})
 
@@ -349,7 +347,7 @@ func chunkedPostMessage() []*TCPPacket {
 	reqPacket3 := buildPacket(true, ack, reqPacket2.Seq+5, []byte("1\r\nb\r\n"))
 	reqPacket4 := buildPacket(true, ack, reqPacket3.Seq+5, []byte("0\r\n\r\n"))
 
-	respPacket := buildPacket(false, reqPacket4.Seq+5 /* len of data */, ack, []byte("HTTP/1.1 200 OK\r\n"))
+	respPacket := buildPacket(false, reqPacket4.Seq+5 /* len of data */, ack, []byte("HTTP/1.1 200 OK\r\n\r\n"))
 
 	return []*TCPPacket{
 		reqPacket1, reqPacket2, reqPacket3, reqPacket4, respPacket,
@@ -372,7 +370,7 @@ func postMessage() []*TCPPacket {
 
 	return []*TCPPacket{
 		buildPacket(true, ack, seq, data),
-		buildPacket(false, seq+uint32(len(data)), seq2, []byte("HTTP/1.1 200 OK\r\n")),
+		buildPacket(false, seq+uint32(len(data)), seq2, []byte("HTTP/1.1 200 OK\r\n\r\n")),
 	}
 }
 
@@ -383,7 +381,7 @@ func getMessage() []*TCPPacket {
 
 	return []*TCPPacket{
 		buildPacket(true, ack, seq, []byte("GET / HTTP/1.1\r\n\r\n")),
-		buildPacket(false, seq+18, seq2, []byte("HTTP/1.1 200 OK\r\n")),
+		buildPacket(false, seq+18, seq2, []byte("HTTP/1.1 200 OK\r\n\r\n")),
 	}
 }
 
