@@ -230,6 +230,7 @@ func (i *FileInput) Close() error {
 
 	i.exit <- true
 
+	for _, r := range i.readers {
 		r.Close()
 	}
 
