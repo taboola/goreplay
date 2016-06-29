@@ -97,35 +97,109 @@ func TestInputFileWithGETAndPOST(t *testing.T) {
 
 }
 
-func TestInputFileMultipleFiles(t *testing.T) {
+func TestInputFileMultipleFilesWithRequestsOnly(t *testing.T) {
 	rnd := rand.Int63()
 
 	file1, _ := os.OpenFile(fmt.Sprintf("/tmp/%d_0", rnd), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
 	file1.Write([]byte("1 1 1\ntest1"))
 	file1.Write([]byte(payloadSeparator))
-	file1.Write([]byte("1 1 2\ntest2"))
+	file1.Write([]byte("1 1 3\ntest2"))
 	file1.Write([]byte(payloadSeparator))
 	file1.Close()
 
 	file2, _ := os.OpenFile(fmt.Sprintf("/tmp/%d_1", rnd), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
-	file2.Write([]byte("1 1 3\ntest3"))
+	file2.Write([]byte("1 1 2\ntest3"))
+	file2.Write([]byte(payloadSeparator))
+	file2.Write([]byte("1 1 4\ntest4"))
 	file2.Write([]byte(payloadSeparator))
 	file2.Close()
 
 	input := NewFileInput(fmt.Sprintf("/tmp/%d*", rnd), false)
 	buf := make([]byte, 1000)
-	n, _ := input.Read(buf)
-	if buf[10] != '1' {
-		t.Error("Shound emit requests in right order", string(buf[:n]))
-	}
-	input.Read(buf)
-	if buf[10] != '2' {
-		t.Error("Shound emit requests in right order", string(buf[:n]))
+
+	for i := '1'; i <= '4'; i++ {
+		n, _ := input.Read(buf)
+		if buf[4] != byte(i) {
+			t.Error("Should emit requests in right order", string(buf[:n]))
+		}
 	}
 
-	input.Read(buf)
-	if buf[10] != '3' {
-		t.Error("Shound emit requests from second file", string(buf[:n]))
+	os.Remove(file1.Name())
+	os.Remove(file2.Name())
+}
+
+func TestInputFileRequestsWithLatency(t *testing.T) {
+	rnd := rand.Int63()
+
+	file, _ := os.OpenFile(fmt.Sprintf("/tmp/%d", rnd), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+	defer file.Close()
+
+	file.Write([]byte("1 1 100000000\nrequest1"))
+	file.Write([]byte(payloadSeparator))
+	file.Write([]byte("1 2 150000000\nrequest2"))
+	file.Write([]byte(payloadSeparator))
+	file.Write([]byte("1 3 250000000\nrequest3"))
+	file.Write([]byte(payloadSeparator))
+
+	input := NewFileInput(fmt.Sprintf("/tmp/%d", rnd), false)
+	buf := make([]byte, 1000)
+
+	start := time.Now().UnixNano()
+	for i := 0; i < 3; i++ {
+		input.Read(buf)
+	}
+	end := time.Now().UnixNano()
+
+	var expectedLatency int64 = 250000000 - 100000000
+	realLatency := end - start
+	if realLatency < expectedLatency {
+		t.Errorf("Should emit requests respecting latency. Expected: %v, real: %v", expectedLatency, realLatency)
+	}
+
+	if realLatency > expectedLatency+10000000 {
+		t.Errorf("Should emit requests respecting latency. Expected: %v, real: %v", expectedLatency, realLatency)
+
+	}
+}
+
+func TestInputFileMultipleFilesWithRequestsAndResponses(t *testing.T) {
+	rnd := rand.Int63()
+
+	file1, _ := os.OpenFile(fmt.Sprintf("/tmp/%d_0", rnd), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+	file1.Write([]byte("1 1 1\nrequest1"))
+	file1.Write([]byte(payloadSeparator))
+	file1.Write([]byte("2 1 1\nresponse1"))
+	file1.Write([]byte(payloadSeparator))
+	file1.Write([]byte("1 2 3\nrequest2"))
+	file1.Write([]byte(payloadSeparator))
+	file1.Write([]byte("2 2 3\nresponse2"))
+	file1.Write([]byte(payloadSeparator))
+	file1.Close()
+
+	file2, _ := os.OpenFile(fmt.Sprintf("/tmp/%d_1", rnd), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
+	file2.Write([]byte("1 3 2\nrequest3"))
+	file2.Write([]byte(payloadSeparator))
+	file2.Write([]byte("2 3 2\nresponse3"))
+	file2.Write([]byte(payloadSeparator))
+	file2.Write([]byte("1 4 4\nrequest4"))
+	file2.Write([]byte(payloadSeparator))
+	file2.Write([]byte("2 4 4\nresponse4"))
+	file2.Write([]byte(payloadSeparator))
+	file2.Close()
+
+	input := NewFileInput(fmt.Sprintf("/tmp/%d*", rnd), false)
+	buf := make([]byte, 1000)
+
+	for i := '1'; i <= '4'; i++ {
+		n, _ := input.Read(buf)
+		if buf[0] != '1' && buf[4] != byte(i) {
+			t.Error("Shound emit requests in right order", string(buf[:n]))
+		}
+
+		n, _ = input.Read(buf)
+		if buf[0] != '2' && buf[4] != byte(i) {
+			t.Error("Shound emit responses in right order", string(buf[:n]))
+		}
 	}
 
 	os.Remove(file1.Name())
@@ -149,8 +223,8 @@ func TestInputFileLoop(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		input.Read(buf)
 	}
-	input.Close()
 
+	input.Close()
 	os.Remove(file.Name())
 }
 
@@ -221,11 +295,9 @@ func (expectedCaptureFile *CaptureFile) PayloadsEqual(other [][]byte) bool {
 	}
 
 	for i, payload := range other {
-
 		if !bytes.Equal(expectedCaptureFile.data[i], payload) {
 			return false
 		}
-
 	}
 
 	return true

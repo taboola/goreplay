@@ -50,12 +50,12 @@ func (i *RAWInput) Read(data []byte) (int, error) {
 	var header []byte
 
 	if msg.IsIncoming {
-		header = payloadHeader(RequestPayload, msg.UUID(), msg.Start.UnixNano())
+		header = payloadHeader(RequestPayload, msg.UUID(), msg.Start.UnixNano(), -1)
 		if len(i.realIPHeader) > 0 {
 			buf = proto.SetHeader(buf, i.realIPHeader, []byte(msg.IP().String()))
 		}
 	} else {
-		header = payloadHeader(ResponsePayload, msg.UUID(), msg.End.UnixNano()-msg.AssocMessage.Start.UnixNano())
+		header = payloadHeader(ResponsePayload, msg.UUID(), msg.AssocMessage.Start.UnixNano(), msg.End.UnixNano()-msg.AssocMessage.Start.UnixNano())
 	}
 
 	copy(data[0:len(header)], header)
