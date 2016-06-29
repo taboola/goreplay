@@ -7,9 +7,9 @@ import (
 	"encoding/hex"
 	"github.com/buger/gor/proto"
 	"log"
+	"net"
 	"strconv"
 	"time"
-	"net"
 )
 
 var _ = log.Println

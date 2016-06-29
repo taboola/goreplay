@@ -16,6 +16,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/buger/gor/proto"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
@@ -28,7 +29,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"github.com/buger/gor/proto"
 )
 
 var _ = fmt.Println
@@ -303,7 +303,7 @@ func (t *Listener) readPcap() {
 			for i, addr := range device.Addresses {
 				bpfDstHost += "dst host " + addr.IP.String()
 				bpfSrcHost += "src host " + addr.IP.String()
-				if i != len(device.Addresses) - 1 {
+				if i != len(device.Addresses)-1 {
 					bpfDstHost += " or "
 					bpfSrcHost += " or "
 				}
@@ -330,9 +330,9 @@ func (t *Listener) readPcap() {
 
 			// Special case for tunnel interface https://github.com/google/gopacket/issues/99
 			if handle.LinkType() == 12 {
-			    decoder = layers.LayerTypeIPv4
+				decoder = layers.LayerTypeIPv4
 			} else {
-			    decoder = handle.LinkType()
+				decoder = handle.LinkType()
 			}
 
 			source := gopacket.NewPacketSource(handle, decoder)
@@ -355,23 +355,23 @@ func (t *Listener) readPcap() {
 				// We should remove network layer before parsing TCP/IP data
 				var of int
 				switch decoder {
-					case layers.LinkTypeEthernet:
-						of = 14
-					case layers.LinkTypePPP:
-						of = 1
-					case layers.LinkTypeFDDI:
-						of = 13
-					case layers.LinkTypeNull:
-						of = 4
-					case layers.LinkTypeLoop:
-						of = 4
-					case layers.LinkTypeRaw:
-						of = 0
-					case layers.LinkTypeLinuxSLL:
-						of = 16
-					default:
-						log.Println("Unknown packet layer", packet)
-						break
+				case layers.LinkTypeEthernet:
+					of = 14
+				case layers.LinkTypePPP:
+					of = 1
+				case layers.LinkTypeFDDI:
+					of = 13
+				case layers.LinkTypeNull:
+					of = 4
+				case layers.LinkTypeLoop:
+					of = 4
+				case layers.LinkTypeRaw:
+					of = 0
+				case layers.LinkTypeLinuxSLL:
+					of = 16
+				default:
+					log.Println("Unknown packet layer", packet)
+					break
 				}
 
 				data = packet.Data()[of:]

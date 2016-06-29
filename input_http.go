@@ -29,7 +29,7 @@ func NewHTTPInput(address string) (i *HTTPInput) {
 func (i *HTTPInput) Read(data []byte) (int, error) {
 	buf := <-i.data
 
-	header := payloadHeader(RequestPayload, uuid(), time.Now().UnixNano())
+	header := payloadHeader(RequestPayload, uuid(), time.Now().UnixNano(), -1)
 
 	copy(data[0:len(header)], header)
 	copy(data[len(header):], buf)

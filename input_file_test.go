@@ -131,7 +131,7 @@ func TestInputFileMultipleFilesWithRequestsOnly(t *testing.T) {
 func TestInputFileRequestsWithLatency(t *testing.T) {
 	rnd := rand.Int63()
 
-	file, _ := os.OpenFile(fmt.Sprintf("/tmp/%d", rnd), os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0660)
+	file, _ := os.OpenFile(fmt.Sprintf("/tmp/%d", rnd), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
 	defer file.Close()
 
 	file.Write([]byte("1 1 100000000\nrequest1"))
@@ -156,7 +156,7 @@ func TestInputFileRequestsWithLatency(t *testing.T) {
 		t.Errorf("Should emit requests respecting latency. Expected: %v, real: %v", expectedLatency, realLatency)
 	}
 
-	if realLatency > expectedLatency + 10000000 {
+	if realLatency > expectedLatency+10000000 {
 		t.Errorf("Should emit requests respecting latency. Expected: %v, real: %v", expectedLatency, realLatency)
 
 	}
@@ -180,7 +180,7 @@ func TestInputFileMultipleFilesWithRequestsAndResponses(t *testing.T) {
 	file2.Write([]byte("1 3 2\nrequest3"))
 	file2.Write([]byte(payloadSeparator))
 	file2.Write([]byte("2 3 2\nresponse3"))
- 	file2.Write([]byte(payloadSeparator))
+	file2.Write([]byte(payloadSeparator))
 	file2.Write([]byte("1 4 4\nrequest4"))
 	file2.Write([]byte(payloadSeparator))
 	file2.Write([]byte("2 4 4\nresponse4"))
@@ -295,11 +295,9 @@ func (expectedCaptureFile *CaptureFile) PayloadsEqual(other [][]byte) bool {
 	}
 
 	for i, payload := range other {
-
 		if !bytes.Equal(expectedCaptureFile.data[i], payload) {
 			return false
 		}
-
 	}
 
 	return true

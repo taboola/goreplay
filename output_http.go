@@ -14,6 +14,7 @@ type response struct {
 	payload       []byte
 	uuid          []byte
 	roundTripTime int64
+	startedAt     int64
 }
 
 // HTTPOutputConfig struct for holding http output configuration
@@ -178,7 +179,7 @@ func (o *HTTPOutput) Read(data []byte) (int, error) {
 
 	Debug("[OUTPUT-HTTP] Received response:", string(resp.payload))
 
-	header := payloadHeader(ReplayedResponsePayload, resp.uuid, resp.roundTripTime)
+	header := payloadHeader(ReplayedResponsePayload, resp.uuid, resp.startedAt, resp.roundTripTime)
 	copy(data[0:len(header)], header)
 	copy(data[len(header):], resp.payload)
 
@@ -206,7 +207,7 @@ func (o *HTTPOutput) sendRequest(client *HTTPClient, request []byte) {
 	}
 
 	if o.config.TrackResponses {
-		o.responses <- response{resp, uuid, stop.UnixNano() - start.UnixNano()}
+		o.responses <- response{resp, uuid, start.UnixNano(), stop.UnixNano() - start.UnixNano()}
 	}
 
 	if o.elasticSearch != nil {

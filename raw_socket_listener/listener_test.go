@@ -166,8 +166,6 @@ func TestAlt100ContinueHeaderOrder(t *testing.T) {
 	testRawListener100Continue(t, listener, result, reqPacket1, reqPacket2, reqPacket3, respPacket1, respPacket2)
 }
 
-
-
 func testRawListener100Continue(t *testing.T, listener *Listener, result []byte, packets ...*TCPPacket) {
 	var req, resp *TCPMessage
 	for _, p := range packets {

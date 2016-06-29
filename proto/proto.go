@@ -133,7 +133,7 @@ func header(payload []byte, name []byte) (value []byte, headerStart, headerEnd, 
 	valueStart = headerStart + len(name) + 1 // Skip ":" after header name
 	headerEnd = valueStart + bytes.IndexByte(payload[valueStart:], '\n')
 
-	for valueStart < headerEnd {          // Ignore empty space after ':'
+	for valueStart < headerEnd { // Ignore empty space after ':'
 		if payload[valueStart] == ' ' {
 			valueStart++
 		} else {
@@ -148,7 +148,7 @@ func header(payload []byte, name []byte) (value []byte, headerStart, headerEnd, 
 	}
 
 	// ignore empty space at end of header value
-	for valueStart < valueEnd  {
+	for valueStart < valueEnd {
 		if payload[valueEnd-1] == ' ' {
 			valueEnd--
 		} else {
@@ -170,7 +170,7 @@ func Header(payload, name []byte) []byte {
 // SetHeader sets header value. If header not found it creates new one.
 // Returns modified request payload
 func SetHeader(payload, name, value []byte) []byte {
-	_, hs, _, vs, ve  := header(payload, name)
+	_, hs, _, vs, ve := header(payload, name)
 
 	if hs != -1 {
 		// If header found we just replace its value
@@ -196,12 +196,12 @@ func AddHeader(payload, name, value []byte) []byte {
 
 // DelHeader takes http payload and removes header name from headers section
 // Returns modified request payload
-func DeleteHeader(payload, name[]byte) []byte {
+func DeleteHeader(payload, name []byte) []byte {
 	_, hs, he, _, _ := header(payload, name)
 	if hs != -1 {
-		newHeader := make([]byte, len(payload) - (he - hs) - 1)
+		newHeader := make([]byte, len(payload)-(he-hs)-1)
 		copy(newHeader[:hs], payload[:hs])
-		copy(newHeader[hs:], payload[he + 1:])
+		copy(newHeader[hs:], payload[he+1:])
 		return newHeader
 	}
 	return payload
@@ -322,7 +322,7 @@ func Status(payload []byte) []byte {
 }
 
 var httpMethods []string = []string{
-	"GET ", "OPTI", "HEAD", "POST", "PUT ", "DELE", "TRAC", "CONN", /* custom methods */"BAN", "PURG",
+	"GET ", "OPTI", "HEAD", "POST", "PUT ", "DELE", "TRAC", "CONN" /* custom methods */, "BAN", "PURG",
 }
 
 func IsHTTPPayload(payload []byte) bool {
