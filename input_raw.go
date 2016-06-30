@@ -24,6 +24,7 @@ type RAWInput struct {
 const (
 	EngineRawSocket = 1 << iota
 	EnginePcap
+	EnginePcapFile
 )
 
 // NewRAWInput constructor for RAWInput. Accepts address with port as argument.
@@ -68,6 +69,12 @@ func (i *RAWInput) listen(address string) {
 	Debug("Listening for traffic on: " + address)
 
 	host, port, err := net.SplitHostPort(address)
+
+	if i.engine == EnginePcapFile {
+		host = address
+		port = "1"
+		err = nil
+	}
 
 	if err != nil {
 		log.Fatal("input-raw: error while parsing address", err)

@@ -215,3 +215,32 @@ func TestTCPMessageBodyType(t *testing.T) {
 		}
 	}
 }
+
+
+func TestTCPMessageBodySize(t *testing.T) {
+	testCases := []struct {
+		direction        bool
+		payloads         []string
+		expectedSize     int
+	}{
+		{true, []string{"GET / HTTP/1.1\r\n\r\n"}, 0},
+		{true, []string{"POST / HTTP/1.1\r\nContent-Length: 2\r\n\r\nab"}, 2},
+		{true, []string{"GET / HTTP/1.1\r\n", "Content-Length: 2\r\n\r\nab"}, 2},
+		{true, []string{"GET / HTTP/1.1\r\n", "Content-Length: 2\r\n\r\n", "ab"}, 2},
+	}
+
+	for _, tc := range testCases {
+		msg := buildMessage(buildPacket(tc.direction, 1, 1, []byte(tc.payloads[0])))
+
+		if len(tc.payloads) > 1 {
+			for _, p := range tc.payloads[1:] {
+				seq := uint32(1 + msg.Size())
+				msg.AddPacket(buildPacket(tc.direction, 1, seq, []byte(p)))
+			}
+		}
+
+		if msg.BodySize() != tc.expectedSize {
+			t.Errorf("Expected %d, got %d", tc.expectedSize, msg.BodySize())
+		}
+	}
+}

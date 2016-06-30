@@ -81,6 +81,7 @@ type request struct {
 const (
 	EngineRawSocket = 1 << iota
 	EnginePcap
+	EnginePcapFile
 )
 
 // NewListener creates and initializes new Listener object
@@ -118,6 +119,8 @@ func NewListener(addr string, port string, engine int, trackResponse bool, expir
 			go l.readRAWSocket()
 		case EnginePcap:
 			go l.readPcap()
+		case EnginePcapFile:
+			go l.readPcapFile()
 		default:
 			log.Fatal("Unknown traffic interception engine:", engine)
 		}
@@ -170,6 +173,8 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 	if _, ok := t.messages[message.ID()]; !ok {
 		return
 	}
+
+	log.Println("MESSAGE:", message, message.BodySize(), message.contentLength, message.methodType, message.bodyType)
 
 	t.deleteMessage(message)
 
@@ -464,6 +469,53 @@ func (t *Listener) readPcap() {
 
 	wg.Wait()
 	t.readyCh <- true
+}
+
+func (t *Listener) readPcapFile() {
+	if handle, err := pcap.OpenOffline(t.addr); err != nil {
+		log.Fatal(err)
+	} else {
+		t.readyCh <- true
+		packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
+
+		for {
+			packet, err := packetSource.NextPacket()
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				log.Println("Error:", err)
+				continue
+			}
+
+			var addr, data []byte
+
+			if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
+			  tcp, _ := tcpLayer.(*layers.TCP)
+			  data = append(tcp.LayerContents(), tcp.LayerPayload()...)
+			  copy(data[2:4], []byte{0, 1})
+			} else {
+				log.Println("Can't find TCP layer", packet)
+				continue
+			}
+
+			if ipLayer := packet.Layer(layers.LayerTypeIPv4); ipLayer != nil {
+			  ip, _ := ipLayer.(*layers.IPv4)
+			  addr = ip.SrcIP
+			} else if ipLayer = packet.Layer(layers.LayerTypeIPv6); ipLayer != nil {
+				ip, _ := ipLayer.(*layers.IPv6)
+				addr = ip.SrcIP
+			} else {
+				log.Println("Can't find IP layer", packet)
+				continue
+			}
+
+			newBuf := make([]byte, len(data)+16)
+			copy(newBuf[:16], addr)
+			copy(newBuf[16:], data)
+
+			t.packetsChan <- newBuf
+		}
+	}
 }
 
 func (t *Listener) readRAWSocket() {

@@ -98,6 +98,8 @@ func InitPlugins() {
 	engine := EnginePcap
 	if Settings.inputRAWEngine == "raw_socket" {
 		engine = EngineRawSocket
+	} else if Settings.inputRAWEngine == "pcap_file" {
+		engine = EnginePcapFile
 	}
 
 	for _, options := range Settings.inputRAW {

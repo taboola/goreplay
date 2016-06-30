@@ -66,13 +66,13 @@ func (t *TCPMessage) Bytes() (output []byte) {
 
 // Size returns total body size
 func (t *TCPMessage) BodySize() (size int) {
-	if len(t.packets) == 0 {
+	if len(t.packets) == 0 || t.headerPacket == -1 {
 		return 0
 	}
 
-	size += len(proto.Body(t.packets[0].Data))
+	size += len(proto.Body(t.packets[t.headerPacket].Data))
 
-	for _, p := range t.packets[1:] {
+	for _, p := range t.packets[t.headerPacket + 1:] {
 		size += len(p.Data)
 	}
 
@@ -266,6 +266,7 @@ func (t *TCPMessage) updateMethodType() {
 
 	if t.IsIncoming {
 		var method []byte
+
 		if mIdx := bytes.IndexByte(d[:8], ' '); mIdx != -1 {
 			method = d[:mIdx]
 
