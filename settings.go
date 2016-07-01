@@ -34,6 +34,7 @@ type AppSettings struct {
 	inputDummy   MultiOption
 	outputDummy  MultiOption
 	outputStdout bool
+	outputNull   bool
 
 	inputTCP       MultiOption
 	outputTCP      MultiOption
@@ -80,6 +81,8 @@ func init() {
 	flag.Var(&Settings.outputDummy, "output-dummy", "DEPRECATED: use --output-stdout instead")
 
 	flag.BoolVar(&Settings.outputStdout, "output-stdout", false, "Used for testing inputs. Just prints to console data coming from inputs.")
+
+	flag.BoolVar(&Settings.outputNull, "output-null", false, "Used for testing inputs. Drops all requests.")
 
 	flag.Var(&Settings.inputTCP, "input-tcp", "Used for internal communication between Gor instances. Example: \n\t# Receive requests from other Gor instances on 28020 port, and redirect output to staging\n\tgor --input-tcp :28020 --output-http staging.com")
 	flag.Var(&Settings.outputTCP, "output-tcp", "Used for internal communication between Gor instances. Example: \n\t# Listen for requests on 80 port and forward them to other Gor instance on 28020 port\n\tgor --input-raw :80 --output-tcp replay.local:28020")

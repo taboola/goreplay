@@ -174,13 +174,7 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 		return
 	}
 
-	log.Println("MESSAGE:", message, message.BodySize(), message.contentLength, message.methodType, message.bodyType)
-
 	t.deleteMessage(message)
-
-	if message.methodType == httpMethodNotFound {
-		return
-	}
 
 	if !message.complete {
 		if !message.IsIncoming {
@@ -494,7 +488,6 @@ func (t *Listener) readPcapFile() {
 			  data = append(tcp.LayerContents(), tcp.LayerPayload()...)
 			  copy(data[2:4], []byte{0, 1})
 			} else {
-				log.Println("Can't find TCP layer", packet)
 				continue
 			}
 
@@ -505,7 +498,15 @@ func (t *Listener) readPcapFile() {
 				ip, _ := ipLayer.(*layers.IPv6)
 				addr = ip.SrcIP
 			} else {
-				log.Println("Can't find IP layer", packet)
+				// log.Println("Can't find IP layer", packet)
+				continue
+			}
+
+			dataOffset := (data[12] & 0xF0) >> 4
+
+			// We need only packets with data inside
+			// Check that the buffer is larger than the size of the TCP header
+			if len(data) <= int(dataOffset*4) {
 				continue
 			}
 
@@ -650,7 +651,7 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 
 	// Handling Expect: 100-continue requests
 	if message.expectType == httpExpect100Continue && len(message.packets) == message.headerPacket+1 {
-		seq := packet.Seq + uint32(len(packet.Data))
+		seq := packet.Seq + uint32(message.Size())
 		t.seqWithData[seq] = packet.Ack
 		message.DataSeq = seq
 		message.complete = false

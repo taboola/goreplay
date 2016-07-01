@@ -95,6 +95,10 @@ func InitPlugins() {
 		registerPlugin(NewDummyOutput)
 	}
 
+	if Settings.outputNull {
+		registerPlugin(NewNullOutput)
+	}
+
 	engine := EnginePcap
 	if Settings.inputRAWEngine == "raw_socket" {
 		engine = EngineRawSocket
