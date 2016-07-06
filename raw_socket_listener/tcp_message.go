@@ -171,7 +171,6 @@ func (t *TCPMessage) checkSeqIntegrity() {
 	t.seqMissing = false
 }
 
-var bCLRF = []byte("\r\n")
 var bEmptyLine = []byte("\r\n\r\n")
 var bChunkEnd = []byte("0\r\n\r\n")
 

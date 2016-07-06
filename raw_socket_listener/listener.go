@@ -433,7 +433,12 @@ func (t *Listener) readPcap() {
 
 					srcIP = data[12:16]
 					dstIP = data[16:20]
-					data = data[ihl*4:]
+					// Stripping off the IP header
+					if len(packet.Data()) <= 60 && decoder == layers.LinkTypeEthernet { // Small Ethernet packets have padding
+						data = data[ihl * 4: int(binary.BigEndian.Uint16(data[2:4]))]
+					} else {
+						data = data[ihl * 4:]
+					}
 				} else {
 					// Truncated IP info
 					if len(data) < 40 {
