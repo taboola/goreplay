@@ -7,3 +7,6 @@
 [submodule "vendor/github.com/bitly/go-hostpool"]
 	path = vendor/github.com/bitly/go-hostpool
 	url = https://github.com/bitly/go-hostpool
+[submodule "vendor/github.com/bmizerany/assert"]
+	path = vendor/github.com/bmizerany/assert
+	url = https://github.com/bmizerany/assert

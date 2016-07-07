@@ -441,7 +441,7 @@ func (t *Listener) readPcap() {
 					}
 
 					// Invalid length
-					if ihl * 4 > ipLength {
+					if int(ihl * 4) > ipLength {
 						continue
 					}
 
