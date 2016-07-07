@@ -1,0 +1,9 @@
+[submodule "vendor/github.com/mattbaird/elastigo"]
+	path = vendor/github.com/mattbaird/elastigo
+	url = https://github.com/mattbaird/elastigo
+[submodule "vendor/github.com/araddon/gou"]
+	path = vendor/github.com/araddon/gou
+	url = https://github.com/araddon/gou
+[submodule "vendor/github.com/bitly/go-hostpool"]
+	path = vendor/github.com/bitly/go-hostpool
+	url = https://github.com/bitly/go-hostpool
