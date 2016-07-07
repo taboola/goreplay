@@ -422,6 +422,7 @@ func (t *Listener) readPcap() {
 				data = packet.Data()[of:]
 
 				version := uint8(data[0]) >> 4
+				ipLength := int(binary.BigEndian.Uint16(data[2:4]))
 
 				if version == 4 {
 					ihl := uint8(data[0]) & 0x0F
@@ -433,12 +434,25 @@ func (t *Listener) readPcap() {
 
 					srcIP = data[12:16]
 					dstIP = data[16:20]
-					// Stripping off the IP header
-					if len(packet.Data()) <= 60 && decoder == layers.LinkTypeEthernet { // Small Ethernet packets have padding
-						data = data[ihl * 4: int(binary.BigEndian.Uint16(data[2:4]))]
-					} else {
-						data = data[ihl * 4:]
+
+					// Too small IP packet
+					if ipLength < 20 {
+						continue
 					}
+
+					// Invalid length
+					if ihl * 4 > ipLength {
+						continue
+					}
+
+					if cmp := len(data) - ipLength; cmp > 0 {
+						data = data[:ipLength]
+					} else if cmp < 0 {
+						// Truncated packet
+						continue
+					}
+
+					data = data[ihl * 4:]
 				} else {
 					// Truncated IP info
 					if len(data) < 40 {
