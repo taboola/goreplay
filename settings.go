@@ -25,9 +25,10 @@ func (h *MultiOption) Set(value string) error {
 
 // AppSettings is the struct of main configuration
 type AppSettings struct {
-	verbose bool
-	debug   bool
-	stats   bool
+	verbose   bool
+	debug     bool
+	stats     bool
+	exitAfter time.Duration
 
 	splitOutput bool
 
@@ -74,6 +75,7 @@ func init() {
 	flag.BoolVar(&Settings.verbose, "verbose", false, "Turn on more verbose output")
 	flag.BoolVar(&Settings.debug, "debug", false, "Turn on debug output, shows all intercepted traffic. Works only when with `verbose` flag")
 	flag.BoolVar(&Settings.stats, "stats", false, "Turn on queue stats output")
+	flag.DurationVar(&Settings.exitAfter, "exit-after", 0, "exit after specified duration")
 
 	flag.BoolVar(&Settings.splitOutput, "split-output", false, "By default each output gets same traffic. If set to `true` it splits traffic equally among all outputs.")
 
