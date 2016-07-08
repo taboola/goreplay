@@ -78,17 +78,31 @@ func main() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
-
-		for _, p := range Plugins.All {
-			if cp, ok := p.(io.Closer); ok {
-				cp.Close()
-			}
-		}
-
+		finalize()
 		os.Exit(1)
 	}()
 
-	Start(nil)
+	if Settings.exitAfter > 0 {
+		log.Println("Running gor for a duration of", Settings.exitAfter)
+		closeCh := make(chan int)
+
+		time.AfterFunc(Settings.exitAfter, func() {
+			log.Println("Stopping gor after", Settings.exitAfter)
+			close(closeCh)
+		})
+
+		Start(closeCh)
+	} else {
+		Start(nil)
+	}
+}
+
+func finalize() {
+	for _, p := range Plugins.All {
+		if cp, ok := p.(io.Closer); ok {
+			cp.Close()
+		}
+	}
 }
 
 func profileCPU(cpuprofile string) {
