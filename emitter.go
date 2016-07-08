@@ -32,13 +32,7 @@ func Start(stop chan int) {
 	for {
 		select {
 		case <-stop:
-			pluginMu.Lock()
-			for _, p := range Plugins.All {
-				if cp, ok := p.(io.Closer); ok {
-					cp.Close()
-				}
-			}
-			pluginMu.Unlock()
+			finalize()
 			return
 		case <-time.After(100 * time.Millisecond):
 		}

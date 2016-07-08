@@ -78,24 +78,30 @@ func main() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
-
-		for _, p := range Plugins.All {
-			if cp, ok := p.(io.Closer); ok {
-				cp.Close()
-			}
-		}
-
+		finalize()
 		os.Exit(1)
 	}()
 
-	if Settings.exitAfter >= 1 {
+	if Settings.exitAfter > 0 {
 		log.Println("Running gor for a duration of", Settings.exitAfter)
-		stop := make(chan int)
-		stopAfter(stop, Settings.exitAfter)
+		closeCh := make(chan int)
 
-		Start(stop)
+		time.AfterFunc(Settings.exitAfter, func() {
+			log.Println("Stopping gor after", Settings.exitAfter)
+			close(closeCh)
+		})
+
+		Start(closeCh)
 	} else {
 		Start(nil)
+	}
+}
+
+func finalize() {
+	for _, p := range Plugins.All {
+		if cp, ok := p.(io.Closer); ok {
+			cp.Close()
+		}
 	}
 }
 
@@ -126,11 +132,4 @@ func profileMEM(memprofile string) {
 			f.Close()
 		})
 	}
-}
-
-func stopAfter(stop chan int, exitAfter time.Duration) {
-	time.AfterFunc(exitAfter, func() {
-		log.Println("Stopping gor, duration of", exitAfter, "reached")
-		close(stop)
-	})
 }
