@@ -22,6 +22,7 @@ var (
 	mode       string
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 	memprofile = flag.String("memprofile", "", "write memory profile to this file")
+	timeout    = flag.Int("timeout", 0, "timeout to stop gor, value in seconds")
 )
 
 func loggingMiddleware(next http.Handler) http.Handler {
@@ -88,7 +89,15 @@ func main() {
 		os.Exit(1)
 	}()
 
-	Start(nil)
+	if *timeout >= 1 {
+		log.Println("Running gor with timeout of", *timeout, "seconds")
+		stop := make(chan int)
+		timeoutGor(stop, *timeout)
+
+		Start(stop)
+	} else {
+		Start(nil)
+	}
 }
 
 func profileCPU(cpuprofile string) {
@@ -118,4 +127,11 @@ func profileMEM(memprofile string) {
 			f.Close()
 		})
 	}
+}
+
+func timeoutGor(stop chan int, seconds int) {
+	time.AfterFunc(time.Duration(seconds)*time.Second, func() {
+		log.Println("Stopping gor after", seconds, "seconds")
+		close(stop)
+	})
 }
