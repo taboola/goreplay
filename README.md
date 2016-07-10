@@ -13,6 +13,8 @@ Here is basic workflow: The listener server catches http traffic and sends it to
 
 ![Diagram](http://i.imgur.com/9mqj2SK.png)
 
+Check [latest documentation](http://github.com/buger/gor/wiki).
+
 ## Installation
 Download latest binary from https://github.com/buger/gor/releases or [compile by yourself](https://github.com/buger/gor/wiki/Compilation).
 
@@ -22,13 +24,14 @@ The most basic setup will be `sudo ./gor --input-raw :8000 --output-stdout` whic
 If you already have test environment you can start replaying: `sudo ./gor --input-raw :8000 --output-http http://staging.env`.
 
 See the our wiki and especially [Getting started](https://github.com/buger/gor/wiki/Getting-Started) wiki page for more info. 
+## Newsletter
+Subscribe to our [newsletter](https://www.getdrip.com/forms/89690474/submissions/new) to stay informed about the latest features and changes to Gor project.
 
 
 ## Want to Upgrade?
 
 I also sell Gor Pro, extensions to Gor which provide more features, a commercial-friendly license and allow you to support high quality open source development all at the same time. Please see the Gor [homepage](https://gortool.com/) for more detail.
 
-Subscribe to the [quarterly newsletter](https://tinyletter.com/gor) to stay informed about the latest features and changes to Gor and its bigger siblings.
 
 ## Problems?
 If you have a problem, please review the [FAQ](https://github.com/buger/gor/wiki/FAQ) and [Troubleshooting](https://github.com/buger/gor/wiki/Troubleshooting) wiki pages. Searching the [issues](https://github.com/buger/gor/issues) for your problem is also a good idea.
