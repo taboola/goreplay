@@ -69,6 +69,7 @@ func payloadHeader(payloadType byte, uuid []byte, timing int64, latency int64) (
 	copy(header[3+len(uuid):], sTime)
 
 	if latency != -1 {
+		header[3+len(uuid)+len(sTime)] = ' '
 		copy(header[4+len(uuid)+len(sTime):], sLatency)
 	}
 
