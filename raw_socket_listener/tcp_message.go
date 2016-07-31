@@ -38,13 +38,13 @@ type TCPMessage struct {
 	delChan chan *TCPMessage
 
 	/* HTTP specific variables */
-	methodType    httpMethodType
-	bodyType      httpBodyType
-	expectType    httpExpectType
-	seqMissing    bool
-	headerPacket  int
-	contentLength int
-	complete      bool
+	methodType     httpMethodType
+	bodyType       httpBodyType
+	expectType     httpExpectType
+	seqMissing     bool
+	headerPacket   int
+	contentLength  int
+	complete       bool
 }
 
 // NewTCPMessage pointer created from a Acknowledgment number and a channel of messages readuy to be deleted
@@ -146,6 +146,10 @@ func (t *TCPMessage) checkSeqIntegrity() {
 	}
 
 	for i, p := range t.packets {
+		if p.IsFIN {
+			continue
+		}
+
 		// If final packet
 		if len(t.packets) == i+1 {
 			t.seqMissing = false
@@ -228,6 +232,15 @@ func (t *TCPMessage) checkIfComplete() {
 			if bytes.LastIndex(lastPacket.Data, bChunkEnd) != -1 {
 				t.complete = true
 			}
+		default:
+			if len(t.packets) == 0 {
+				return
+			}
+
+			last := t.packets[len(t.packets) - 1]
+			if last.IsFIN {
+				t.complete = true
+			}
 		}
 	}
 }
@@ -302,10 +315,11 @@ func (t *TCPMessage) updateMethodType() {
 type httpBodyType uint8
 
 const (
-	httpBodyNotSet        httpBodyType = 0
-	httpBodyEmpty         httpBodyType = 1
-	httpBodyContentLength httpBodyType = 2
-	httpBodyChunked       httpBodyType = 3
+	httpBodyNotSet          httpBodyType = 0
+	httpBodyEmpty           httpBodyType = 1
+	httpBodyContentLength   httpBodyType = 2
+	httpBodyChunked         httpBodyType = 3
+	httpBodyConnectionClose httpBodyType = 4
 )
 
 func (t *TCPMessage) updateBodyType() {
@@ -363,7 +377,7 @@ const (
 	httpExpect100Continue httpExpectType = 2
 )
 
-var bExpectHeader = []byte("Expect:")
+var bExpectHeader = []byte("Expect")
 var bExpect100Value = []byte("100-continue")
 
 func (t *TCPMessage) check100Continue() {

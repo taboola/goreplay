@@ -181,6 +181,7 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 			delete(t.respAliases, message.Ack)
 			delete(t.respWithoutReq, message.Ack)
 		}
+
 		return
 	}
 
@@ -471,10 +472,11 @@ func (t *Listener) readPcap() {
 				}
 
 				dataOffset := (data[12] & 0xF0) >> 4
+				isFIN := data[13]&0x01 != 0
 
 				// We need only packets with data inside
 				// Check that the buffer is larger than the size of the TCP header
-				if len(data) > int(dataOffset*4) {
+				if len(data) > int(dataOffset*4) || isFIN {
 					if !bpfSupported {
 						destPort := binary.BigEndian.Uint16(data[2:4])
 						srcPort := binary.BigEndian.Uint16(data[0:2])

@@ -33,6 +33,7 @@ type TCPPacket struct {
 	Ack        uint32
 	OrigAck    uint32
 	DataOffset uint8
+	IsFIN      bool
 
 	Raw  []byte
 	Data []byte
@@ -71,6 +72,7 @@ func (t *TCPPacket) ParseBasic() {
 	t.Seq = binary.BigEndian.Uint32(t.Raw[4:8])
 	t.Ack = binary.BigEndian.Uint32(t.Raw[8:12])
 	t.DataOffset = (t.Raw[12] & 0xF0) >> 4
+	t.IsFIN = t.Raw[13] & 0x01 != 0
 
 	// log.Println("DataOffset:", t.DataOffset, t.DestPort, t.SrcPort, t.Seq, t.Ack)
 
