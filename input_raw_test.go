@@ -79,6 +79,55 @@ func TestRAWInputIPv4(t *testing.T) {
 	}
 
 	wg.Wait()
+
+	close(quit)
+}
+
+func TestRAWInputNoKeepAlive(t *testing.T) {
+	wg := new(sync.WaitGroup)
+	quit := make(chan int)
+
+	listener, err := net.Listen("tcp", ":0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	origin := &http.Server{
+		Handler:      http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Write([]byte("a"))
+				w.Write([]byte("b"))
+			}),
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+	origin.SetKeepAlivesEnabled(false)
+	go origin.Serve(listener)
+	defer listener.Close()
+
+	originAddr := listener.Addr().String()
+
+	input := NewRAWInput(originAddr, EnginePcap, true, testRawExpire, "")
+	defer input.Close()
+
+	output := NewTestOutput(func(data []byte) {
+		wg.Done()
+	})
+
+	Plugins.Inputs = []io.Reader{input}
+	Plugins.Outputs = []io.Writer{output}
+
+	client := NewHTTPClient("http://"+listener.Addr().String(), &HTTPClientConfig{})
+
+	go Start(quit)
+
+	for i := 0; i < 100; i++ {
+		// request + response
+		wg.Add(2)
+		client.Get("/")
+		time.Sleep(2 * time.Millisecond)
+	}
+
+	wg.Wait()
+
 	close(quit)
 }
 

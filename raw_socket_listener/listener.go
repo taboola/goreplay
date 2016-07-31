@@ -181,6 +181,7 @@ func (t *Listener) dispatchMessage(message *TCPMessage) {
 			delete(t.respAliases, message.Ack)
 			delete(t.respWithoutReq, message.Ack)
 		}
+
 		return
 	}
 
@@ -337,7 +338,7 @@ func (t *Listener) readPcap() {
 				var allAddr []string
 				for _, dc := range devices {
 					for _, addr := range dc.Addresses {
-						allAddr = append(allAddr, "(dst host " + addr.IP.String() + " and src host " + addr.IP.String() + ")")
+						allAddr = append(allAddr, "(dst host "+addr.IP.String()+" and src host "+addr.IP.String()+")")
 					}
 				}
 
@@ -441,7 +442,7 @@ func (t *Listener) readPcap() {
 					}
 
 					// Invalid length
-					if int(ihl * 4) > ipLength {
+					if int(ihl*4) > ipLength {
 						continue
 					}
 
@@ -452,7 +453,7 @@ func (t *Listener) readPcap() {
 						continue
 					}
 
-					data = data[ihl * 4:]
+					data = data[ihl*4:]
 				} else {
 					// Truncated IP info
 					if len(data) < 40 {
@@ -471,10 +472,11 @@ func (t *Listener) readPcap() {
 				}
 
 				dataOffset := (data[12] & 0xF0) >> 4
+				isFIN := data[13]&0x01 != 0
 
 				// We need only packets with data inside
 				// Check that the buffer is larger than the size of the TCP header
-				if len(data) > int(dataOffset*4) {
+				if len(data) > int(dataOffset*4) || isFIN {
 					if !bpfSupported {
 						destPort := binary.BigEndian.Uint16(data[2:4])
 						srcPort := binary.BigEndian.Uint16(data[0:2])
@@ -555,16 +557,16 @@ func (t *Listener) readPcapFile() {
 			var addr, data []byte
 
 			if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
-			  tcp, _ := tcpLayer.(*layers.TCP)
-			  data = append(tcp.LayerContents(), tcp.LayerPayload()...)
-			  copy(data[2:4], []byte{0, 1})
+				tcp, _ := tcpLayer.(*layers.TCP)
+				data = append(tcp.LayerContents(), tcp.LayerPayload()...)
+				copy(data[2:4], []byte{0, 1})
 			} else {
 				continue
 			}
 
 			if ipLayer := packet.Layer(layers.LayerTypeIPv4); ipLayer != nil {
-			  ip, _ := ipLayer.(*layers.IPv4)
-			  addr = ip.SrcIP
+				ip, _ := ipLayer.(*layers.IPv4)
+				addr = ip.SrcIP
 			} else if ipLayer = packet.Layer(layers.LayerTypeIPv6); ipLayer != nil {
 				ip, _ := ipLayer.(*layers.IPv6)
 				addr = ip.SrcIP
@@ -763,13 +765,13 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 	// If message contains only single packet immediately dispatch it
 	if message.complete {
 		if isIncoming {
-			// log.Println("I'm finished", string(message.Bytes()), message.ResponseID, t.messages)
 			if t.trackResponse {
 				if resp, ok := t.messages[message.ResponseID]; ok {
-					t.dispatchMessage(message)
 					if resp.complete {
 						t.dispatchMessage(resp)
 					}
+
+					t.dispatchMessage(message)
 				}
 			} else {
 				t.dispatchMessage(message)

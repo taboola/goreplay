@@ -87,6 +87,37 @@ func TestHTTPClientSend(t *testing.T) {
 	wg.Wait()
 }
 
+func TestHTTPClientResonseByClose(t *testing.T) {
+	wg := new(sync.WaitGroup)
+
+	payload := []byte("GET / HTTP/1.1\r\n\r\n")
+	ln, _ := net.Listen("tcp", ":0")
+	go func(){
+		for {
+			conn, _ := ln.Accept()
+			buf := make([]byte, 4096)
+			conn.Read(buf)
+
+			conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+			conn.Write([]byte("ab"))
+			conn.Close()
+
+			wg.Done()
+		}
+	}()
+
+	client := NewHTTPClient(ln.Addr().String(), &HTTPClientConfig{Debug: true})
+
+	wg.Add(1)
+	resp, _ := client.Send(payload)
+
+	if !bytes.Equal(resp, []byte("HTTP/1.1 200 OK\r\n\r\nab")) {
+		t.Error("Should return valid response", string(resp))
+	}
+
+	wg.Wait()
+}
+
 // https://github.com/buger/gor/issues/184
 func TestHTTPClientResponseBuffer(t *testing.T) {
 	testCases := []struct {

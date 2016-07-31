@@ -46,6 +46,46 @@ func TestRawListenerInput(t *testing.T) {
 	}
 }
 
+func TestRawListenerInputResponseByClose(t *testing.T) {
+	var req, resp *TCPMessage
+
+	listener := NewListener("", "0", EnginePcap, true, 10*time.Millisecond)
+	defer listener.Close()
+
+	reqPacket := buildPacket(true, 1, 1, []byte("GET / HTTP/1.1\r\n\r\n"))
+
+	respAck := reqPacket.Seq + uint32(len(reqPacket.Data))
+	respPacket := buildPacket(false, respAck, reqPacket.Seq+1, []byte("HTTP/1.1 200 OK\r\nConnection: close\r\n\r\nasd"))
+	finPacket := buildPacket(false, respAck, reqPacket.Seq+2, []byte(""))
+	finPacket.IsFIN = true
+
+	listener.packetsChan <- reqPacket.Dump()
+	listener.packetsChan <- respPacket.Dump()
+	listener.packetsChan <- finPacket.Dump()
+
+	select {
+	case req = <-listener.messagesChan:
+	case <-time.After(time.Millisecond):
+		t.Error("Should return request immediately")
+		return
+	}
+
+	if !req.IsIncoming {
+		t.Error("Should be request")
+	}
+
+	select {
+	case resp = <-listener.messagesChan:
+	case <-time.After(20 * time.Millisecond):
+		t.Error("Should return response immediately")
+		return
+	}
+
+	if resp.IsIncoming {
+		t.Error("Should be response")
+	}
+}
+
 func TestRawListenerInputWithoutResponse(t *testing.T) {
 	var req *TCPMessage
 

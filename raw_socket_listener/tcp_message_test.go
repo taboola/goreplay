@@ -216,12 +216,11 @@ func TestTCPMessageBodyType(t *testing.T) {
 	}
 }
 
-
 func TestTCPMessageBodySize(t *testing.T) {
 	testCases := []struct {
-		direction        bool
-		payloads         []string
-		expectedSize     int
+		direction    bool
+		payloads     []string
+		expectedSize int
 	}{
 		{true, []string{"GET / HTTP/1.1\r\n\r\n"}, 0},
 		{true, []string{"POST / HTTP/1.1\r\nContent-Length: 2\r\n\r\nab"}, 2},

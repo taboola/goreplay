@@ -72,7 +72,7 @@ func (t *TCPMessage) BodySize() (size int) {
 
 	size += len(proto.Body(t.packets[t.headerPacket].Data))
 
-	for _, p := range t.packets[t.headerPacket + 1:] {
+	for _, p := range t.packets[t.headerPacket+1:] {
 		size += len(p.Data)
 	}
 
@@ -145,7 +145,17 @@ func (t *TCPMessage) checkSeqIntegrity() {
 		t.seqMissing = false
 	}
 
-	for i, p := range t.packets {
+	offset := len(t.packets) - 1
+
+	if t.packets[offset].IsFIN {
+		offset--
+	}
+
+	for i, p := range t.packets[:offset] {
+		if p.IsFIN {
+			continue
+		}
+
 		// If final packet
 		if len(t.packets) == i+1 {
 			t.seqMissing = false
@@ -228,6 +238,15 @@ func (t *TCPMessage) checkIfComplete() {
 			if bytes.LastIndex(lastPacket.Data, bChunkEnd) != -1 {
 				t.complete = true
 			}
+		default:
+			if len(t.packets) == 0 {
+				return
+			}
+
+			last := t.packets[len(t.packets)-1]
+			if last.IsFIN {
+				t.complete = true
+			}
 		}
 	}
 }
@@ -302,10 +321,11 @@ func (t *TCPMessage) updateMethodType() {
 type httpBodyType uint8
 
 const (
-	httpBodyNotSet        httpBodyType = 0
-	httpBodyEmpty         httpBodyType = 1
-	httpBodyContentLength httpBodyType = 2
-	httpBodyChunked       httpBodyType = 3
+	httpBodyNotSet          httpBodyType = 0
+	httpBodyEmpty           httpBodyType = 1
+	httpBodyContentLength   httpBodyType = 2
+	httpBodyChunked         httpBodyType = 3
+	httpBodyConnectionClose httpBodyType = 4
 )
 
 func (t *TCPMessage) updateBodyType() {
@@ -326,7 +346,7 @@ func (t *TCPMessage) updateBodyType() {
 		t.bodyType = httpBodyEmpty
 		return
 	case httpMethodWithBody:
-		var lengthB, encB []byte
+		var lengthB, encB, connB []byte
 
 		for _, p := range t.packets[:t.headerPacket+1] {
 			lengthB = proto.Header(p.Data, []byte("Content-Length"))
@@ -340,12 +360,21 @@ func (t *TCPMessage) updateBodyType() {
 			t.bodyType = httpBodyContentLength
 			t.contentLength, _ = strconv.Atoi(string(lengthB))
 			return
-		} else {
-			for _, p := range t.packets[:t.headerPacket+1] {
-				encB = proto.Header(p.Data, []byte("Transfer-Encoding"))
+		}
 
-				if len(encB) > 0 {
-					t.bodyType = httpBodyChunked
+		for _, p := range t.packets[:t.headerPacket+1] {
+			encB = proto.Header(p.Data, []byte("Transfer-Encoding"))
+
+			if len(encB) > 0 {
+				t.bodyType = httpBodyChunked
+				return
+			}
+
+			for _, p := range t.packets[:t.headerPacket+1] {
+				connB = proto.Header(p.Data, []byte("Connection"))
+
+				if len(connB) > 0 && bytes.Equal(connB, []byte("close")) {
+					t.bodyType = httpBodyConnectionClose
 					return
 				}
 			}
@@ -363,7 +392,7 @@ const (
 	httpExpect100Continue httpExpectType = 2
 )
 
-var bExpectHeader = []byte("Expect:")
+var bExpectHeader = []byte("Expect")
 var bExpect100Value = []byte("100-continue")
 
 func (t *TCPMessage) check100Continue() {
