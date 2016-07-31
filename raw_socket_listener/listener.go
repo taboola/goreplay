@@ -338,7 +338,7 @@ func (t *Listener) readPcap() {
 				var allAddr []string
 				for _, dc := range devices {
 					for _, addr := range dc.Addresses {
-						allAddr = append(allAddr, "(dst host " + addr.IP.String() + " and src host " + addr.IP.String() + ")")
+						allAddr = append(allAddr, "(dst host "+addr.IP.String()+" and src host "+addr.IP.String()+")")
 					}
 				}
 
@@ -442,7 +442,7 @@ func (t *Listener) readPcap() {
 					}
 
 					// Invalid length
-					if int(ihl * 4) > ipLength {
+					if int(ihl*4) > ipLength {
 						continue
 					}
 
@@ -453,7 +453,7 @@ func (t *Listener) readPcap() {
 						continue
 					}
 
-					data = data[ihl * 4:]
+					data = data[ihl*4:]
 				} else {
 					// Truncated IP info
 					if len(data) < 40 {
@@ -557,16 +557,16 @@ func (t *Listener) readPcapFile() {
 			var addr, data []byte
 
 			if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
-			  tcp, _ := tcpLayer.(*layers.TCP)
-			  data = append(tcp.LayerContents(), tcp.LayerPayload()...)
-			  copy(data[2:4], []byte{0, 1})
+				tcp, _ := tcpLayer.(*layers.TCP)
+				data = append(tcp.LayerContents(), tcp.LayerPayload()...)
+				copy(data[2:4], []byte{0, 1})
 			} else {
 				continue
 			}
 
 			if ipLayer := packet.Layer(layers.LayerTypeIPv4); ipLayer != nil {
-			  ip, _ := ipLayer.(*layers.IPv4)
-			  addr = ip.SrcIP
+				ip, _ := ipLayer.(*layers.IPv4)
+				addr = ip.SrcIP
 			} else if ipLayer = packet.Layer(layers.LayerTypeIPv6); ipLayer != nil {
 				ip, _ := ipLayer.(*layers.IPv6)
 				addr = ip.SrcIP

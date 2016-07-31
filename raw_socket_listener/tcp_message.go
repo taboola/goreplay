@@ -38,13 +38,13 @@ type TCPMessage struct {
 	delChan chan *TCPMessage
 
 	/* HTTP specific variables */
-	methodType     httpMethodType
-	bodyType       httpBodyType
-	expectType     httpExpectType
-	seqMissing     bool
-	headerPacket   int
-	contentLength  int
-	complete       bool
+	methodType    httpMethodType
+	bodyType      httpBodyType
+	expectType    httpExpectType
+	seqMissing    bool
+	headerPacket  int
+	contentLength int
+	complete      bool
 }
 
 // NewTCPMessage pointer created from a Acknowledgment number and a channel of messages readuy to be deleted
@@ -72,7 +72,7 @@ func (t *TCPMessage) BodySize() (size int) {
 
 	size += len(proto.Body(t.packets[t.headerPacket].Data))
 
-	for _, p := range t.packets[t.headerPacket + 1:] {
+	for _, p := range t.packets[t.headerPacket+1:] {
 		size += len(p.Data)
 	}
 
@@ -148,7 +148,7 @@ func (t *TCPMessage) checkSeqIntegrity() {
 	offset := len(t.packets) - 1
 
 	if t.packets[offset].IsFIN {
-		offset -= 1
+		offset--
 	}
 
 	for i, p := range t.packets[:offset] {
@@ -243,7 +243,7 @@ func (t *TCPMessage) checkIfComplete() {
 				return
 			}
 
-			last := t.packets[len(t.packets) - 1]
+			last := t.packets[len(t.packets)-1]
 			if last.IsFIN {
 				t.complete = true
 			}
@@ -360,22 +360,22 @@ func (t *TCPMessage) updateBodyType() {
 			t.bodyType = httpBodyContentLength
 			t.contentLength, _ = strconv.Atoi(string(lengthB))
 			return
-		} else {
+		}
+
+		for _, p := range t.packets[:t.headerPacket+1] {
+			encB = proto.Header(p.Data, []byte("Transfer-Encoding"))
+
+			if len(encB) > 0 {
+				t.bodyType = httpBodyChunked
+				return
+			}
+
 			for _, p := range t.packets[:t.headerPacket+1] {
-				encB = proto.Header(p.Data, []byte("Transfer-Encoding"))
+				connB = proto.Header(p.Data, []byte("Connection"))
 
-				if len(encB) > 0 {
-					t.bodyType = httpBodyChunked
+				if len(connB) > 0 && bytes.Equal(connB, []byte("close")) {
+					t.bodyType = httpBodyConnectionClose
 					return
-				} else {
-					for _, p := range t.packets[:t.headerPacket+1] {
-						connB = proto.Header(p.Data, []byte("Connection"))
-
-						if len(connB) > 0 && bytes.Equal(connB, []byte("close")) {
-							t.bodyType = httpBodyConnectionClose
-							return
-						}
-					}
 				}
 			}
 		}
