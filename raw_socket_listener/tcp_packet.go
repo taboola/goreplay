@@ -92,6 +92,11 @@ func (t *TCPPacket) Dump() []byte {
 	binary.BigEndian.PutUint32(tcpBuf[8:12], t.Ack)
 
 	tcpBuf[12] = 64
+
+	if t.IsFIN {
+		tcpBuf[13] = tcpBuf[13] | 0x01
+	}
+
 	copy(tcpBuf[16:], t.Data)
 
 	return buf
@@ -111,6 +116,7 @@ func (t *TCPPacket) String() string {
 		"Sequence:" + strconv.Itoa(int(t.Seq)),
 		"Acknowledgment:" + strconv.Itoa(int(t.Ack)),
 		"Header len:" + strconv.Itoa(int(t.DataOffset)),
+		"FIN:" + strconv.FormatBool(t.IsFIN),
 
 		"Data size:" + strconv.Itoa(len(t.Data)),
 		"Data:" + string(t.Data[:maxLen]),

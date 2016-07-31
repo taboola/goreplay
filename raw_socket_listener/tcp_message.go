@@ -145,7 +145,13 @@ func (t *TCPMessage) checkSeqIntegrity() {
 		t.seqMissing = false
 	}
 
-	for i, p := range t.packets {
+	offset := len(t.packets) - 1
+
+	if t.packets[offset].IsFIN {
+		offset -= 1
+	}
+
+	for i, p := range t.packets[:offset] {
 		if p.IsFIN {
 			continue
 		}
@@ -340,7 +346,7 @@ func (t *TCPMessage) updateBodyType() {
 		t.bodyType = httpBodyEmpty
 		return
 	case httpMethodWithBody:
-		var lengthB, encB []byte
+		var lengthB, encB, connB []byte
 
 		for _, p := range t.packets[:t.headerPacket+1] {
 			lengthB = proto.Header(p.Data, []byte("Content-Length"))
@@ -361,6 +367,15 @@ func (t *TCPMessage) updateBodyType() {
 				if len(encB) > 0 {
 					t.bodyType = httpBodyChunked
 					return
+				} else {
+					for _, p := range t.packets[:t.headerPacket+1] {
+						connB = proto.Header(p.Data, []byte("Connection"))
+
+						if len(connB) > 0 && bytes.Equal(connB, []byte("close")) {
+							t.bodyType = httpBodyConnectionClose
+							return
+						}
+					}
 				}
 			}
 		}

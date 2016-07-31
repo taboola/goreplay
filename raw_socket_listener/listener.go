@@ -765,13 +765,13 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 	// If message contains only single packet immediately dispatch it
 	if message.complete {
 		if isIncoming {
-			// log.Println("I'm finished", string(message.Bytes()), message.ResponseID, t.messages)
 			if t.trackResponse {
 				if resp, ok := t.messages[message.ResponseID]; ok {
-					t.dispatchMessage(message)
 					if resp.complete {
 						t.dispatchMessage(resp)
 					}
+
+					t.dispatchMessage(message)
 				}
 			} else {
 				t.dispatchMessage(message)
