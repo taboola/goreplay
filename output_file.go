@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"sort"
 	"strconv"
 	"strings"
@@ -208,6 +209,13 @@ func (o *FileOutput) Write(data []byte) (n int, err error) {
 }
 
 func (o *FileOutput) flush() {
+	// Don't exit on panic
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("PANIC while file flush: ", r, o, string(debug.Stack()))
+		}
+	}()
+
 	defer o.mu.Unlock()
 	o.mu.Lock()
 
