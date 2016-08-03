@@ -2,6 +2,7 @@ package proto
 
 import (
 	"bytes"
+	"reflect"
 	"testing"
 )
 
@@ -120,6 +121,45 @@ func TestDeleteHeader(t *testing.T) {
 
 	if payload = DeleteHeader(payload, []byte("User-Agent")); !bytes.Equal(payload, payloadAfter) {
 		t.Error("Should delete header if found", string(payload), string(payloadAfter))
+	}
+}
+
+func TestParseHeaders(t *testing.T) {
+	payload := [][]byte{[]byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.or"), []byte("g\r\nUser-Ag"), []byte("ent:Chrome\r\n\r\n"), []byte("Fake-Header: asda")}
+
+	headers := make(map[string]string)
+
+	ParseHeaders(payload, func(header []byte, value []byte) bool {
+		headers[string(header)] = string(value)
+		return true
+	})
+
+	expected := map[string]string{
+		"Content-Length": "7",
+		"Host":           "www.w3.org",
+		"User-Agent":     "Chrome",
+	}
+	if !reflect.DeepEqual(headers, expected) {
+		t.Error("Headers do not properly parsed", headers)
+	}
+}
+
+func TestHeaderEquals(t *testing.T) {
+	tests := []struct {
+		h1     string
+		h2     string
+		equals bool
+	}{
+		{"Content-Length", "content-length", true},
+		{"content-length", "Content-Length", true},
+		{"content-Pength", "Content-Length", false},
+		{"Host", "Content-Length", false},
+	}
+
+	for _, tc := range tests {
+		if HeadersEqual([]byte(tc.h1), []byte(tc.h2)) != tc.equals {
+			t.Error(tc)
+		}
 	}
 }
 

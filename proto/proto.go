@@ -160,6 +160,127 @@ func header(payload []byte, name []byte) (value []byte, headerStart, headerEnd, 
 	return
 }
 
+// Works only with ASCII
+func HeadersEqual(h1 []byte, h2 []byte) bool {
+	if len(h1) != len(h2) {
+		return false
+	}
+
+	for i, c1 := range h1 {
+		c2 := h2[i]
+
+		switch int(c1) - int(c2) {
+		case 0, 32, -32:
+		default:
+			return false
+		}
+	}
+
+	return true
+}
+
+// Parsing headers from multiple payloads
+func ParseHeaders(payloads [][]byte, cb func(header []byte, value []byte) bool) {
+
+	hS := [2]int{0, 0}
+	hE := [2]int{-1, -1}
+	vS := [2]int{-1, -1}
+	vE := [2]int{-1, -1}
+
+	i := 0
+	pIdx := 0
+	lineBreaks := 0
+
+	for {
+		if len(payloads)-1 < pIdx {
+			break
+		}
+
+		p := payloads[pIdx]
+
+		if len(p)-1 < i {
+			pIdx++
+			i = 0
+			continue
+		}
+
+		switch p[i] {
+		case '\r', '\n':
+			lineBreaks++
+
+			// End of headers
+			if lineBreaks == 4 {
+				return
+			}
+
+			if lineBreaks > 1 {
+				break
+			}
+
+			vE = [2]int{pIdx, i}
+
+			if vS[1] != -1 && vE[1] != -1 &&
+				hS[1] != -1 && hE[1] != -1 {
+
+				var header, value []byte
+
+				phS, phE, pvS, pvE := payloads[hS[0]], payloads[hE[0]], payloads[vS[0]], payloads[vE[0]]
+
+				// If in same payload
+				if hS[0] == hE[0] {
+					header = phS[hS[1]:hE[1]]
+				} else {
+					header = make([]byte, len(phS)-hS[1]+hE[1])
+					copy(header, phS[hS[1]:])
+					copy(header[len(phS)-hS[1]:], phE[:hE[1]])
+				}
+
+				if vS[0] == vE[0] {
+					value = pvS[vS[1]:vE[1]]
+				} else {
+					value = make([]byte, len(pvS)-vS[1]+vE[1])
+					copy(value, pvS[vS[1]:])
+					copy(value[len(pvS)-vS[1]:], pvE[:vE[1]])
+				}
+
+				if !cb(header, value) {
+					return
+				}
+			}
+
+			// Header found, reset values
+			vS = [2]int{-1, -1}
+			vE = [2]int{-1, -1}
+			hS = [2]int{-1, -1}
+			hE = [2]int{-1, -1}
+		case ':':
+			hE = [2]int{pIdx, i}
+		default:
+			lineBreaks = 0
+
+			if hS[1] == -1 {
+				hS = [2]int{pIdx, i}
+			} else {
+				if hE[1] == -1 {
+					break
+				}
+
+				if vS[1] == -1 {
+					if p[i] == ' ' {
+						break
+					}
+
+					vS = [2]int{pIdx, i}
+				}
+			}
+		}
+
+		i++
+	}
+
+	return
+}
+
 // Header returns header value, if header not found, value will be blank
 func Header(payload, name []byte) []byte {
 	val, _, _, _, _ := header(payload, name)

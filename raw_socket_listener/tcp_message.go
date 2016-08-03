@@ -55,6 +55,15 @@ func NewTCPMessage(Seq, Ack uint32, IsIncoming bool) (msg *TCPMessage) {
 	return
 }
 
+func (t *TCPMessage) packetsData() (d [][]byte) {
+	d = make([][]byte, len(t.packets))
+	for i, p := range t.packets {
+		d[i] = p.Data
+	}
+
+	return
+}
+
 // Bytes return message content
 func (t *TCPMessage) Bytes() (output []byte) {
 	for _, p := range t.packets {
@@ -149,6 +158,10 @@ func (t *TCPMessage) checkSeqIntegrity() {
 
 	if t.packets[offset].IsFIN {
 		offset--
+
+		if offset < 0 {
+			return
+		}
 	}
 
 	for i, p := range t.packets[:offset] {
@@ -348,36 +361,44 @@ func (t *TCPMessage) updateBodyType() {
 	case httpMethodWithBody:
 		var lengthB, encB, connB []byte
 
-		for _, p := range t.packets[:t.headerPacket+1] {
-			lengthB = proto.Header(p.Data, []byte("Content-Length"))
-
-			if len(lengthB) > 0 {
-				break
+		proto.ParseHeaders(t.packetsData(), func(header, value []byte)bool{
+			if proto.HeadersEqual(header, []byte("Content-Length")) {
+				lengthB = value
+				return false
 			}
-		}
+
+			if proto.HeadersEqual(header, []byte("Transfer-Encoding")) {
+				encB = value
+				return false
+			}
+
+			if proto.HeadersEqual(header, []byte("Connection")) {
+				connB = value
+				return false
+			}
+
+			return true
+		})
 
 		if len(lengthB) > 0 {
-			t.bodyType = httpBodyContentLength
 			t.contentLength, _ = strconv.Atoi(string(lengthB))
+
+			if t.contentLength == 0 {
+				t.bodyType = httpBodyEmpty
+			} else {
+				t.bodyType = httpBodyContentLength
+			}
 			return
 		}
 
-		for _, p := range t.packets[:t.headerPacket+1] {
-			encB = proto.Header(p.Data, []byte("Transfer-Encoding"))
+		if len(encB) > 0 {
+			t.bodyType = httpBodyChunked
+			return
+		}
 
-			if len(encB) > 0 {
-				t.bodyType = httpBodyChunked
-				return
-			}
-
-			for _, p := range t.packets[:t.headerPacket+1] {
-				connB = proto.Header(p.Data, []byte("Connection"))
-
-				if len(connB) > 0 && bytes.Equal(connB, []byte("close")) {
-					t.bodyType = httpBodyConnectionClose
-					return
-				}
-			}
+		if len(connB) > 0 && bytes.Equal(connB, []byte("close")) {
+			t.bodyType = httpBodyConnectionClose
+			return
 		}
 	}
 
@@ -414,13 +435,19 @@ func (t *TCPMessage) check100Continue() {
 		return
 	}
 
-	for _, p := range t.packets[:t.headerPacket+1] {
-		if h := proto.Header(p.Data, bExpectHeader); len(h) > 0 {
-			if bytes.Equal(bExpect100Value, h) {
-				t.expectType = httpExpect100Continue
-			}
-			return
+	var expectB []byte
+	proto.ParseHeaders(t.packetsData(), func(header, value []byte)bool{
+		if proto.HeadersEqual(header, bExpectHeader) {
+			expectB = value
+			return false
 		}
+
+		return true
+	})
+
+	if len(expectB) > 0 && bytes.Equal(bExpect100Value, expectB) {
+		t.expectType = httpExpect100Continue
+		return
 	}
 
 	t.expectType = httpExpectEmpty
