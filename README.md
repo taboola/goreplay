@@ -2,12 +2,17 @@
 
 ![Go Replay](http://i.imgur.com/ZG2ki5n.png)
 
+## https://goreplay.org/
+
 ## About
 
-Gor is an open-source tool for capturing and replaying live HTTP traffic into a test environment in order to continuously test your system with real data. It can be used to increase confidence in code deployments, configuration changes and infrastructure changes.
+GoReplay is the simplest and safest way to test your app using real traffic before you put it into production.
 
-Now you can test your code on real user sessions in an automated and repeatable fashion.
-**No more falling down in production!**
+As your application grows, the effort required to test it also grows exponentially. GoReplay offers you the simple idea of reusing your existing traffic for testing, which makes it incredibly powerful. Our state of art technique allows to analyze and record your application traffic without affecting it. This eliminates the risks that come with putting a third party component in the critical path. 
+
+GoReplay increases your confidence in code deployments, configuration changes and infrastructure changes. Did we mention that no coding is required?
+
+
 
 Here is basic workflow: The listener server catches http traffic and sends it to the replay server or saves to file. The replay server forwards traffic to a given address.
 
@@ -23,14 +28,14 @@ Download latest binary from https://github.com/buger/gor/releases or [compile by
 The most basic setup will be `sudo ./gor --input-raw :8000 --output-stdout` which acts like tcpdump.
 If you already have test environment you can start replaying: `sudo ./gor --input-raw :8000 --output-http http://staging.env`.
 
-See the our wiki and especially [Getting started](https://github.com/buger/gor/wiki/Getting-Started) wiki page for more info. 
+See the our [documentation](https://github.com/buger/gor/wiki/) and [Getting started](https://github.com/buger/gor/wiki/Getting-Started) page for more info. 
 ## Newsletter
 Subscribe to our [newsletter](https://www.getdrip.com/forms/89690474/submissions/new) to stay informed about the latest features and changes to Gor project.
 
 
 ## Want to Upgrade?
 
-I also sell Gor Pro, extensions to Gor which provide more features, a commercial-friendly license and allow you to support high quality open source development all at the same time. Please see the Gor [homepage](https://gortool.com/) for more detail.
+We have created a [GoReplay PRO](https://goreplay.org/pro.html) extension which provides additional features such as support for binary protocols like Thrift or ProtocolBuffers, saving and replaying from cloud storage, TCP sessions replication, etc. The PRO version also includes a commercial-friendly license, dedicated support, and it also allows you to support high-quality open source development. 
 
 
 ## Problems?
@@ -38,14 +43,6 @@ If you have a problem, please review the [FAQ](https://github.com/buger/gor/wiki
 
 All bug-reports and suggestions should go though Github Issues or our [Google Group](https://groups.google.com/forum/#!forum/gor-users) (you can just send email to gor-users@googlegroups.com).
 If you have a private question feel free to send email to support@gortool.com.
-
-Useful resources:
-
-* Product documentation is in the [wiki](http://github.com/buger/gor/wiki).
-* Release announcements are made to the [@buger](http://twitter.com/buger) Twitter account and our [newsleter](https://tinyletter.com/gor)
-
-
-If you need commercial support read more about Pro and Enterprise versions at our site [https://gortool.com/](https://gortool.com/)
 
 
 ## Contributing
@@ -69,7 +66,7 @@ If you need commercial support read more about Pro and Enterprise versions at ou
 * [Granify](http://granify.com) - AI backed SaaS solution that enables online retailers to maximise their sales
 * And many more!
 
-If you are using Gor we are happy add you to the list and share your story, just write to: hello@gortool.com
+If you are using Gor we are happy add you to the list and share your story, just write to: hello@goreplay.org
 
 ## Author
 
