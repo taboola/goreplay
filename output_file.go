@@ -53,14 +53,6 @@ func NewFileOutput(pathTemplate string, config *FileOutputConfig) *FileOutput {
 	o.config = config
 	o.updateName()
 
-	// Force flushing every minute
-	go func() {
-		for {
-			time.Sleep(o.config.flushInterval)
-			o.flush()
-		}
-	}()
-
 	go func() {
 		for {
 			time.Sleep(time.Second)
