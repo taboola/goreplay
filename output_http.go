@@ -179,7 +179,7 @@ func (o *HTTPOutput) Read(data []byte) (int, error) {
 
 	Debug("[OUTPUT-HTTP] Received response:", string(resp.payload))
 
-	header := payloadHeader(ReplayedResponsePayload, resp.uuid, resp.startedAt, resp.roundTripTime)
+	header := payloadHeader(ReplayedResponsePayload, resp.uuid, resp.roundTripTime, resp.startedAt)
 	copy(data[0:len(header)], header)
 	copy(data[len(header):], resp.payload)
 
