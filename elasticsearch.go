@@ -2,8 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/mattbaird/elastigo/lib"
 	"github.com/buger/gor/proto"
+	"github.com/mattbaird/elastigo/lib"
 	"log"
 	"regexp"
 	"time"

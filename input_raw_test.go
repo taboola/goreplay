@@ -92,10 +92,10 @@ func TestRAWInputNoKeepAlive(t *testing.T) {
 		t.Fatal(err)
 	}
 	origin := &http.Server{
-		Handler:      http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte("a"))
-				w.Write([]byte("b"))
-			}),
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("a"))
+			w.Write([]byte("b"))
+		}),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
