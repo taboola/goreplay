@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/base64"
 	"io"
 	"log"
 	"net"
@@ -44,6 +45,7 @@ type HTTPClient struct {
 	baseURL        string
 	scheme         string
 	host           string
+	auth           string
 	conn           net.Conn
 	respBuf        []byte
 	config         *HTTPClientConfig
@@ -78,6 +80,10 @@ func NewHTTPClient(baseURL string, config *HTTPClientConfig) *HTTPClient {
 	client.scheme = u.Scheme
 	client.respBuf = make([]byte, config.ResponseBufferSize)
 	client.config = config
+
+	if u.User != nil {
+		client.auth = "Basic " + base64.StdEncoding.EncodeToString([]byte(u.User.String()))
+	}
 
 	return client
 }
@@ -162,6 +168,10 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 
 	if !c.config.OriginalHost {
 		data = proto.SetHost(data, []byte(c.baseURL), []byte(c.host))
+	}
+
+	if c.auth != "" {
+		data = proto.SetHeader(data, []byte("Authorization"), []byte(c.auth))
 	}
 
 	if c.config.Debug {

@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"net/http/httputil"
 	_ "reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -92,7 +93,7 @@ func TestHTTPClientResonseByClose(t *testing.T) {
 
 	payload := []byte("GET / HTTP/1.1\r\n\r\n")
 	ln, _ := net.Listen("tcp", ":0")
-	go func(){
+	go func() {
 		for {
 			conn, _ := ln.Accept()
 			buf := make([]byte, 4096)
@@ -352,6 +353,45 @@ func TestHTTPClientRedirectLimit(t *testing.T) {
 	// Have 3 redirects + 1 GET, but should do only 2 redirects + GET
 	wg.Add(3)
 	client.Send(GETPayload)
+
+	wg.Wait()
+}
+
+func TestHTTPClientBasicAuth(t *testing.T) {
+	wg := new(sync.WaitGroup)
+	wg.Add(2)
+
+	GETPayload := []byte("GET / HTTP/1.1\r\n\r\n")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, pass, _ := r.BasicAuth()
+
+		if user != "user" || pass != "pass" {
+			http.Error(w, "Unauthorized.", 401)
+			wg.Done()
+			return
+		}
+
+		wg.Done()
+	}))
+	defer server.Close()
+
+	client := NewHTTPClient(server.URL, &HTTPClientConfig{Debug: false})
+	resp, _ := client.Send(GETPayload)
+	client.Disconnect()
+
+	if !bytes.Equal(proto.Status(resp), []byte("401")) {
+		t.Error("Should return unauthorized error", string(resp))
+	}
+
+	authUrl := strings.Replace(server.URL, "http://", "http://user:pass@", -1)
+	client = NewHTTPClient(authUrl, &HTTPClientConfig{Debug: false})
+	resp, _ = client.Send(GETPayload)
+	client.Disconnect()
+
+	if !bytes.Equal(proto.Status(resp), []byte("200")) {
+		t.Error("Should return proper response", string(resp))
+	}
 
 	wg.Wait()
 }
