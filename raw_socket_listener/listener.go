@@ -465,7 +465,7 @@ func (t *Listener) readPcap() {
 				}
 
 				// Truncated TCP info
-				if len(data) < 13 {
+				if len(data) <= 13 {
 					continue
 				}
 
