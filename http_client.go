@@ -318,6 +318,11 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 		}
 	}
 
+	if bytes.Equal(proto.Status(payload), []byte("400")) {
+		c.Disconnect()
+		Debug("[HTTPClient] Closed connection on 400 response")
+	}
+
 	c.redirectsCount = 0
 
 	return payload, err
