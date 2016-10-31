@@ -142,4 +142,6 @@ func InitPlugins() {
 	for _, options := range Settings.outputHTTP {
 		registerPlugin(NewHTTPOutput, options, &Settings.outputHTTPConfig)
 	}
+
+	registerPlugin(NewKafkaOutput, &Settings.outputKafkaConfig)
 }

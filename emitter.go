@@ -15,7 +15,7 @@ func Start(stop chan int) {
 			middleware.ReadFrom(in)
 		}
 
-		// We going only to read responses, so using same ReadFrom method
+		// We are going only to read responses, so using same ReadFrom method
 		for _, out := range Plugins.Outputs {
 			if r, ok := out.(io.Reader); ok {
 				middleware.ReadFrom(r)
