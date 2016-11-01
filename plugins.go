@@ -143,5 +143,5 @@ func InitPlugins() {
 		registerPlugin(NewHTTPOutput, options, &Settings.outputHTTPConfig)
 	}
 
-	registerPlugin(NewKafkaOutput, &Settings.outputKafkaConfig)
+	registerPlugin(NewKafkaOutput, "", &Settings.outputKafkaConfig)
 }
