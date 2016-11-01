@@ -26,15 +26,10 @@ type KafkaOutput struct {
 // KafkaMessage should contains catched request information that should be
 // passed as Json to Apache Kafka.
 type KafkaMessage struct {
-	ReqURL             string `json:"Req_URL"`
-	ReqMethod          string `json:"Req_Method"`
-	ReqUserAgent       string `json:"Req_User-Agent"`
-	ReqAcceptLanguage  string `json:"Req_Accept-Language,omitempty"`
-	ReqAccept          string `json:"Req_Accept,omitempty"`
-	ReqAcceptEncoding  string `json:"Req_Accept-Encoding,omitempty"`
-	ReqIfModifiedSince string `json:"Req_If-Modified-Since,omitempty"`
-	ReqConnection      string `json:"Req_Connection,omitempty"`
-	ReqCookies         string `json:"Req_Cookies,omitempty"`
+	ReqURL     string            `json:"Req_URL"`
+	ReqMethod  string            `json:"Req_Method"`
+	ReqBody    string            `json:"Req_Body,omitempty"`
+	ReqHeaders map[string]string `json:"Req_Headers,omitempty"`
 }
 
 // KafkaOutputFrequency in milliseconds
@@ -75,16 +70,19 @@ func (o *KafkaOutput) ErrorHandler() {
 }
 
 func (o *KafkaOutput) Write(data []byte) (n int, err error) {
+	headers := make(map[string]string)
+	proto.ParseHeaders([][]byte{data}, func(header []byte, value []byte) bool {
+		headers[string(header)] = string(value)
+		return true
+	})
+
+	req := payloadBody(data)
+
 	kafkaMessage := KafkaMessage{
-		ReqURL:             string(proto.Path(data)),
-		ReqMethod:          string(proto.Method(data)),
-		ReqUserAgent:       string(proto.Header(data, []byte("User-Agent"))),
-		ReqAcceptLanguage:  string(proto.Header(data, []byte("Accept-Language"))),
-		ReqAccept:          string(proto.Header(data, []byte("Accept"))),
-		ReqAcceptEncoding:  string(proto.Header(data, []byte("Accept-Encoding"))),
-		ReqIfModifiedSince: string(proto.Header(data, []byte("If-Modified-Since"))),
-		ReqConnection:      string(proto.Header(data, []byte("Connection"))),
-		ReqCookies:         string(proto.Header(data, []byte("Cookie"))),
+		ReqURL:     string(proto.Path(req)),
+		ReqMethod:  string(proto.Method(req)),
+		ReqBody:    string(proto.Body(req)),
+		ReqHeaders: headers,
 	}
 	jsonMessage, _ := json.Marshal(&kafkaMessage)
 	message := sarama.StringEncoder(jsonMessage)
