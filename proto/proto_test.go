@@ -139,8 +139,30 @@ func TestParseHeaders(t *testing.T) {
 		"Host":           "www.w3.org",
 		"User-Agent":     "Chrome",
 	}
+
 	if !reflect.DeepEqual(headers, expected) {
 		t.Error("Headers do not properly parsed", headers)
+	}
+}
+
+func TestParseHeadersWithComplexUserAgent(t *testing.T) {
+	// User-Agent could contain inside ':'
+	// Parser should wait for \r\n
+	payload := [][]byte{[]byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.or"), []byte("g\r\nUser-Ag"), []byte("ent:Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko\r\n\r\n"), []byte("Fake-Header: asda")}
+
+	headers := make(map[string]string)
+
+	ParseHeaders(payload, func(header []byte, value []byte) bool {
+		headers[string(header)] = string(value)
+		return true
+	})
+
+	expected := map[string]string{
+		"User-Agent": "Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko",
+	}
+
+	if expected["User-Agent"] != headers["User-Agent"] {
+		t.Errorf("Header 'User-Agent' expected '%s' and parsed: '%s'", expected["User-Agent"], headers["User-Agent"])
 	}
 }
 
