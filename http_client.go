@@ -89,7 +89,7 @@ func (c *HTTPClient) Connect() (err error) {
 	}
 
 	if c.scheme == "https" {
-		tlsConn := tls.Client(c.conn, &tls.Config{InsecureSkipVerify: true})
+		tlsConn := tls.Client(c.conn, &tls.Config{InsecureSkipVerify: true, ServerName: c.host})
 
 		if err = tlsConn.Handshake(); err != nil {
 			return
