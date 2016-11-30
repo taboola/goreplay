@@ -190,6 +190,7 @@ func ParseHeaders(payloads [][]byte, cb func(header []byte, value []byte) bool) 
 	i := 0
 	pIdx := 0
 	lineBreaks := 0
+	newLineBreak := true
 
 	for {
 		if len(payloads)-1 < pIdx {
@@ -206,6 +207,7 @@ func ParseHeaders(payloads [][]byte, cb func(header []byte, value []byte) bool) 
 
 		switch p[i] {
 		case '\r', '\n':
+			newLineBreak = true
 			lineBreaks++
 
 			// End of headers
@@ -254,7 +256,10 @@ func ParseHeaders(payloads [][]byte, cb func(header []byte, value []byte) bool) 
 			hS = [2]int{-1, -1}
 			hE = [2]int{-1, -1}
 		case ':':
-			hE = [2]int{pIdx, i}
+			if newLineBreak {
+				hE = [2]int{pIdx, i}
+				newLineBreak = false
+			}
 		default:
 			lineBreaks = 0
 
