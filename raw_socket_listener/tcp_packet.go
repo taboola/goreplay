@@ -82,7 +82,7 @@ func (t *TCPPacket) ParseBasic() {
 	t.Data = t.Raw[t.DataOffset*4:]
 }
 
-func (t *TCPPacket) Dump() *Packet {
+func (t *TCPPacket) dump() *packet {
 
 	packetSrcIP := make([]byte, 16)
 	packetData := make([]byte, len(t.Data) + 16)
@@ -103,7 +103,7 @@ func (t *TCPPacket) Dump() *Packet {
 
 	copy(packetData[16:], t.Data)
 
-	return &Packet{
+	return &packet{
 		srcIP: packetSrcIP,
 		data:packetData,
 		timestamp:t.timestamp,

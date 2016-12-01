@@ -33,7 +33,7 @@ import (
 
 var _ = fmt.Println
 
-type Packet struct {
+type packet struct {
 	srcIP		[]byte
 	data		[]byte
 	timestamp	time.Time
@@ -59,7 +59,7 @@ type Listener struct {
 	respWithoutReq map[uint32]tcpID
 
 	// Messages ready to be send to client
-	packetsChan chan *Packet
+	packetsChan chan *packet
 
 	// Messages ready to be send to client
 	messagesChan chan *TCPMessage
@@ -94,7 +94,7 @@ const (
 func NewListener(addr string, port string, engine int, trackResponse bool, expire time.Duration) (l *Listener) {
 	l = &Listener{}
 
-	l.packetsChan = make(chan *Packet, 10000)
+	l.packetsChan = make(chan *packet, 10000)
 	l.messagesChan = make(chan *TCPMessage, 10000)
 	l.quit = make(chan bool)
 	l.readyCh = make(chan bool, 1)
@@ -636,14 +636,14 @@ func (t *Listener) readRAWSocket() {
 	}
 }
 
-func (t *Listener) buildPacket(packetSrcIP []byte, packetData []byte, timestamp time.Time) *Packet {
+func (t *Listener) buildPacket(packetSrcIP []byte, packetData []byte, timestamp time.Time) *packet {
 	copyPacketSrcIP := make([]byte, 16)
 	copyPacketData := make([]byte, len(packetData))
 
 	copy(copyPacketSrcIP, packetSrcIP)
 	copy(copyPacketData, packetSrcIP)
 
-	return &Packet {
+	return &packet{
 		srcIP: packetSrcIP,
 		data: packetData,
 		timestamp:timestamp,

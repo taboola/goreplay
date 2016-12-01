@@ -20,8 +20,8 @@ func TestRawListenerInput(t *testing.T) {
 	respAck := reqPacket.Seq + uint32(len(reqPacket.Data))
 	respPacket := buildPacket(false, respAck, reqPacket.Seq+1, []byte("HTTP/1.1 200 OK\r\n\r\n"), time.Now())
 
-	listener.packetsChan <- reqPacket.Dump()
-	listener.packetsChan <- respPacket.Dump()
+	listener.packetsChan <- reqPacket.dump()
+	listener.packetsChan <- respPacket.dump()
 
 	select {
 	case req = <-listener.messagesChan:
@@ -59,9 +59,9 @@ func TestRawListenerInputResponseByClose(t *testing.T) {
 	finPacket := buildPacket(false, respAck, reqPacket.Seq+2, []byte(""), time.Now())
 	finPacket.IsFIN = true
 
-	listener.packetsChan <- reqPacket.Dump()
-	listener.packetsChan <- respPacket.Dump()
-	listener.packetsChan <- finPacket.Dump()
+	listener.packetsChan <- reqPacket.dump()
+	listener.packetsChan <- respPacket.dump()
+	listener.packetsChan <- finPacket.dump()
 
 	select {
 	case req = <-listener.messagesChan:
@@ -94,7 +94,7 @@ func TestRawListenerInputWithoutResponse(t *testing.T) {
 
 	reqPacket := buildPacket(true, 1, 1, []byte("GET / HTTP/1.1\r\n\r\n"), time.Now())
 
-	listener.packetsChan <- reqPacket.Dump()
+	listener.packetsChan <- reqPacket.dump()
 
 	select {
 	case req = <-listener.messagesChan:
@@ -118,8 +118,8 @@ func TestRawListenerResponse(t *testing.T) {
 	respPacket := buildPacket(false, 1+uint32(len(reqPacket.Data)), 2, []byte("HTTP/1.1 200 OK\r\n\r\n"), time.Now())
 
 	// If response packet comes before request
-	listener.packetsChan <- respPacket.Dump()
-	listener.packetsChan <- reqPacket.Dump()
+	listener.packetsChan <- respPacket.dump()
+	listener.packetsChan <- reqPacket.dump()
 
 	select {
 	case req = <-listener.messagesChan:
@@ -209,7 +209,7 @@ func TestAlt100ContinueHeaderOrder(t *testing.T) {
 func testRawListener100Continue(t *testing.T, listener *Listener, result []byte, packets ...*TCPPacket) {
 	var req, resp *TCPMessage
 	for _, p := range packets {
-		listener.packetsChan <- p.Dump()
+		listener.packetsChan <- p.dump()
 	}
 
 	select {
@@ -249,7 +249,7 @@ func testChunkedSequence(t *testing.T, listener *Listener, packets ...*TCPPacket
 	var r, req, resp *TCPMessage
 
 	for _, p := range packets {
-		listener.packetsChan <- p.Dump()
+		listener.packetsChan <- p.dump()
 	}
 
 	select {
@@ -452,7 +452,7 @@ func TestRawListenerBench(t *testing.T) {
 						}
 					}
 
-					l.packetsChan <- p.Dump()
+					l.packetsChan <- p.dump()
 					time.Sleep(time.Millisecond)
 				}
 
