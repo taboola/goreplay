@@ -207,9 +207,14 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 					if bytes.Equal(proto.Header(c.respBuf, []byte("Transfer-Encoding")), []byte("chunked")) {
 						chunked = true
 					} else {
-						l := proto.Header(c.respBuf, []byte("Content-Length"))
-						if len(l) > 0 {
-							contentLength, _ = strconv.Atoi(string(l))
+						status, _ := strconv.Atoi(string(proto.Status(c.respBuf)))
+						if (status >= 100 && status < 200) || status == 204 || status == 304 {
+							contentLength = 0
+						} else {
+							l := proto.Header(c.respBuf, []byte("Content-Length"))
+							if len(l) > 0 {
+								contentLength, _ = strconv.Atoi(string(l))
+							}
 						}
 					}
 
