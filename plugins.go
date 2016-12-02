@@ -143,5 +143,7 @@ func InitPlugins() {
 		registerPlugin(NewHTTPOutput, options, &Settings.outputHTTPConfig)
 	}
 
-	registerPlugin(NewKafkaOutput, "", &Settings.outputKafkaConfig)
+	if Settings.outputKafkaConfig.host != "" && Settings.outputKafkaConfig.topic != "" {
+		registerPlugin(NewKafkaOutput, "", &Settings.outputKafkaConfig)
+	}
 }
