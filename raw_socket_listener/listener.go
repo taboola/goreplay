@@ -528,12 +528,6 @@ func (t *Listener) readPcap() {
 						}
 					}
 
-					packetSrcIP := make([]byte, 16)
-					packetData := make([]byte, len(data))
-
-					copy(packetSrcIP, srcIP)
-					copy(packetData, data)
-
 					t.packetsChan <- t.buildPacket(srcIP, data, packet.Metadata().Timestamp)
 				}
 			}
