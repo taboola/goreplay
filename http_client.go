@@ -59,6 +59,10 @@ func NewHTTPClient(baseURL string, config *HTTPClientConfig) *HTTPClient {
 
 	u, _ := url.Parse(baseURL)
 
+	if config.Timeout == 0 {
+		config.Timeout = time.Second
+    }
+
 	config.ConnectionTimeout = config.Timeout
 
 	if config.ResponseBufferSize == 0 {
