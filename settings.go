@@ -59,6 +59,7 @@ type AppSettings struct {
 	outputHTTPConfig HTTPOutputConfig
 	modifierConfig   HTTPModifierConfig
 
+	inputKafkaConfig  KafkaConfig
 	outputKafkaConfig KafkaConfig
 }
 
@@ -128,8 +129,11 @@ func init() {
 
 	flag.StringVar(&Settings.outputHTTPConfig.elasticSearch, "output-http-elasticsearch", "", "Send request and response stats to ElasticSearch:\n\tgor --input-raw :8080 --output-http staging.com --output-http-elasticsearch 'es_host:api_port/index_name'")
 
-	flag.StringVar(&Settings.outputKafkaConfig.host, "output-kafka-host", "", "Send request and response stats to Kafka:\n\tgor --input-raw :8080 --output-kafka-host '192.168.0.1:9092,192.168.0.2:9092'")
-	flag.StringVar(&Settings.outputKafkaConfig.topic, "output-kafka-topic", "", "Send request and response stats to Kafka:\n\tgor --input-raw :8080 --output-kafka-topic 'kafka-log'")
+	flag.StringVar(&Settings.outputKafkaConfig.host, "output-kafka-host", "", "Read request and response stats from Kafka:\n\tgor --input-raw :8080 --output-kafka-host '192.168.0.1:9092,192.168.0.2:9092'")
+	flag.StringVar(&Settings.outputKafkaConfig.topic, "output-kafka-topic", "", "Read request and response stats from Kafka:\n\tgor --input-raw :8080 --output-kafka-topic 'kafka-log'")
+
+	flag.StringVar(&Settings.inputKafkaConfig.host, "input-kafka-host", "", "Send request and response stats to Kafka:\n\tgor --output-stdout --input-kafka-host '192.168.0.1:9092,192.168.0.2:9092'")
+	flag.StringVar(&Settings.inputKafkaConfig.topic, "input-kafka-topic", "", "Send request and response stats to Kafka:\n\tgor --output-stdout --input-kafka-topic 'kafka-log'")
 
 	flag.Var(&Settings.modifierConfig.headers, "http-set-header", "Inject additional headers to http reqest:\n\tgor --input-raw :8080 --output-http staging.com --http-set-header 'User-Agent: Gor'")
 	flag.Var(&Settings.modifierConfig.headers, "output-http-header", "WARNING: `--output-http-header` DEPRECATED, use `--http-set-header` instead")
