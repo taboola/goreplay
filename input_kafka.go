@@ -8,17 +8,18 @@ import (
 	"github.com/Shopify/sarama"
 )
 
-// KafkaInput should make consumer client.
+// KafkaInput is used for recieving Kafka messages and
+// transforming them into HTTP payloads.
 type KafkaInput struct {
 	config    *KafkaConfig
 	consumers []sarama.PartitionConsumer
 	messages  chan *sarama.ConsumerMessage
 }
 
-// NewKafkaInput constructor for KafkaInput
+// NewKafkaInput creates instance of kafka consumer client.
 func NewKafkaInput(address string, config *KafkaConfig) *KafkaInput {
 	c := sarama.NewConfig()
-	// c.Consumer.
+	// Configuration options go here
 
 	con, err := sarama.NewConsumer([]string{config.host}, c)
 	if err != nil {

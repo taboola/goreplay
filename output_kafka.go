@@ -11,7 +11,7 @@ import (
 	"github.com/buger/gor/proto"
 )
 
-// KafkaOutput should make producer client.
+// KafkaOutput is used for sending payloads to kafka in JSON format.
 type KafkaOutput struct {
 	config   *KafkaConfig
 	producer sarama.AsyncProducer
