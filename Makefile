@@ -2,7 +2,7 @@ SOURCE = emitter.go gor.go gor_stat.go input_dummy.go input_file.go input_raw.go
 SOURCE_PATH = /go/src/github.com/buger/gor/
 PORT = 8000
 FADDR = :8000
-RUN = docker run -v `pwd`:$(SOURCE_PATH) -p 0.0.0.0:$(PORT):$(PORT) -t -i gor:go
+RUN = docker run -v `pwd`:$(SOURCE_PATH) -p 0.0.0.0:$(PORT):$(PORT) -i -t gor
 BENCHMARK = BenchmarkRAWInput
 TEST = TestRawListenerBench
 VERSION = DEV-$(shell date +%s)
@@ -11,6 +11,9 @@ MAC_LDFLAGS = -ldflags "-X main.VERSION=$(VERSION)"
 FADDR = ":8000"
 
 release: release-x64 release-mac
+
+release-bin:
+	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=amd64  -i gor go build -tags netgo $(LDFLAGS)
 
 release-x64:
 	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=amd64  -i gor go build -tags netgo $(LDFLAGS) && tar -czf gor_$(VERSION)_x64.tar.gz gor && rm gor

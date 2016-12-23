@@ -47,6 +47,8 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 	filteredRequests := make(map[string]time.Time)
 	filteredRequestsLastCleanTime := time.Now()
 
+	i := 0
+
 	for {
 		nr, er := src.Read(buf)
 
@@ -115,17 +117,22 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 			err = er
 			break
 		}
-	}
 
-	// Clean up filtered requests for which we didn't get a response to filter
-	now := time.Now()
-	if now.Sub(filteredRequestsLastCleanTime) > 60 * time.Second {
-		for k, v := range filteredRequests {
-			if now.Sub(v) > 60 * time.Second {
-				delete(filteredRequests, k)
+		// Run GC on each 1000 request
+		if i % 1000 == 0 {
+			// Clean up filtered requests for which we didn't get a response to filter
+			now := time.Now()
+			if now.Sub(filteredRequestsLastCleanTime) > 60 * time.Second {
+				for k, v := range filteredRequests {
+					if now.Sub(v) > 60 * time.Second {
+						delete(filteredRequests, k)
+					}
+				}
+				filteredRequestsLastCleanTime = time.Now()
 			}
 		}
-		filteredRequestsLastCleanTime = time.Now()
+
+		i++
 	}
 
 	return err
