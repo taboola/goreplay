@@ -107,7 +107,7 @@ func TestFileOutputMultipleFiles(t *testing.T) {
 }
 
 func TestFileOutputFilePerRequest(t *testing.T) {
-	output := NewFileOutput("/tmp/log-%Y-%m-%d-%S-%r", &FileOutputConfig{append: true, flushInterval: time.Minute})
+	output := NewFileOutput("/tmp/log-%Y-%m-%d-%S-%r", &FileOutputConfig{append: true})
 
 	if output.file != nil {
 		t.Error("Should not initialize file if no writes")
@@ -130,6 +130,7 @@ func TestFileOutputFilePerRequest(t *testing.T) {
 	}
 
 	os.Remove(name1)
+	os.Remove(name2)
 	os.Remove(name3)
 }
 
