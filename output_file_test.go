@@ -106,6 +106,34 @@ func TestFileOutputMultipleFiles(t *testing.T) {
 	os.Remove(name3)
 }
 
+func TestFileOutputFilePerRequest(t *testing.T) {
+	output := NewFileOutput("/tmp/log-%Y-%m-%d-%S-%r", &FileOutputConfig{append: true})
+
+	if output.file != nil {
+		t.Error("Should not initialize file if no writes")
+	}
+
+	output.Write([]byte("1 1 1\ntest"))
+	name1 := output.file.Name()
+
+	output.Write([]byte("1 2 1\ntest"))
+	name2 := output.file.Name()
+
+	time.Sleep(time.Second)
+	output.updateName()
+
+	output.Write([]byte("1 3 1\ntest"))
+	name3 := output.file.Name()
+
+	if name3 == name2 || name2 == name1 || name3 == name1 {
+		t.Error("File name should change:", name1, name2, name3)
+	}
+
+	os.Remove(name1)
+	os.Remove(name2)
+	os.Remove(name3)
+}
+
 func TestFileOutputCompression(t *testing.T) {
 	output := NewFileOutput("/tmp/log-%Y-%m-%d-%S.gz", &FileOutputConfig{append: true, flushInterval: time.Minute})
 
