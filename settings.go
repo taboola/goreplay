@@ -96,7 +96,7 @@ func init() {
 	flag.BoolVar(&Settings.inputFileLoop, "input-file-loop", false, "Loop input files, useful for performance testing.")
 
 	flag.Var(&Settings.outputFile, "output-file", "Write incoming requests to file: \n\tgor --input-raw :80 --output-file ./requests.gor")
-	flag.DurationVar(&Settings.outputFileConfig.flushInterval, "output-file-flush-interval", time.Minute, "Interval for forcing buffer flush to the file, default: 60s.")
+	flag.DurationVar(&Settings.outputFileConfig.flushInterval, "output-file-flush-interval", time.Second, "Interval for forcing buffer flush to the file, default: 1s.")
 	flag.BoolVar(&Settings.outputFileConfig.append, "output-file-append", false, "The flushed chunk is appended to existence file or not. ")
 
 	// Set default
