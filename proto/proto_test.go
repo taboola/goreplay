@@ -145,6 +145,19 @@ func TestParseHeaders(t *testing.T) {
 	}
 }
 
+// See https://github.com/dvyukov/go-fuzz and fuzz.go
+func TestFuzzCrashers(t *testing.T) {
+	var crashers = []string{
+		"\n:00\n",
+	}
+
+	for _, f := range crashers {
+		ParseHeaders([][]byte{[]byte(f)}, func(header []byte, value []byte) bool {
+	      return true
+	    })
+	}
+}
+
 func TestParseHeadersWithComplexUserAgent(t *testing.T) {
 	// User-Agent could contain inside ':'
 	// Parser should wait for \r\n

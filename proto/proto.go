@@ -181,11 +181,10 @@ func HeadersEqual(h1 []byte, h2 []byte) bool {
 
 // Parsing headers from multiple payloads
 func ParseHeaders(payloads [][]byte, cb func(header []byte, value []byte) bool) {
-
-	hS := [2]int{0, 0}
-	hE := [2]int{-1, -1}
-	vS := [2]int{-1, -1}
-	vE := [2]int{-1, -1}
+	hS := [2]int{0, 0} // header start
+	hE := [2]int{-1, -1} // header end
+	vS := [2]int{-1, -1} // value start
+	vE := [2]int{-1, -1} // value end
 
 	i := 0
 	pIdx := 0
@@ -260,11 +259,13 @@ func ParseHeaders(payloads [][]byte, cb func(header []byte, value []byte) bool) 
 				hE = [2]int{pIdx, i}
 				newLineBreak = false
 			}
+			lineBreaks = 0
 		default:
 			lineBreaks = 0
 
 			if hS[1] == -1 {
 				hS = [2]int{pIdx, i}
+				hE = [2]int{-1, -1}
 			} else {
 				if hE[1] == -1 {
 					break
