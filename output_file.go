@@ -36,15 +36,15 @@ type FileOutputConfig struct {
 
 // FileOutput output plugin
 type FileOutput struct {
-	mu           	sync.Mutex
-	pathTemplate 	string
-	currentName  	string
-	file         	*os.File
-	queueLength  	int
-	chunkSize    	int
-	writer       	io.Writer
-	requestPerFile 	bool
-	currentID    	string
+	mu             sync.Mutex
+	pathTemplate   string
+	currentName    string
+	file           *os.File
+	queueLength    int
+	chunkSize      int
+	writer         io.Writer
+	requestPerFile bool
+	currentID      string
 
 	config *FileOutputConfig
 }
@@ -62,8 +62,9 @@ func NewFileOutput(pathTemplate string, config *FileOutputConfig) *FileOutput {
 
 	go func() {
 		for {
-			time.Sleep(time.Second)
+			time.Sleep(config.flushInterval)
 			o.updateName()
+			o.flush()
 		}
 	}()
 
