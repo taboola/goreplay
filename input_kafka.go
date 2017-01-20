@@ -3,9 +3,8 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"time"
-
 	"github.com/Shopify/sarama"
+	"github.com/Shopify/sarama/mocks"
 )
 
 // KafkaInput is used for recieving Kafka messages and
@@ -21,9 +20,17 @@ func NewKafkaInput(address string, config *KafkaConfig) *KafkaInput {
 	c := sarama.NewConfig()
 	// Configuration options go here
 
-	con, err := sarama.NewConsumer([]string{config.host}, c)
-	if err != nil {
-		log.Fatalln("Failed to start Sarama(Kafka) consumer:", err)
+	var con sarama.Consumer
+
+	if config.consumer.(*mocks.Consumer) != nil {
+		con = config.consumer
+	} else {
+		var err error
+		con, err = sarama.NewConsumer([]string{config.host}, c)
+
+		if err != nil {
+			log.Fatalln("Failed to start Sarama(Kafka) consumer:", err)
+		}
 	}
 
 	partitions, err := con.Partitions(config.topic)
@@ -72,21 +79,23 @@ func (i *KafkaInput) ErrorHandler(consumer sarama.PartitionConsumer) {
 func (i *KafkaInput) Read(data []byte) (int, error) {
 	message := <-i.messages
 
-	var kafkaMessage KafkaMessage
-	json.Unmarshal(message.Value, &kafkaMessage)
+	if !i.config.useJSON {
+		copy(data, message.Value)
+		return len(message.Value), nil
+	} else {
+		var kafkaMessage KafkaMessage
+		json.Unmarshal(message.Value, &kafkaMessage)
 
-	buf, err := kafkaMessage.Dump()
-	if err != nil {
-		log.Println("Failed to decode access log entry:", err)
-		return 0, err
+		buf, err := kafkaMessage.Dump()
+		if err != nil {
+			log.Println("Failed to decode access log entry:", err)
+			return 0, err
+		}
+
+		copy(data, buf)
+
+		return len(buf), nil
 	}
-
-	header := payloadHeader(RequestPayload, uuid(), time.Now().UnixNano(), -1)
-
-	copy(data[0:len(header)], header)
-	copy(data[len(header):], buf)
-
-	return len(buf) + len(header), nil
 }
 
 func (i *KafkaInput) String() string {
