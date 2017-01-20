@@ -14,10 +14,10 @@ import (
 // KafkaConfig should contains required information to
 // build producers.
 type KafkaConfig struct {
-	host  string
-	topic string
+	host     string
+	topic    string
 	producer sarama.AsyncProducer
-	useJSON bool
+	useJSON  bool
 }
 
 // KafkaOutput should make producer client.
