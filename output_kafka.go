@@ -11,31 +11,10 @@ import (
 	"time"
 )
 
-// KafkaConfig should contains required information to
-// build producers.
-type KafkaConfig struct {
-	host     string
-	topic    string
-	producer sarama.AsyncProducer
-	useJSON  bool
-}
-
-// KafkaOutput should make producer client.
+// KafkaOutput is used for sending payloads to kafka in JSON format.
 type KafkaOutput struct {
 	config   *KafkaConfig
 	producer sarama.AsyncProducer
-}
-
-// KafkaMessage should contains catched request information that should be
-// passed as Json to Apache Kafka.
-type KafkaMessage struct {
-	ReqURL     string            `json:"Req_URL"`
-	ReqType    string            `json:"Req_Type"`
-	ReqID      string            `json:"Req_ID"`
-	ReqTs      string            `json:"Req_Ts"`
-	ReqMethod  string            `json:"Req_Method"`
-	ReqBody    string            `json:"Req_Body,omitempty"`
-	ReqHeaders map[string]string `json:"Req_Headers,omitempty"`
 }
 
 // KafkaOutputFrequency in milliseconds
