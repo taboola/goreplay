@@ -2,34 +2,19 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/Shopify/sarama"
-	"github.com/buger/gor/proto"
 	"io"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/Shopify/sarama"
+	"github.com/buger/gor/proto"
 )
 
-// KafkaConfig should contains required information to
-// build producers.
-type KafkaConfig struct {
-	host  string
-	topic string
-}
-
-// KafkaOutput should make producer client.
+// KafkaOutput is used for sending payloads to kafka in JSON format.
 type KafkaOutput struct {
 	config   *KafkaConfig
 	producer sarama.AsyncProducer
-}
-
-// KafkaMessage should contains catched request information that should be
-// passed as Json to Apache Kafka.
-type KafkaMessage struct {
-	ReqURL     string            `json:"Req_URL"`
-	ReqMethod  string            `json:"Req_Method"`
-	ReqBody    string            `json:"Req_Body,omitempty"`
-	ReqHeaders map[string]string `json:"Req_Headers,omitempty"`
 }
 
 // KafkaOutputFrequency in milliseconds
