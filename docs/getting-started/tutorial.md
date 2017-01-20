@@ -41,4 +41,4 @@ Next: [[The Basics]]
 ### Watch an overview:
 
 
-[![Foo](http://img.youtube.com/vi/CxuKZcMKaW4/0.jpg)](https://www.youtube.com/watch?v=CxuKZcMKaW4)
+![YOUTUBE](https://www.youtube.com/watch?v=CxuKZcMKaW4)
