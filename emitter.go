@@ -27,6 +27,12 @@ func Start(stop chan int) {
 		for _, in := range Plugins.Inputs {
 			go CopyMulty(in, Plugins.Outputs...)
 		}
+
+		for _, out := range Plugins.Outputs {
+			if r, ok := out.(io.Reader); ok {
+				go CopyMulty(r, Plugins.Outputs...)
+			}
+		}
 	}
 
 	for {
