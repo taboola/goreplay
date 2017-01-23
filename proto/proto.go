@@ -32,7 +32,7 @@ var HeaderDelim = []byte(": ")
 
 // MIMEHeadersEndPos finds end of the Headers section, which should end with empty line.
 func MIMEHeadersEndPos(payload []byte) int {
-	return bytes.Index(payload, EmptyLine)
+	return bytes.Index(payload, EmptyLine) + 4
 }
 
 // MIMEHeadersStartPos finds start of Headers section
@@ -337,7 +337,7 @@ func DeleteHeader(payload, name []byte) []byte {
 // Body returns request/response body
 func Body(payload []byte) []byte {
 	// 4 -> len(EMPTY_LINE)
-	return payload[MIMEHeadersEndPos(payload)+4:]
+	return payload[MIMEHeadersEndPos(payload):]
 }
 
 // Path takes payload and retuns request path: Split(firstLine, ' ')[1]
