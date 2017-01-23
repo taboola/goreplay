@@ -75,6 +75,8 @@ func TestEmitterFiltered(t *testing.T) {
 	wg.Wait()
 
 	close(quit)
+
+	Settings.modifierConfig = HTTPModifierConfig{}
 }
 
 func TestEmitterRoundRobin(t *testing.T) {
