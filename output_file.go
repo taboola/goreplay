@@ -45,6 +45,7 @@ type FileOutput struct {
 	writer         io.Writer
 	requestPerFile bool
 	currentID      string
+	closed         bool
 
 	config *FileOutputConfig
 }
@@ -63,8 +64,13 @@ func NewFileOutput(pathTemplate string, config *FileOutputConfig) *FileOutput {
 	go func() {
 		for {
 			time.Sleep(config.flushInterval)
+			if o.closed {
+				break
+			}
+			o.mu.Lock()
 			o.updateName()
 			o.flush()
+			o.mu.Unlock()
 		}
 	}()
 
@@ -250,5 +256,7 @@ func (o *FileOutput) Close() error {
 		}
 		o.file.Close()
 	}
+
+	o.closed = true
 	return nil
 }
