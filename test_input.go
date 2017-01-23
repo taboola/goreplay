@@ -8,7 +8,7 @@ import (
 
 // TestInput used for testing purpose, it allows emitting requests on demand
 type TestInput struct {
-	data chan []byte
+	data       chan []byte
 	skipHeader bool
 }
 

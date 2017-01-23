@@ -88,7 +88,7 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 					}
 				} else {
 					if _, ok := filteredRequests[requestID]; ok {
-						delete(filteredRequests, requestID);
+						delete(filteredRequests, requestID)
 						continue
 					}
 				}
@@ -119,12 +119,12 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 		}
 
 		// Run GC on each 1000 request
-		if i % 1000 == 0 {
+		if i%1000 == 0 {
 			// Clean up filtered requests for which we didn't get a response to filter
 			now := time.Now()
-			if now.Sub(filteredRequestsLastCleanTime) > 60 * time.Second {
+			if now.Sub(filteredRequestsLastCleanTime) > 60*time.Second {
 				for k, v := range filteredRequests {
-					if now.Sub(v) > 60 * time.Second {
+					if now.Sub(v) > 60*time.Second {
 						delete(filteredRequests, k)
 					}
 				}

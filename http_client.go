@@ -61,7 +61,7 @@ func NewHTTPClient(baseURL string, config *HTTPClientConfig) *HTTPClient {
 
 	if config.Timeout == 0 {
 		config.Timeout = time.Second
-    }
+	}
 
 	config.ConnectionTimeout = config.Timeout
 
@@ -87,7 +87,7 @@ func (c *HTTPClient) Connect() (err error) {
 	c.Disconnect()
 
 	if !strings.Contains(c.host, ":") {
-		c.conn, err = net.DialTimeout("tcp", c.host + ":" + defaultPorts[c.scheme], c.config.ConnectionTimeout)
+		c.conn, err = net.DialTimeout("tcp", c.host+":"+defaultPorts[c.scheme], c.config.ConnectionTimeout)
 	} else {
 		c.conn, err = net.DialTimeout("tcp", c.host, c.config.ConnectionTimeout)
 	}
