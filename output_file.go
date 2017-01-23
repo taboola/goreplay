@@ -24,7 +24,8 @@ var dateFileNameFuncs = map[string]func(*FileOutput) string{
 	"%M":  func(o *FileOutput) string { return time.Now().Format("04") },
 	"%S":  func(o *FileOutput) string { return time.Now().Format("05") },
 	"%NS": func(o *FileOutput) string { return fmt.Sprint(time.Now().Nanosecond()) },
-	"%r":  func(o *FileOutput) string { return o.currentID },
+	"%r":  func(o *FileOutput) string { return string(o.currentID) },
+	"%t":  func(o *FileOutput) string { return string(o.payloadType) },
 }
 
 type FileOutputConfig struct {
@@ -44,7 +45,8 @@ type FileOutput struct {
 	chunkSize      int
 	writer         io.Writer
 	requestPerFile bool
-	currentID      string
+	currentID      []byte
+	payloadType    []byte
 	closed         bool
 
 	config *FileOutputConfig
@@ -182,7 +184,9 @@ func (o *FileOutput) updateName() {
 
 func (o *FileOutput) Write(data []byte) (n int, err error) {
 	if o.requestPerFile {
-		o.currentID = string(payloadMeta(data)[1])
+		meta := payloadMeta(data)
+		o.currentID = meta[1]
+		o.payloadType = meta[0]
 		o.updateName()
 	}
 
