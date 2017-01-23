@@ -186,10 +186,6 @@ func (o *FileOutput) Write(data []byte) (n int, err error) {
 		o.updateName()
 	}
 
-	if !isOriginPayload(data) {
-		return len(data), nil
-	}
-
 	if o.file == nil || o.currentName != o.file.Name() {
 		o.mu.Lock()
 		o.Close()

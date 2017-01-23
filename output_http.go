@@ -87,10 +87,6 @@ func NewHTTPOutput(address string, config *HTTPOutputConfig) io.Writer {
 		o.elasticSearch.Init(o.config.elasticSearch)
 	}
 
-	if len(Settings.middleware) > 0 {
-		o.config.TrackResponses = true
-	}
-
 	go o.workerMaster()
 
 	return o
