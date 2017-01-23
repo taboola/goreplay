@@ -65,9 +65,10 @@ func TestFileOutputWithNameCleaning(t *testing.T) {
 }
 
 func TestFileOutputPathTemplate(t *testing.T) {
-	output := &FileOutput{pathTemplate: "/tmp/log-%Y-%m-%d-%S", config: &FileOutputConfig{flushInterval: time.Minute, append: true}}
+	output := &FileOutput{pathTemplate: "/tmp/log-%Y-%m-%d-%S-%t", config: &FileOutputConfig{flushInterval: time.Minute, append: true}}
 	now := time.Now()
-	expectedPath := fmt.Sprintf("/tmp/log-%s-%s-%s-%s", now.Format("2006"), now.Format("01"), now.Format("02"), now.Format("05"))
+	output.payloadType = []byte("3")
+	expectedPath := fmt.Sprintf("/tmp/log-%s-%s-%s-%s-3", now.Format("2006"), now.Format("01"), now.Format("02"), now.Format("05"))
 	path := output.filename()
 
 	if expectedPath != path {
