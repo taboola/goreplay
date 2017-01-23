@@ -36,11 +36,11 @@ type TCPPacket struct {
 	DataOffset uint8
 	IsFIN      bool
 
-	Raw  []byte
-	Data []byte
-	Addr []byte
+	Raw       []byte
+	Data      []byte
+	Addr      []byte
 	timestamp time.Time
-	ID   tcpID
+	ID        tcpID
 }
 
 // ParseTCPPacket takes address and tcp payload and returns parsed TCPPacket
@@ -85,7 +85,7 @@ func (t *TCPPacket) ParseBasic() {
 func (t *TCPPacket) dump() *packet {
 
 	packetSrcIP := make([]byte, 16)
-	packetData := make([]byte, len(t.Data) + 16)
+	packetData := make([]byte, len(t.Data)+16)
 
 	copy(packetSrcIP, t.Addr)
 
@@ -104,9 +104,9 @@ func (t *TCPPacket) dump() *packet {
 	copy(packetData[16:], t.Data)
 
 	return &packet{
-		srcIP: packetSrcIP,
-		data:packetData,
-		timestamp:t.timestamp,
+		srcIP:     packetSrcIP,
+		data:      packetData,
+		timestamp: t.timestamp,
 	}
 
 }

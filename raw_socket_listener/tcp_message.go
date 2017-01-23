@@ -357,7 +357,7 @@ func (t *TCPMessage) updateBodyType() {
 
 	var lengthB, encB, connB []byte
 
-	proto.ParseHeaders(t.packetsData(), func(header, value []byte)bool{
+	proto.ParseHeaders(t.packetsData(), func(header, value []byte) bool {
 		if proto.HeadersEqual(header, []byte("Content-Length")) {
 			lengthB = value
 			return false
@@ -438,7 +438,7 @@ func (t *TCPMessage) check100Continue() {
 	}
 
 	var expectB []byte
-	proto.ParseHeaders(t.packetsData(), func(header, value []byte)bool{
+	proto.ParseHeaders(t.packetsData(), func(header, value []byte) bool {
 		if proto.HeadersEqual(header, bExpectHeader) {
 			expectB = value
 			return false

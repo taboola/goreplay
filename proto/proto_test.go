@@ -153,8 +153,8 @@ func TestFuzzCrashers(t *testing.T) {
 
 	for _, f := range crashers {
 		ParseHeaders([][]byte{[]byte(f)}, func(header []byte, value []byte) bool {
-	      return true
-	    })
+			return true
+		})
 	}
 }
 

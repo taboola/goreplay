@@ -181,7 +181,7 @@ func HeadersEqual(h1 []byte, h2 []byte) bool {
 
 // Parsing headers from multiple payloads
 func ParseHeaders(payloads [][]byte, cb func(header []byte, value []byte) bool) {
-	hS := [2]int{0, 0} // header start
+	hS := [2]int{0, 0}   // header start
 	hE := [2]int{-1, -1} // header end
 	vS := [2]int{-1, -1} // value start
 	vE := [2]int{-1, -1} // value end

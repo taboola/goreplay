@@ -255,4 +255,3 @@ func TestTcpMessageStart(t *testing.T) {
 		t.Error("Message timestamp should be equal to the lowest related packet timestamp", start, msg.Start)
 	}
 }
-
