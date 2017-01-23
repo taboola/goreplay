@@ -56,6 +56,8 @@ type AppSettings struct {
 	inputHTTP  MultiOption
 	outputHTTP MultiOption
 
+	prettifyHTTP bool
+
 	outputHTTPConfig HTTPOutputConfig
 	modifierConfig   HTTPModifierConfig
 
@@ -104,6 +106,8 @@ func init() {
 	Settings.outputFileConfig.sizeLimit.Set("32mb")
 	flag.Var(&Settings.outputFileConfig.sizeLimit, "output-file-size-limit", "Size of each chunk. Default: 32mb")
 	flag.IntVar(&Settings.outputFileConfig.queueLimit, "output-file-queue-limit", 256, "The length of the chunk queue. Default: 256")
+
+	flag.BoolVar(&Settings.prettifyHTTP, "prettify-http", false, "If enabled, will automatically decode requests and responses with: Content-Encodning: gzip and Transfer-Encoding: chunked. Useful for debugging, in conjuction with --output-stdout")
 
 	flag.Var(&Settings.inputRAW, "input-raw", "Capture traffic from given port (use RAW sockets and require *sudo* access):\n\t# Capture traffic from 8080 port\n\tgor --input-raw :8080 --output-http staging.com")
 

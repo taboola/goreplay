@@ -100,6 +100,10 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 				}
 			}
 
+			if Settings.prettifyHTTP {
+				payload = prettifyHTTP(payload)
+			}
+
 			if Settings.splitOutput {
 				// Simple round robin
 				writers[wIndex].Write(payload)
