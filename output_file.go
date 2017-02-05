@@ -69,10 +69,8 @@ func NewFileOutput(pathTemplate string, config *FileOutputConfig) *FileOutput {
 			if o.closed {
 				break
 			}
-			o.mu.Lock()
 			o.updateName()
 			o.flush()
-			o.mu.Unlock()
 		}
 	}()
 
