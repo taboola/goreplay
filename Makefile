@@ -24,6 +24,9 @@ release-x86:
 release-mac:
 	go build $(MAC_LDFLAGS) && tar -czf gor_$(VERSION)_mac.tar.gz gor && rm gor
 
+install:
+	go install $(MAC_LDFLAGS)
+
 build:
 	docker build -t gor .
 
