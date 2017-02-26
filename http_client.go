@@ -136,14 +136,17 @@ func (c *HTTPClient) isAlive() bool {
 }
 
 func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
+    var payload []byte
+
 	// Don't exit on panic
 	defer func() {
 		if r := recover(); r != nil {
 			Debug("[HTTPClient]", r, string(data))
 
-			if _, ok := r.(error); !ok {
+			if _, ok := r.(error); ok {
 				log.Println("[HTTPClient] Failed to send request: ", string(data))
-				log.Println("PANIC: pkg:", r, debug.Stack())
+                log.Println("[HTTPClient] Response: ", string(response))
+				log.Println("PANIC: pkg:", r, string(debug.Stack()))
 			}
 		}
 	}()
@@ -288,16 +291,24 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 		timeout = time.Now().Add(c.config.Timeout / 5)
 	}
 
-	if err != nil {
+	if err != nil || readBytes == 0 {
 		Debug("[HTTPClient] Response read error", err, c.conn, readBytes)
 		response = errorPayload(HTTP_TIMEOUT)
+        c.Disconnect()
+		return
+	}
+
+    if readBytes < 4 || string(c.respBuf[:4]) != "HTTP" {
+		Debug("[HTTPClient] Response read error", err, c.conn, readBytes)
+		response = errorPayload(HTTP_UNKNOWN_ERROR)
+        c.Disconnect()
 		return
 	}
 
 	if readBytes > len(c.respBuf) {
 		readBytes = len(c.respBuf)
 	}
-	payload := make([]byte, readBytes)
+	payload = make([]byte, readBytes)
 	copy(payload, c.respBuf[:readBytes])
 
 	if c.config.Debug {
