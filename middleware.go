@@ -71,6 +71,7 @@ func (m *Middleware) copy(to io.Writer, from io.Reader) {
 
 			if Settings.prettifyHTTP {
 				payload = prettifyHTTP(payload)
+                nr = len(payload)
 			}
 
 			hex.Encode(dst, payload)
