@@ -51,7 +51,7 @@ function init() {
             })
 
             if (resp) {
-              process.stdout.write(`${resp.meta.toString('hex')}${Buffer.from("\n").toString("hex")}${resp.http.toString('hex')}\n`)
+              process.stdout.write(`${resp.rawMeta.toString('hex')}${Buffer.from("\n").toString("hex")}${resp.http.toString('hex')}\n`)
             }
         }
     }
@@ -97,6 +97,7 @@ function parseMessage(msg) {
         return {
             type: pType,
             ID: pID,
+            rawMeta: meta,
             meta: metaArr,
             http: raw
         }
@@ -104,6 +105,73 @@ function parseMessage(msg) {
         fail(`Error while parsing incoming request: ${msg}`)
     }
 }
+
+// Used to compare values from original and replayed responses
+// Accepts request id, regexp pattern for searching the compared value (should include capture group), and callback which returns both original and replayed matched value.
+// Example: 
+//
+//   // Compare HTTP headers for response and replayed response, and map values
+//   let tokMap = {};
+//
+//   gor.on("request", function(req) {
+//     let tok = gor.httpHeader(req.http, "Auth-Token");
+//     if (tok && tokMap[tok]) {
+//       req.http = gor.setHttpHeader(req.http, "Auth-Token", tokMap[tok]) 
+//     }
+//
+//     gor.searchResponses(req.ID, "X-Set-Token: (\w+)$", function(respTok, replTok) {
+//       tokMap[respTok] = replTok;
+//     })
+//
+//     return req;
+//   })
+//
+function searchResponses(id, searchPattern, callback) {
+    let re = new RegExp(searchPattern);
+
+    // Using regexp require converting buffer to string
+    // Before converting to string we can use initial `Buffer.indexOf` check
+    let indexPattern = searchPattern.split("(")[0];
+
+    if (!indexPattern) {
+        console.error("Search regexp should include capture group, pointing to the value: `prefix-(.*)`")
+        return
+    }
+
+    middleware.on("response", id, function(resp){
+        if (resp.http.indexOf(indexPattern) == -1) {
+            callback()
+            return resp
+        }
+
+        let respMatch = resp.http.toString('utf-8').match(re);
+        if (!respMatch) {
+            callback()
+            return resp
+        }
+
+        middleware.on("replay", id, function(repl) {
+            if (repl.http.indexOf(indexPattern) == -1) {
+                callback(respMatch[1]);
+                return repl;
+            }
+
+            let replMatch = repl.http.toString('utf-8').match(re);
+
+            if (!replMatch) {
+                callback(respMatch[1]);
+                return repl;
+            }
+        
+            callback(respMatch[1], replMatch[1]);
+            
+            return repl;
+        })
+
+        return resp;
+    })
+}
+
 
 // =========== HTTP parsing =================
 
@@ -124,7 +192,35 @@ function httpPath(payload) {
 function setHttpPath(payload, newPath) {
     var pStart = payload.indexOf(' ') + 1;
     var pEnd = payload.indexOf(' ', pStart);
+
     return Buffer.concat([payload.slice(0, pStart), Buffer.from(newPath), payload.slice(pEnd, payload.length)])
+}
+
+function httpPathParam(payload, name) {
+    let path = httpPath(payload);
+    let re = new RegExp(name + "=([^&$]+)");
+    let match = path.match(re);
+
+    if (match) return decodeURI(match[1]);
+}
+
+function setHttpPathParam(payload, name, value) {
+    let path = httpPath(payload);
+    let re = new RegExp(name + "=([^&$]+)");
+    let newPath = path.replace(re, name + "=" + encodeURI(value));
+    
+    // If we should add new param instead
+    if (newPath == path) {
+        if (newPath.indexOf("?") == -1) {
+            newPath += "?"
+        } else {
+            newPath += "&"
+        }
+
+        newPath += name + "=" + encodeURI(value);
+    }
+
+    return setHttpPath(payload, newPath)
 }
 
 // HTTP response have status code in same position as `path` for requests
@@ -197,6 +293,35 @@ function setHttpBody(payload, newBody) {
     return Buffer.concat([p.slice(0, headerEnd), newBody])
 }
 
+function httpBodyParam(payload, name) {
+    let body = httpBody(payload);
+    let re = new RegExp(name + "=([^&$]+)");
+    if (body.indexOf(name + "=") != -1) {
+        let param = body.toString('utf-8').match(re);
+        if (param) {
+            return decodeURI(param[1]);
+        }
+    }
+}
+
+function setHttpBodyParam(payload, name, value) {
+    let body = httpBody(payload);
+    let re = new RegExp(name + "=([^&$]+)");
+
+    let newBody = body.toString('utf-8');
+
+    if (newBody.indexOf(name + "=") != -1 ) {
+        newBody = newBody.replace(re, name + "=" + encodeURI(value));
+    } else {
+        if (newBody.indexOf("=") != -1) {
+            newBody += "&";
+        }
+        newBody += name + "=" + value;
+    }
+    
+    return setHttpBody(payload, Buffer.from(newBody));
+}
+
 function setHttpCookie(payload, name, value) {
     let h = httpHeader(payload, "Cookie");
     let cookie = h ? h.value : "";
@@ -221,14 +346,19 @@ module.exports = {
     init: init,
     on: function(){ return middleware.on.apply(this, arguments) },
     parseMessage: parseMessage,
+    searchResponses: searchResponses,
     httpPath: httpPath,
     setHttpPath: setHttpPath,
+    httpPathParam: httpPathParam,
+    setHttpPathParam: setHttpPathParam,
     httpStatus: httpStatus,
     setHttpStatus: setHttpStatus,
     httpHeader: httpHeader,
     setHttpHeader: setHttpHeader,
     httpBody: httpBody,
     setHttpBody: setHttpBody,
+    httpBodyParam: httpBodyParam,
+    setHttpBodyParam: setHttpBodyParam,
     httpCookie: httpCookie,
     setHttpCookie: setHttpCookie,
     test: testRunner
@@ -238,7 +368,7 @@ module.exports = {
 // =========== Tests ==============
 
 function testRunner(){
-    ["init", "parseMessage", "httpPath", "setHttpHeader", "httpHeader", "httpBody", "setHttpBody", "httpCookie", "setHttpCookie"].forEach(function(t){
+    ["init", "parseMessage", "httpPath", "setHttpHeader", "httpPathParam", "httpHeader", "httpBody", "setHttpBody", "httpBodyParam", "httpCookie", "setHttpCookie"].forEach(function(t){
         console.log(`====== Start ${t} =======`)
         eval(`TEST_${t}()`)
         console.log(`====== End ${t} =======`)
@@ -315,6 +445,68 @@ function TEST_httpPath() {
     newPayload = setHttpPath(payload, '/bigger')
     if (newPayload.toString() != "GET /bigger HTTP/1.1\r\n\r\n") {
         return fail(`Malformed payload '${newPayload}'`)
+    }
+}
+
+function TEST_httpPathParam() {
+    let p = Buffer.from("GET / HTTP/1.1\r\n\r\n");
+
+    if (httpPathParam(p, "test")) {
+        return fail("Should not found param")
+    }
+
+    p = setHttpPathParam(p, "test", "123");
+    if (httpPath(p) != "/?test=123") {
+        return fail("Should set first param: " + httpPath(p));
+    }
+
+    if (httpPathParam(p, "test") != "123") {
+        return fail("Should get first param: " + httpPathParam(p, "test"));
+    }
+
+    p = setHttpPathParam(p, "qwer", "ty");
+    if (httpPath(p) != "/?test=123&qwer=ty") {
+        return fail("Should set second param: " + httpPath(p));
+    }
+
+    p = setHttpPathParam(p, "test", "4321");
+    if (httpPath(p) != "/?test=4321&qwer=ty") {
+        return fail("Should update first param: " + httpPath(p));
+    }
+
+    if (httpPathParam(p, "test") != "4321") {
+        return fail("Should update first param: " + httpPath(p));
+    }
+}
+
+function TEST_httpBodyParam() {
+    let p = Buffer.from("POST / HTTP/1.1\r\n\r\n");
+
+    if (httpBodyParam(p, "test")) {
+        return fail("Should not found param")
+    }
+
+    p = setHttpBodyParam(p, "test", "123");
+    if (httpBody(p).toString() != "test=123") {
+        return fail("Should set first param: " + httpBody(p).toString());
+    }
+
+    if (httpBodyParam(p, "test") != "123") {
+        return fail("Should get first param: " + httpBodyParam(p, "test"));
+    }
+
+    p = setHttpBodyParam(p, "qwer", "ty");
+    if (httpBody(p).toString() != "test=123&qwer=ty") {
+        return fail("Should set second param: " + httpBody(p).toString());
+    }
+
+    p = setHttpBodyParam(p, "test", "4321");
+    if (httpBody(p).toString() != "test=4321&qwer=ty") {
+        return fail("Should update first param: " + httpBody(p).toString());
+    }
+
+    if (httpBodyParam(p, "test") != "4321") {
+        return fail("Should update first param: " + httpBody(p).toString());
     }
 }
 

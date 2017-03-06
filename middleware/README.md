@@ -47,7 +47,7 @@ gor.on('request', function(data) {
 ### Mapping requests and responses
 You can provide request ID as additional argument to `on` function, which allow you to map related requests and responses. Below is example of middleware which checks that original and replayed response have same HTTP status code.
 
-```
+```javascript
 // Example of very basic way to compare if replayed traffic have no errors
 gor.on("request", function(req) {
     gor.on("response", req.ID, function(resp) {
@@ -66,16 +66,45 @@ gor.on("request", function(req) {
 })
 ```
 
+This middleware include `searchResponses` helper used to compare values from original and replayed responses. It may be helpful if auth system or xsrf protection returns unique tokens in headers or response, and you need to rewrite your requests based on them. Because tokens are unique, value contained in original and replayed response will differ, so you need to extract value from both responses, and rewrite requests based on those mappings.
+
+`searchResponses` accepts request id, regexp pattern for searching the compared value (should include capture group), and callback which returns both original and replayed matched value.
+
+Example: 
+```javascript
+   // Compare HTTP headers for response and replayed response, and map values
+let tokMap = {};
+
+gor.on("request", function(req) {
+    let tok = gor.httpHeader(req.http, "Auth-Token");
+    if (tok && tokMap[tok]) {
+        req.http = gor.setHttpHeader(req.http, "Auth-Token", tokMap[tok]) 
+    }
+    
+    gor.searchResponses(req.ID, "X-Set-Token: (\w+)$", function(respTok, replTok) {
+        if (respTok && replTok) tokMap[respTok] = replTok;
+    })
+
+    return req;
+})
+```
+
+
 ### API documentation
 
 Package expose following functions to process raw HTTP payloads:
 * `init` - initialize middleware object, start reading from STDIN.
 * `httpPath` - URL path of the request: `gor.httpPath(req.http)`
+* `setHttpPath` - update URL path: `req.http = gor.setHttpPath(req.http, newPath)`
+* `httpPathParam` - get param from URL path: `gor.httpPathParam(req.http, queryParam)`
+* `setHttpPathParam` - set URL param: `req.http = gor.setHttpPathParam(req.http, queryParam, value)` 
 * `httpStatus` - response status code
 * `httpHeader` - get HTTP header: `gor.httpHeader(req.http, "Content-Length")`
 * `setHttpHeader` - Set HTTP header, returns modified payload: `req.http = gor.setHttpHeader(req.http, "X-Replayed", "1")`
 * `httpBody` - get HTTP Body: `gor.httpBody(req.http)`
 * `setHttpBody` - Set HTTP Body and ensures that `Content-Length` header have proper value. Returns modified payload: `req.http = gor.setHttpBody(req.http, Buffer.from('hello!'))`.
+* `httpBodyParam` - get POST body param: `gor.httpBodyParam(req.http, param)`
+* `setHttpBodyParam` - set POST body param: `req.http = gor.setHttpBodyParam(req.http, param, value)`
 * `httpCookie` - get HTTP cookie: `gor.httpCookie(req.http, "SESSSION_ID")`
 * `setHttpCookie` - set HTTP cookie, returns modified payload: `req.http = gor.setHttpCookie(req.http, "iam", "cuckoo")`
 
