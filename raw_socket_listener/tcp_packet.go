@@ -77,9 +77,9 @@ func (t *TCPPacket) ParseBasic() {
 	t.DataOffset = (t.Raw[12] & 0xF0) >> 4
 	t.IsFIN = t.Raw[13]&0x01 != 0
 
-	// log.Println("DataOffset:", t.DataOffset, t.DestPort, t.SrcPort, t.Seq, t.Ack)
-
-	t.Data = t.Raw[t.DataOffset*4:]
+	if len(t.Raw) >= int(t.DataOffset*4) {
+        t.Data = t.Raw[t.DataOffset*4:]
+    }
 }
 
 func (t *TCPPacket) dump() *packet {
