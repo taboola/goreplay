@@ -8,7 +8,7 @@ import (
 	"log"
 	"net"
 	"net/url"
-	"runtime/debug"
+	_ "runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -293,7 +293,7 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 		timeout = time.Now().Add(c.config.Timeout / 5)
 	}
 
-	if err != nil || readBytes == 0 {
+	if err != nil && readBytes == 0 {
         Debug("[HTTPClient] Response read timeout error", err, c.conn, readBytes, string(c.respBuf[:readBytes]))
 		response = errorPayload(HTTP_TIMEOUT)
         c.Disconnect()
