@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"hash/fnv"
 
-	"github.com/buger/gor/proto"
+	"github.com/buger/goreplay/proto"
 )
 
 type HTTPModifier struct {

@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	"github.com/buger/gor/proto"
+	"github.com/buger/goreplay/proto"
 	"io"
 	"io/ioutil"
 	"log"

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/buger/gor/proto"
-	raw "github.com/buger/gor/raw_socket_listener"
+	"github.com/buger/goreplay/proto"
+	raw "github.com/buger/goreplay/raw_socket_listener"
 	"log"
 	"net"
 	"time"

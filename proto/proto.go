@@ -18,7 +18,7 @@ package proto
 
 import (
 	"bytes"
-	"github.com/buger/gor/byteutils"
+	"github.com/buger/goreplay/byteutils"
 )
 
 // In HTTP newline defined by 2 bytes (for both windows and *nix support)

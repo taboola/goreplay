@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/hex"
-	"github.com/buger/gor/proto"
+	"github.com/buger/goreplay/proto"
 	"io"
 	"net/http"
 	"net/http/httptest"

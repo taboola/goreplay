@@ -1,4 +1,4 @@
-[![GitHub release](https://img.shields.io/github/release/buger/gor.svg?maxAge=3600)](https://github.com/buger/gor/releases) [![codebeat](https://codebeat.co/badges/6427d589-a78e-416c-a546-d299b4089893)](https://codebeat.co/projects/github-com-buger-gor) [![Go Report Card](https://goreportcard.com/badge/github.com/buger/gor)](https://goreportcard.com/report/github.com/buger/gor) [![Join the chat at https://gitter.im/buger/gor](https://badges.gitter.im/buger/gor.svg)](https://gitter.im/buger/gor?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![GitHub release](https://img.shields.io/github/release/buger/gor.svg?maxAge=3600)](https://github.com/buger/goreplay/releases) [![codebeat](https://codebeat.co/badges/6427d589-a78e-416c-a546-d299b4089893)](https://codebeat.co/projects/github-com-buger-gor) [![Go Report Card](https://goreportcard.com/badge/github.com/buger/gor)](https://goreportcard.com/report/github.com/buger/gor) [![Join the chat at https://gitter.im/buger/gor](https://badges.gitter.im/buger/gor.svg)](https://gitter.im/buger/gor?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ![Go Replay](http://i.imgur.com/ZG2ki5n.png)
 
@@ -18,17 +18,17 @@ Here is basic workflow: The listener server catches http traffic and sends it to
 
 ![Diagram](http://i.imgur.com/9mqj2SK.png)
 
-Check [latest documentation](http://github.com/buger/gor/wiki).
+Check [latest documentation](http://github.com/buger/goreplay/wiki).
 
 ## Installation
-Download latest binary from https://github.com/buger/gor/releases or [compile by yourself](https://github.com/buger/gor/wiki/Compilation).
+Download latest binary from https://github.com/buger/goreplay/releases or [compile by yourself](https://github.com/buger/goreplay/wiki/Compilation).
 
 ## Getting started
 
 The most basic setup will be `sudo ./gor --input-raw :8000 --output-stdout` which acts like tcpdump.
 If you already have test environment you can start replaying: `sudo ./gor --input-raw :8000 --output-http http://staging.env`.
 
-See the our [documentation](https://github.com/buger/gor/wiki/) and [Getting started](https://github.com/buger/gor/wiki/Getting-Started) page for more info. 
+See the our [documentation](https://github.com/buger/goreplay/wiki/) and [Getting started](https://github.com/buger/goreplay/wiki/Getting-Started) page for more info. 
 ## Newsletter
 Subscribe to our [newsletter](https://www.getdrip.com/forms/89690474/submissions/new) to stay informed about the latest features and changes to Gor project.
 
@@ -39,7 +39,7 @@ We have created a [GoReplay PRO](https://goreplay.org/pro.html) extension which 
 
 
 ## Problems?
-If you have a problem, please review the [FAQ](https://github.com/buger/gor/wiki/FAQ) and [Troubleshooting](https://github.com/buger/gor/wiki/Troubleshooting) wiki pages. Searching the [issues](https://github.com/buger/gor/issues) for your problem is also a good idea.
+If you have a problem, please review the [FAQ](https://github.com/buger/goreplay/wiki/FAQ) and [Troubleshooting](https://github.com/buger/goreplay/wiki/Troubleshooting) wiki pages. Searching the [issues](https://github.com/buger/goreplay/issues) for your problem is also a good idea.
 
 All bug-reports and suggestions should go though Github Issues or our [Google Group](https://groups.google.com/forum/#!forum/gor-users) (you can just send email to gor-users@googlegroups.com).
 If you have a private question feel free to send email to support@gortool.com.

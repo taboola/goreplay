@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/buger/gor/proto"
+	"github.com/buger/goreplay/proto"
 	"io"
 	"log"
 	"net/http"

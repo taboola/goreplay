@@ -16,7 +16,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/buger/gor/proto"
+	"github.com/buger/goreplay/proto"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
@@ -241,7 +241,7 @@ func (e *DeviceNotFoundError) Error() string {
 	devices, _ := pcap.FindAllDevs()
 
 	if len(devices) == 0 {
-		return "Can't get list of network interfaces, ensure that you running Gor as root user or sudo.\nTo run as non-root users see this docs https://github.com/buger/gor/wiki/Running-as-non-root-user"
+		return "Can't get list of network interfaces, ensure that you running Gor as root user or sudo.\nTo run as non-root users see this docs https://github.com/buger/goreplay/wiki/Running-as-non-root-user"
 	}
 
 	var msg string
