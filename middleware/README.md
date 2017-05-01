@@ -4,6 +4,8 @@ GoReplay support protocol for writing middleware in any language, which allows y
 
 To simplify middleware creation we provide packages for NodeJS and Go (upcoming).
 
+If you want to get access to original and replayed responses, do not forget adding `--output-http-track-respose` and `--input-raw-track-response` options.
+
 ## NodeJS
 
 Before starting, you should install the package via npm: `npm install goreplay_middleware`.
