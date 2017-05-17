@@ -32,10 +32,11 @@ gor.on('request', function(data) {
     //   \r\n
     data.http
 
-    // Meta is an array size of 3, containing:
+    // Meta is an array size of 4, containing:
     //   1. request type - 1, 2 or 3 (which maps to `request`, `respose` and `replay`)
-    //   2. timestamp of when request was made (for responses it is time of request start too)
-    //   3. latency - time difference between request start and finish. For `request` is zero.
+    //   2. uuid - request unique identifier. Request responses have the same ID as their request.
+    //   3. timestamp of when request was made (for responses it is time of request start too)
+    //   4. latency - time difference between request start and finish. For `request` is zero.
     data.meta
 
     // Unique request ID. It should be same for `request`, `response` and `replay` events of the same request.
