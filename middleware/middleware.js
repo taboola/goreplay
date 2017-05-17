@@ -255,14 +255,17 @@ function httpHeader(payload, name) {
             }
 
             header.start = -1
+            header.valueStart = -1
             continue;
         } else if (c == 10) { // "\r"
             i++
             continue;
         } else if (c == 58) { // ":" Header/value separator symbol
-            header.valueStart = i + 1;
-            i++
-            continue;
+            if (header.valueStart == -1) {
+                header.valueStart = i + 1;
+                i++
+                continue;
+            }
         }
 
         if (header.start == -1) header.start = i;
@@ -511,9 +514,9 @@ function TEST_httpBodyParam() {
 }
 
 function TEST_httpHeader() {
-    const examplePayload = "GET / HTTP/1.1\r\nUser-Agent: Node\r\nContent-Length:5\r\n\r\nhello";
+    const examplePayload = "GET / HTTP/1.1\r\nHost: localhost:3000\r\nUser-Agent: Node\r\nContent-Length:5\r\n\r\nhello";
 
-    let expected = {"User-Agent": "Node", "Content-Length": "5"}
+    let expected = {"Host": "localhost:3000", "User-Agent": "Node", "Content-Length": "5"}
 
     Object.keys(expected).forEach(function(name){
         let payload = Buffer.from(examplePayload);
