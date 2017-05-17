@@ -4,6 +4,8 @@
 
 ## https://goreplay.org/
 
+## We just released a new version, see announcement https://leonsbox.com/goreplay-v0-16-and-4th-anniversary-5408b1fd72e0
+
 ## About
 
 GoReplay is the simplest and safest way to test your app using real traffic before you put it into production.
