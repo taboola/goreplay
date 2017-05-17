@@ -30,7 +30,7 @@ gor.on('request', function(data) {
     //   GET / HTTP/1.1\r\n
     //   User-Agent: Golang\r\n
     //   \r\n
-    data.html
+    data.http
 
     // Meta is an array size of 3, containing:
     //   1. request type - 1, 2 or 3 (which maps to `request`, `respose` and `replay`)
