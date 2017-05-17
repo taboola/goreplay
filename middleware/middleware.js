@@ -183,6 +183,11 @@ function searchResponses(id, searchPattern, callback) {
 //  \r\n
 //  hello
 
+function httpMethod(payload) {
+    var pEnd = payload.indexOf(' ');
+    return payload.slice(0, pEnd).toString("ascii");
+}
+
 function httpPath(payload) {
     var pStart = payload.indexOf(' ') + 1;
     var pEnd = payload.indexOf(' ', pStart);
@@ -351,6 +356,7 @@ module.exports = {
     parseMessage: parseMessage,
     searchResponses: searchResponses,
     httpPath: httpPath,
+    httpMethod: httpMethod,
     setHttpPath: setHttpPath,
     httpPathParam: httpPathParam,
     setHttpPathParam: setHttpPathParam,
@@ -371,7 +377,7 @@ module.exports = {
 // =========== Tests ==============
 
 function testRunner(){
-    ["init", "parseMessage", "httpPath", "setHttpHeader", "httpPathParam", "httpHeader", "httpBody", "setHttpBody", "httpBodyParam", "httpCookie", "setHttpCookie"].forEach(function(t){
+    ["init", "parseMessage", "httpMethod", "httpPath", "setHttpHeader", "httpPathParam", "httpHeader", "httpBody", "setHttpBody", "httpBodyParam", "httpCookie", "setHttpCookie"].forEach(function(t){
         console.log(`====== Start ${t} =======`)
         eval(`TEST_${t}()`)
         console.log(`====== End ${t} =======`)
@@ -450,6 +456,18 @@ function TEST_httpPath() {
         return fail(`Malformed payload '${newPayload}'`)
     }
 }
+
+function TEST_httpMethod() {
+    const examplePayload = "GET /test HTTP/1.1\r\n\r\n";
+
+    let payload = Buffer.from(examplePayload);
+    let method = httpMethod(payload);
+
+    if (method != "GET") {
+        return fail(`Path '${method}' != 'GET'`)
+    }
+}
+
 
 function TEST_httpPathParam() {
     let p = Buffer.from("GET / HTTP/1.1\r\n\r\n");
