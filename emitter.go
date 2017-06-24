@@ -102,6 +102,9 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 
 			if Settings.prettifyHTTP {
 				payload = prettifyHTTP(payload)
+				if len(payload) == 0 {
+					continue
+				}
 			}
 
 			if Settings.splitOutput {

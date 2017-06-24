@@ -52,6 +52,7 @@ func prettifyHTTP(p []byte) []byte {
 
         if err != nil {
             Debug("[Prettifier] GZIP encoding error:", err)
+            return []byte{}
         }
 
         content, _ = ioutil.ReadAll(g)
