@@ -345,6 +345,10 @@ func Path(payload []byte) []byte {
 	start := bytes.IndexByte(payload, ' ') + 1
 	end := bytes.IndexByte(payload[start:], ' ')
 
+	if len(payload) < start + end {
+		return []byte{}
+	}
+
 	return payload[start : start+end]
 }
 
