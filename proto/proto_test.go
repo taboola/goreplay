@@ -65,13 +65,13 @@ func TestHeader(t *testing.T) {
 }
 
 func TestMIMEHeadersEndPos(t *testing.T) {
-	head := []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org")
+	head := []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\n")
 	payload := []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 
 	end := MIMEHeadersEndPos(payload)
 
 	if !bytes.Equal(payload[:end], head) {
-		t.Error("Wrong headers end position:", end)
+		t.Error("Wrong headers end position:", end, head, payload[:end])
 	}
 }
 
@@ -80,10 +80,10 @@ func TestMIMEHeadersStartPos(t *testing.T) {
 	payload := []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 
 	start := MIMEHeadersStartPos(payload)
-	end := MIMEHeadersEndPos(payload)
+	end := MIMEHeadersEndPos(payload) - 4
 
 	if !bytes.Equal(payload[start:end], headers) {
-		t.Error("Wrong headers end position:", start, end)
+		t.Error("Wrong headers end position:", start, end, payload[start:end])
 	}
 }
 
@@ -235,6 +235,12 @@ func TestPath(t *testing.T) {
 	payload = []byte("POST /post HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
 
 	if path = Path(payload); !bytes.Equal(path, []byte("/post")) {
+		t.Error("Should find path", string(path))
+	}
+
+	payload = []byte("GET /get\r\n\r\nHost: www.w3.org\r\n\r\n")
+
+	if path = Path(payload); !bytes.Equal(path, []byte("/get")) {
 		t.Error("Should find path", string(path))
 	}
 }

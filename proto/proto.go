@@ -343,10 +343,11 @@ func Body(payload []byte) []byte {
 // Path takes payload and retuns request path: Split(firstLine, ' ')[1]
 func Path(payload []byte) []byte {
 	start := bytes.IndexByte(payload, ' ') + 1
+	eol := bytes.IndexByte(payload[start:], '\r')
 	end := bytes.IndexByte(payload[start:], ' ')
 
-	if len(payload) < start + end {
-		return []byte{}
+	if eol < end {
+		return payload[start : start + eol]
 	}
 
 	return payload[start : start+end]
