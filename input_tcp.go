@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"crypto/tls"
 	"io"
 	"log"
 	"net"
@@ -13,15 +14,23 @@ import (
 // TCPInput used for internal communication
 type TCPInput struct {
 	data     chan []byte
-	address  string
 	listener net.Listener
+	address  string
+	config   *TCPInputConfig
+}
+
+type TCPInputConfig struct {
+	secure          bool
+	certificatePath string
+	keyPath         string
 }
 
 // NewTCPInput constructor for TCPInput, accepts address with port
-func NewTCPInput(address string) (i *TCPInput) {
+func NewTCPInput(address string, config *TCPInputConfig) (i *TCPInput) {
 	i = new(TCPInput)
 	i.data = make(chan []byte, 1000)
 	i.address = address
+	i.config = config
 
 	i.listen(address)
 
@@ -36,16 +45,30 @@ func (i *TCPInput) Read(data []byte) (int, error) {
 }
 
 func (i *TCPInput) listen(address string) {
-	listener, err := net.Listen("tcp", address)
-	i.listener = listener
+	if i.config.secure {
+	  	cer, err := tls.LoadX509KeyPair(i.config.certificatePath, i.config.keyPath)
+	    if err != nil {
+	        log.Fatal("Error while loading --input-file certificate:", err)
+	    }
 
-	if err != nil {
-		log.Fatal("Can't start:", err)
+	    config := &tls.Config{Certificates: []tls.Certificate{cer}}
+	    listener, err := tls.Listen("tcp", address, config)
+	    if err != nil {
+	        log.Fatal("Can't start --input-tcp with secure connection:", err)
+	    }
+	    i.listener = listener
+	} else {
+		listener, err := net.Listen("tcp", address)
+		if err != nil {
+			log.Fatal("Can't start:", err)
+		}
+
+		i.listener = listener
 	}
 
 	go func() {
 		for {
-			conn, err := listener.Accept()
+			conn, err := i.listener.Accept()
 
 			if err != nil {
 				log.Println("Error while Accept()", err)

@@ -37,9 +37,11 @@ type AppSettings struct {
 	outputStdout bool
 	outputNull   bool
 
-	inputTCP       MultiOption
-	outputTCP      MultiOption
-	outputTCPStats bool
+	inputTCP        MultiOption
+	inputTCPConfig  TCPInputConfig
+	outputTCP       MultiOption
+	outputTCPConfig TCPOutputConfig
+	outputTCPStats  bool
 
 	inputFile        MultiOption
 	inputFileLoop    bool
@@ -93,7 +95,13 @@ func init() {
 	flag.BoolVar(&Settings.outputNull, "output-null", false, "Used for testing inputs. Drops all requests.")
 
 	flag.Var(&Settings.inputTCP, "input-tcp", "Used for internal communication between Gor instances. Example: \n\t# Receive requests from other Gor instances on 28020 port, and redirect output to staging\n\tgor --input-tcp :28020 --output-http staging.com")
+	flag.BoolVar(&Settings.inputTCPConfig.secure, "input-tcp-secure", false, "Turn on TLS security. Do not forget to specify certificate and key files.")
+	flag.StringVar(&Settings.inputTCPConfig.certificatePath, "input-tcp-certificate", "", "Path to PEM encoded certificate file. Used when TLS turned on.")
+	flag.StringVar(&Settings.inputTCPConfig.keyPath, "input-tcp-certificate-key", "", "Path to PEM encoded certificate key file. Used when TLS turned on.")
+
+
 	flag.Var(&Settings.outputTCP, "output-tcp", "Used for internal communication between Gor instances. Example: \n\t# Listen for requests on 80 port and forward them to other Gor instance on 28020 port\n\tgor --input-raw :80 --output-tcp replay.local:28020")
+	flag.BoolVar(&Settings.outputTCPConfig.secure, "output-tcp-secure", false, "Use TLS secure connection. --input-file on another end should have TLS turned on as well.")
 	flag.BoolVar(&Settings.outputTCPStats, "output-tcp-stats", false, "Report TCP output queue stats to console every 5 seconds.")
 
 	flag.Var(&Settings.inputFile, "input-file", "Read requests from file: \n\tgor --input-file ./requests.gor --output-http staging.com")

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"log"
@@ -16,14 +17,20 @@ type TCPOutput struct {
 	limit    int
 	buf      chan []byte
 	bufStats *GorStat
+	config   *TCPOutputConfig
+}
+
+type TCPOutputConfig struct {
+	secure	bool
 }
 
 // NewTCPOutput constructor for TCPOutput
 // Initialize 10 workers which hold keep-alive connection
-func NewTCPOutput(address string) io.Writer {
+func NewTCPOutput(address string, config *TCPOutputConfig) io.Writer {
 	o := new(TCPOutput)
 
 	o.address = address
+	o.config = config
 
 	o.buf = make(chan []byte, 100)
 	if Settings.outputTCPStats {
@@ -89,7 +96,11 @@ func (o *TCPOutput) Write(data []byte) (n int, err error) {
 }
 
 func (o *TCPOutput) connect(address string) (conn net.Conn, err error) {
-	conn, err = net.Dial("tcp", address)
+	if o.config.secure {
+		conn, err = tls.Dial("tcp", address, &tls.Config{})
+	} else {
+		conn, err = net.Dial("tcp", address)
+	}
 
 	return
 }

@@ -17,7 +17,7 @@ func TestTCPOutput(t *testing.T) {
 		wg.Done()
 	})
 	input := NewTestInput()
-	output := NewTCPOutput(listener.Addr().String())
+	output := NewTCPOutput(listener.Addr().String(), &TCPOutputConfig{})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
@@ -69,7 +69,7 @@ func BenchmarkTCPOutput(b *testing.B) {
 		wg.Done()
 	})
 	input := NewTestInput()
-	output := NewTCPOutput(listener.Addr().String())
+	output := NewTCPOutput(listener.Addr().String(), &TCPOutputConfig{})
 
 	Plugins.Inputs = []io.Reader{input}
 	Plugins.Outputs = []io.Writer{output}
