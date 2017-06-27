@@ -222,6 +222,13 @@ func (i *FileInput) emit() {
 	}
 
 	log.Printf("FileInput: end of file '%s'\n", i.path)
+
+	// For now having fixed timeout is temporary solution
+	// Further should be modified, so outputs can report if their queue empty or not
+	time.Sleep(time.Second)
+	if closeCh != nil {
+		close(closeCh)
+	}
 }
 
 func (i *FileInput) Close() error {
