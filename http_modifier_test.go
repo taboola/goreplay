@@ -107,6 +107,27 @@ func TestHTTPModifierURLRewrite(t *testing.T) {
 	}
 }
 
+func TestHTTPModifierHeaderRewrite(t *testing.T) {
+	var header, newHeader []byte
+
+	rewrites := HeaderRewriteMap{}
+	payload := []byte("GET / HTTP/1.1\r\nContent-Length: 7\r\nHost: www.w3.org\r\n\r\na=1&b=2")
+
+	err := rewrites.Set("Host: (.*).w3.org,$1.beta.w3.org")
+	if err != nil {
+		t.Error("Should not error", err)
+	}
+
+	modifier := NewHTTPModifier(&HTTPModifierConfig{
+		headerRewrite: rewrites,
+	})
+
+	header = []byte("www.beta.w3.org")
+	if newHeader = proto.Header(modifier.Rewrite(payload), []byte("Host")); !bytes.Equal(newHeader, header) {
+		t.Error("Request header should have been rewritten, wasn't", string(newHeader), string(header))
+	}
+}
+
 func TestHTTPModifierHeaderHashFilters(t *testing.T) {
 	filters := HTTPHashFilters{}
 	filters.Set("Header2:1/2")

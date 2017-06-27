@@ -16,6 +16,7 @@ func NewHTTPModifier(config *HTTPModifierConfig) *HTTPModifier {
 	if len(config.urlRegexp) == 0 &&
 		len(config.urlNegativeRegexp) == 0 &&
 		len(config.urlRewrite) == 0 &&
+		len(config.headerRewrite) == 0 &&
 		len(config.headerFilters) == 0 &&
 		len(config.headerNegativeFilters) == 0 &&
 		len(config.headerHashFilters) == 0 &&
@@ -149,6 +150,20 @@ func (m *HTTPModifier) Rewrite(payload []byte) (response []byte) {
 				payload = proto.SetPath(payload, path)
 
 				break
+			}
+		}
+	}
+
+	if len(m.config.headerRewrite) > 0 {
+		for _, f := range m.config.headerRewrite {
+			value := proto.Header(payload, f.header)
+			if len(value) == 0 {
+				break
+			}
+
+			if f.src.Match(value) {
+				newValue := f.src.ReplaceAll(value, f.target)
+				payload = proto.SetHeader(payload, f.header, newValue)
 			}
 		}
 	}

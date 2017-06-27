@@ -13,6 +13,7 @@ type HTTPModifierConfig struct {
 	urlNegativeRegexp     HTTPUrlRegexp
 	urlRegexp             HTTPUrlRegexp
 	urlRewrite            UrlRewriteMap
+	headerRewrite         HeaderRewriteMap
 	headerFilters         HTTPHeaderFilters
 	headerNegativeFilters HTTPHeaderFilters
 	headerHashFilters     HTTPHashFilters
@@ -195,6 +196,43 @@ func (r *UrlRewriteMap) Set(value string) error {
 	*r = append(*r, urlRewrite{src: regexp, target: []byte(valArr[1])})
 	return nil
 }
+
+//
+// Handling of --http-rewrite-header option
+//
+type headerRewrite struct {
+	header []byte
+	src    *regexp.Regexp
+	target []byte
+}
+
+type HeaderRewriteMap []headerRewrite
+
+func (r *HeaderRewriteMap) String() string {
+	return fmt.Sprint(*r)
+}
+
+func (r *HeaderRewriteMap) Set(value string) error {
+	headerArr := strings.SplitN(value, ":", 2)
+	if len(headerArr) < 2 {
+		return errors.New("need both header, regexp and rewrite target, colon-delimited (ex. Header: regexp,target)")
+	}
+
+	header := headerArr[0]
+	valArr := strings.SplitN(strings.TrimSpace(headerArr[1]), ",", 2)
+
+	if len(valArr) < 2 {
+		return errors.New("need both header, regexp and rewrite target, colon-delimited (ex. Header: regexp,target)")
+	}
+
+	regexp, err := regexp.Compile(valArr[0])
+	if err != nil {
+		return err
+	}
+	*r = append(*r, headerRewrite{header: []byte(header), src: regexp, target: []byte(valArr[1])})
+	return nil
+}
+
 
 //
 // Handling of --http-allow-url option
