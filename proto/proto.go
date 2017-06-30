@@ -346,7 +346,7 @@ func Path(payload []byte) []byte {
 	eol := bytes.IndexByte(payload[start:], '\r')
 	end := bytes.IndexByte(payload[start:], ' ')
 
-	if eol < end {
+	if eol > 0 && eol < end {
 		return payload[start : start + eol]
 	}
 
