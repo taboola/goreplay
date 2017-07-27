@@ -70,6 +70,8 @@ type Listener struct {
 	trackResponse bool
 	messageExpire time.Duration
 
+	bpfFilter string
+
 	conn        net.PacketConn
 	pcapHandles []*pcap.Handle
 
@@ -91,7 +93,7 @@ const (
 )
 
 // NewListener creates and initializes new Listener object
-func NewListener(addr string, port string, engine int, trackResponse bool, expire time.Duration) (l *Listener) {
+func NewListener(addr string, port string, engine int, trackResponse bool, expire time.Duration, bpfFilter string) (l *Listener) {
 	l = &Listener{}
 
 	l.packetsChan = make(chan *packet, 10000)
@@ -105,6 +107,7 @@ func NewListener(addr string, port string, engine int, trackResponse bool, expir
 	l.respAliases = make(map[uint32]*TCPMessage)
 	l.respWithoutReq = make(map[uint32]tcpID)
 	l.trackResponse = trackResponse
+	l.bpfFilter = bpfFilter
 
 	l.addr = addr
 	_port, _ := strconv.Atoi(port)
@@ -366,6 +369,10 @@ func (t *Listener) readPcap() {
 					bpf = "(tcp dst port " + strconv.Itoa(int(t.port)) + " and (" + bpfDstHost + ")) or (" + "tcp src port " + strconv.Itoa(int(t.port)) + " and (" + bpfSrcHost + "))"
 				} else {
 					bpf = "tcp dst port " + strconv.Itoa(int(t.port)) + " and (" + bpfDstHost + ")"
+				}
+
+				if t.bpfFilter != "" {
+					bpf = t.bpfFilter
 				}
 
 				if err := handle.SetBPFFilter(bpf); err != nil {
