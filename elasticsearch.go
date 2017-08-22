@@ -3,12 +3,14 @@ package main
 import (
 	"net/url"
 	"encoding/json"
-	"github.com/buger/goreplay/proto"
-	"github.com/mattbaird/elastigo/lib"
 	"log"
 	"strings"
 	//"regexp"
 	"time"
+
+	"github.com/buger/goreplay/proto"
+
+	"github.com/mattbaird/elastigo/lib"
 )
 
 type ESUriErorr struct{}
