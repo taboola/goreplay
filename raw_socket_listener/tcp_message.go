@@ -239,31 +239,26 @@ func (t *TCPMessage) checkIfComplete() {
 		return
 	}
 
-	// If one GET, OPTIONS, or HEAD request
-	if t.methodType == httpMethodWithoutBody {
+	switch t.bodyType {
+	case httpBodyEmpty:
 		t.complete = true
-	} else {
-		switch t.bodyType {
-		case httpBodyEmpty:
+	case httpBodyContentLength:
+		if t.contentLength == 0 || t.contentLength == t.BodySize() {
 			t.complete = true
-		case httpBodyContentLength:
-			if t.contentLength == 0 || t.contentLength == t.BodySize() {
-				t.complete = true
-			}
-		case httpBodyChunked:
-			lastPacket := t.packets[len(t.packets)-1]
-			if bytes.LastIndex(lastPacket.Data, bChunkEnd) != -1 {
-				t.complete = true
-			}
-		default:
-			if len(t.packets) == 0 {
-				return
-			}
+		}
+	case httpBodyChunked:
+		lastPacket := t.packets[len(t.packets)-1]
+		if bytes.LastIndex(lastPacket.Data, bChunkEnd) != -1 {
+			t.complete = true
+		}
+	default:
+		if len(t.packets) == 0 {
+			return
+		}
 
-			last := t.packets[len(t.packets)-1]
-			if last.IsFIN {
-				t.complete = true
-			}
+		last := t.packets[len(t.packets)-1]
+		if last.IsFIN {
+			t.complete = true
 		}
 	}
 }
@@ -271,18 +266,10 @@ func (t *TCPMessage) checkIfComplete() {
 type httpMethodType uint8
 
 const (
-	httpMethodNotSet      httpMethodType = 0
-	httpMethodWithBody    httpMethodType = 1
-	httpMethodWithoutBody httpMethodType = 2
-	httpMethodNotFound    httpMethodType = 3
+	httpMethodNotSet   httpMethodType = 0
+	httpMethodKnown    httpMethodType = 1
+	httpMethodNotFound httpMethodType = 2
 )
-
-var methodsWithBody = [][]byte{
-	[]byte("POST"),
-	[]byte("PUT"),
-	[]byte("PATCH"),
-	[]byte("CONNECT"),
-}
 
 func (t *TCPMessage) updateMethodType() {
 	// if there is cache
@@ -300,11 +287,7 @@ func (t *TCPMessage) updateMethodType() {
 	}
 
 	if t.IsIncoming {
-		var method []byte
-
 		if mIdx := bytes.IndexByte(d[:8], ' '); mIdx != -1 {
-			method = d[:mIdx]
-
 			// Check that after method we have absolute or relative path
 			switch d[mIdx+1] {
 			case '/', 'h', '*':
@@ -317,21 +300,14 @@ func (t *TCPMessage) updateMethodType() {
 			return
 		}
 
-		for _, m := range methodsWithBody {
-			if len(m) == len(method) && bytes.Equal(m, method) {
-				t.methodType = httpMethodWithBody
-				return
-			}
-		}
-
-		t.methodType = httpMethodWithoutBody
+		t.methodType = httpMethodKnown
 	} else {
 		if !bytes.Equal(d[:6], []byte("HTTP/1")) {
 			t.methodType = httpMethodNotFound
 			return
 		}
 
-		t.methodType = httpMethodWithBody
+		t.methodType = httpMethodKnown
 	}
 }
 
@@ -379,10 +355,7 @@ func (t *TCPMessage) updateBodyType() {
 	switch t.methodType {
 	case httpMethodNotFound:
 		return
-	case httpMethodWithoutBody:
-		t.bodyType = httpBodyEmpty
-		return
-	case httpMethodWithBody:
+	case httpMethodKnown:
 		if len(lengthB) > 0 {
 			t.contentLength, _ = strconv.Atoi(string(lengthB))
 
@@ -421,10 +394,6 @@ var bExpect100Value = []byte("100-continue")
 
 func (t *TCPMessage) check100Continue() {
 	if t.expectType != httpExpectNotSet || len(t.packets[0].Data) < 25 {
-		return
-	}
-
-	if t.methodType != httpMethodWithBody {
 		return
 	}
 
