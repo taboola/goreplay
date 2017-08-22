@@ -549,6 +549,13 @@ func (t *Listener) readPcapFile() {
 	if handle, err := pcap.OpenOffline(t.addr); err != nil {
 		log.Fatal(err)
 	} else {
+		if t.bpfFilter != "" {
+			if err := handle.SetBPFFilter(t.bpfFilter); err != nil {
+				log.Println("BPF filter error:", err)
+				return
+			}
+		}
+
 		t.readyCh <- true
 		packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 
@@ -567,12 +574,12 @@ func (t *Listener) readPcapFile() {
 				tcp, _ := tcpLayer.(*layers.TCP)
 				data = append(tcp.LayerContents(), tcp.LayerPayload()...)
 
-				if tcp.SrcPort >= 32768 && tcp.SrcPort <= 61000 {
-					copy(data[0:2], []byte{0, 0})
-					copy(data[2:4], []byte{0, 1})
+				if uint16(tcp.DstPort) == t.port {
+					copy(data[0:2], []byte{byte(tcp.SrcPort >> 8), byte(tcp.SrcPort)})
+					copy(data[2:4], []byte{byte(tcp.DstPort >> 8), byte(tcp.DstPort)})
 				} else {
-					copy(data[0:2], []byte{0, 1})
-					copy(data[2:4], []byte{0, 0})
+					copy(data[0:2], []byte{byte(tcp.DstPort >> 8), byte(tcp.DstPort)})
+					copy(data[2:4], []byte{byte(tcp.SrcPort >> 8), byte(tcp.SrcPort)})
 				}
 			} else {
 				continue

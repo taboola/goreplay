@@ -71,12 +71,6 @@ func (i *RAWInput) listen(address string) {
 
 	host, port, err := net.SplitHostPort(address)
 
-	if i.engine == EnginePcapFile {
-		host = address
-		port = "1"
-		err = nil
-	}
-
 	if err != nil {
 		log.Fatal("input-raw: error while parsing address", err)
 	}
