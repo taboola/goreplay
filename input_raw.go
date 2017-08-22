@@ -35,6 +35,7 @@ func NewRAWInput(address string, engine int, trackResponse bool, expire time.Dur
 	i.address = address
 	i.expire = expire
 	i.engine = engine
+	i.bpfFilter = bpfFilter
 	i.realIPHeader = []byte(realIPHeader)
 	i.quit = make(chan bool)
 	i.trackResponse = trackResponse
