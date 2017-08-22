@@ -13,22 +13,22 @@ FADDR = ":8000"
 release: release-x64 release-mac
 
 release-bin:
-	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=amd64  -i gor go build -tags netgo $(LDFLAGS)
+	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=amd64  -i gor go build -o gor -tags netgo $(LDFLAGS)
 
 release-x64:
-	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=amd64  -i gor go build -tags netgo $(LDFLAGS) && tar -czf gor_$(VERSION)_x64.tar.gz gor && rm gor
+	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=amd64  -i gor go build -o gor -tags netgo $(LDFLAGS) && tar -czf gor_$(VERSION)_x64.tar.gz gor && rm gor
 
 release-x86:
-	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=386 -i gor go build -tags netgo $(LDFLAGS) && tar -czf gor_$(VERSION)_x86.tar.gz gor && rm gor
+	docker run -v `pwd`:$(SOURCE_PATH) -t --env GOOS=linux --env GOARCH=386 -i gor go build -o gor -tags netgo $(LDFLAGS) && tar -czf gor_$(VERSION)_x86.tar.gz gor && rm gor
 
 release-mac:
-	go build $(MAC_LDFLAGS) && tar -czf gor_$(VERSION)_mac.tar.gz gor && rm gor
+	go build $(MAC_LDFLAGS) -o gor && tar -czf gor_$(VERSION)_mac.tar.gz gor && rm gor
 
 install:
 	go install $(MAC_LDFLAGS)
 
 build:
-	docker build -t gor .
+	docker build -t gor -f Dockerfile.dev .
 
 
 profile:
