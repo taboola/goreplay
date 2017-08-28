@@ -48,10 +48,11 @@ under the terms of the GNU Lesser General Public License versions 3.0
 
 8. Disclaimer of Warranties. The Software is provided "as is," with all faults, defects and errors, and without warranty of any kind. GoReplay LLC does not warrant that the Software will be free of bugs, errors, viruses or other defects, and GoReplay LLC shall have no liability of any kind for the use of or inability to use the Software, the Software content or any associated service, and you acknowledge that it is not technically practicable for GoReplay LLC to do so. 
 To the maximum extent permitted by applicable law, GoReplay LLC disclaims all warranties, express, implied, arising by law or otherwise, regarding the Software, the Software content and their respective performance or suitability for your intended use, including without limitation any implied warranty of merchantability, fitness for a particular purpose.
+Notwithstanding the foregoing, GoReplay LLC represents and warrants that it either owns the entire right to, title to, interest in, or has the right to license, the Software, and your proper use of the same will not violate any intellectual property or proprietary rights of another.
 
 9. Limitation of Liability. 
 
-In no event will GoReplay LLC be liable for any direct, indirect, consequential, incidental, special, exemplary, or punitive damages or liabilities whatsoever arising from or relating to the Software, the Software content or this Agreement, whether based on contract, tort (including negligence), strict liability or other theory, even if GoReplay LLC has been advised of the possibility of such damages.
+In no event will either party be liable for any direct, indirect, consequential, incidental, special, exemplary, or punitive damages or liabilities whatsoever arising from or relating to the Software, the Software content or this Agreement, whether based on contract, tort (including negligence), strict liability or other theory, even if such party has been advised of the possibility of such damages.
 
 In no event will GoReplay LLC liability exceed the Software license price as indicated in the invoice. The existence of more than one claim will not enlarge or extend this limit.
 
@@ -59,9 +60,9 @@ In no event will GoReplay LLC liability exceed the Software license price as ind
 
 11. Acknowledgements.
 
-11.1 Consent to the Use of Data. You agree that GoReplay LLC and its affiliates may collect and use technical information gathered as part of the product support services. GoReplay LLC may use this information solely to improve products and services and will not disclose this information in a form that personally identifies you.
+11.1 Consent to the Use of Data. You agree that GoReplay LLC and its affiliates may collect and use technical information gathered as part of the product support services to be used in an anonymized manner. GoReplay LLC may use this information solely to improve products and services and will not disclose this information in a form that personally identifies you.
 
-11.2 Verification. We or a certified auditor acting on our behalf, may, upon its reasonable request and at its expense, audit you with respect to the use of the Software. Such audit may be conducted by mail, electronic means or through an in-person visit to your place of business. Any such in-person audit shall be conducted during regular business hours at your facilities and shall not unreasonably interfere with your business activities. We shall not remove, copy, or redistribute any electronic material during the course of an audit. If an audit reveals that you are using the Software in a way that is in material violation of the terms of the EULA, then you shall pay our reasonable costs of conducting the audit. In the case of a material violation, you agree to pay Us any amounts owing that are attributable to the unauthorized use. In the alternative, We reserve the right, at our sole option, to terminate the licenses for the Software.
+11.2 Verification. We or a certified auditor acting on our behalf, may, upon its reasonable request and at its expense, audit you with respect to the use of the Software, subject to your reasonable information security and confidentiality protections. Such audit may be conducted by mail, electronic means or through an in-person visit to your place of business. Any such in-person audit shall be conducted during regular business hours at your facilities and shall not unreasonably interfere with your business activities. We shall not remove, copy, or redistribute any electronic material during the course of an audit. If an audit reveals that you are using the Software in a way that is in material violation of the terms of the EULA, then you shall pay our reasonable costs of conducting the audit. In the case of a material violation, you agree to pay Us any amounts owing that are attributable to the unauthorized use. In the alternative, We reserve the right, at our sole option, to terminate the licenses for the Software.
 
 11.3 Government End Users. If the Software and related documentation are supplied to or purchased by or on behalf of the United States Government, then the Software is deemed to be "commercial software" as that term is used in the Federal Acquisition Regulation system. Rights of the United States shall not exceed the minimum rights set forth in FAR 52.227-19 for "restricted computer software". All other terms and conditions of this Agreement apply.
 
@@ -76,7 +77,7 @@ In no event will GoReplay LLC liability exceed the Software license price as ind
 
 13.3 Assignment. You may not assign this Agreement or any of its rights under this Agreement without the prior written consent of GoReplay LLC and any attempted assignment without such consent shall be void.
 
-13.4 Export Compliance. You agree to comply with all applicable laws and regulations, including laws, regulations, orders or other restrictions on export, re-export or redistribution of software.
+13.4 Export Compliance. Each party agrees to comply with all applicable laws and regulations, including laws, regulations, orders or other restrictions on export, re-export or redistribution of software.
 
 13.5 Indemnification. You agree to defend, indemnify, and hold harmless GoReplay LLC from and against any lawsuits, claims, losses, damages, fines and expenses (including attorneys' fees and costs) arising out of your use of the Software or breach of this Agreement.
 
