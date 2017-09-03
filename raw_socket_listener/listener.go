@@ -699,12 +699,18 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 
 	// Seek for 100-expect chunks
 	if parentAck, ok := t.seqWithData[packet.Seq]; ok {
+		// Skip zero-length chunks https://github.com/buger/goreplay/issues/496
+		if len(packet.Data) == 0 {
+			return
+		}
+
 		// In case if non-first data chunks comes first
 		for _, m := range t.messages {
 			if m.Ack == packet.Ack && bytes.Equal(m.packets[0].Addr, packet.Addr) {
 				t.deleteMessage(m)
 
 				if m.AssocMessage != nil {
+					m.AssocMessage.setAssocMessage(nil)
 					m.setAssocMessage(nil)
 				}
 
@@ -771,8 +777,9 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 				t.deleteMessage(m)
 				if m.AssocMessage != nil {
 					message.setAssocMessage(m.AssocMessage)
+					m.AssocMessage.setAssocMessage(nil)
 				}
-				// log.Println("2: Adding ack alias:", m.Ack, packet.Ack)
+
 				t.ackAliases[m.Ack] = packet.Ack
 
 				for _, pkt := range m.packets {

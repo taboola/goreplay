@@ -83,7 +83,7 @@ file-server:
 	go run $(SOURCE) file-server $(FADDR)
 
 readpcap:
-	go run $(SOURCE) --input-raw $(FILE) --input-raw-engine pcap_file --output-null
+	go run $(SOURCE) --input-raw $(FILE) --input-raw-track-response --input-raw-engine pcap_file --output-stdout
 
 record:
 	$(RUN) go run $(SOURCE) --input-dummy=0 --output-file=requests.gor --verbose --debug
