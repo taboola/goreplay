@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/buger/goreplay/proto"
@@ -478,4 +479,12 @@ func (t *TCPMessage) ID() tcpID {
 
 func (t *TCPMessage) IP() net.IP {
 	return net.IP(t.packets[0].Addr)
+}
+
+func (t *TCPMessage) String() string {
+	return strings.Join([]string{
+		"Len packets: " + strconv.Itoa(len(t.packets)),
+		"Data size:" + strconv.Itoa(len(t.Bytes())),
+		"Data:" + string(t.Bytes()),
+	}, "\n")
 }

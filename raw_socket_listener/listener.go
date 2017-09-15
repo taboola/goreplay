@@ -693,12 +693,20 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 		}
 	}()
 
+	// log.Println("PACKET:", packet, t.seqWithData)
+
+	var responseRequest *TCPMessage
 	var message *TCPMessage
 
 	isIncoming := packet.DestPort == t.port
 
+	if !isIncoming {
+		responseRequest, _ = t.respAliases[packet.Ack]
+	}
+
 	// Seek for 100-expect chunks
-	if parentAck, ok := t.seqWithData[packet.Seq]; ok {
+	// `packet.Ack != parentAck` is protection for clients who send data without ignoring server 100-continue response, e.g have data chunks have same Ack
+	if parentAck, ok := t.seqWithData[packet.Seq]; ok && packet.Ack != parentAck {
 		// Skip zero-length chunks https://github.com/buger/goreplay/issues/496
 		if len(packet.Data) == 0 {
 			return
@@ -739,12 +747,6 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 		packet.UpdateAck(alias)
 	}
 
-	var responseRequest *TCPMessage
-
-	if !isIncoming {
-		responseRequest, _ = t.respAliases[packet.Ack]
-	}
-
 	message, ok := t.messages[packet.ID]
 
 	if !ok {
@@ -766,8 +768,9 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 
 	// Handling Expect: 100-continue requests
 	if message.expectType == httpExpect100Continue && len(message.packets) == message.headerPacket+1 {
-		seq := packet.Seq + uint32(message.Size())
+		seq := packet.Seq + uint32(len(packet.Data))
 		t.seqWithData[seq] = packet.Ack
+
 		message.DataSeq = seq
 		message.complete = false
 
@@ -793,7 +796,13 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 		packet.Data = proto.DeleteHeader(packet.Data, bExpectHeader)
 	}
 
-	// log.Println("Received message:", string(message.Bytes()), message.ID(), t.messages)
+	// If client do sends Expect: 100-continue but do not respect server response
+	if message.expectType == httpExpect100Continue && (message.headerPacket != -1 && len(message.packets) > message.headerPacket+1) {
+		delete(t.seqWithData, message.DataSeq)
+		seq := packet.Seq + uint32(len(packet.Data))
+		t.seqWithData[seq] = packet.Ack
+		message.DataSeq = seq
+	}
 
 	if isIncoming {
 		// If message have multiple packets, delete previous alias
