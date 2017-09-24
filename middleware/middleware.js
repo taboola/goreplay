@@ -41,12 +41,17 @@ function init() {
 
             let resp = msg;
 
-            ["message", chanPrefix, chanPrefix + "#" + msg.ID].forEach(function(chanID){
+            ["message", chanPrefix, chanPrefix + "#" + msg.ID].forEach(function(chanID, idx){
                 if (proxy.ch[chanID]) {
                     proxy.ch[chanID].forEach(function(ch){
                         let r = ch.cb(msg);
                         if (r) resp = r; // If one of callback decided not to send response back, do not override it in global callbacks
                     })
+                    
+                    // Cleanup Individual message channels to avoid memory leaks
+                    if (idx == 2) {
+                        delete proxy.ch[chanID]
+                    }
                 }
             })
 
@@ -387,6 +392,10 @@ function testRunner(){
 // Just print in red color
 function fail(message) {
     console.error("\x1b[31m[MIDDLEWARE] %s\x1b[0m", message)
+}
+
+function log(message) {
+    console.error(message)
 }
 
 function TEST_init() {
