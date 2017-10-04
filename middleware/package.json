@@ -1,10 +1,11 @@
 {
   "name": "goreplay_middleware",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "description": "Package for writing middleware for GoReplay https://goreplay.org",
   "main": "middleware.js",
   "scripts": {
-    "test": "node -e \"var gor = require('./middleware.js'); gor.test(); process.exit()\""
+    "test": "node -e \"var gor = require('./middleware.js'); gor.test(); process.exit()\"",
+    "benchmark": "node -e \"var gor = require('./middleware.js'); gor.benchmark(); process.exit()\""
   },
   "keywords": [
     "middleware",

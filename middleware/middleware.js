@@ -62,14 +62,25 @@ function init() {
     }
 
     // Clean up old messaged ID specific channels if they are older then 60s
-    setInterval(function(){
+    let gc = function(gcTime){
         let now = new Date();
         for (k in proxy.ch) {
             if (k.indexOf("#") == -1) continue;
 
-            proxy.ch[k] = proxy.ch[k].filter(function(ch){ return (now - ch.created) < (60 * 1000) })
+            proxy.ch[k] = proxy.ch[k].filter(function(ch){
+                return (now - ch.created) < gcTime
+            })
+
+            if (proxy.ch[k].length == 0) {
+                delete proxy.ch[k]
+            }
         }
-    }, 1000)
+    }
+    proxy.gc = gc
+
+    setInterval(function(){
+        gc(10 * 1000)
+    }, 1000);
 
     const readline = require('readline');
     const rl = readline.createInterface({
@@ -375,7 +386,8 @@ module.exports = {
     setHttpBodyParam: setHttpBodyParam,
     httpCookie: httpCookie,
     setHttpCookie: setHttpCookie,
-    test: testRunner
+    test: testRunner,
+    benchmark: testBenchmark
 }
 
 
@@ -387,6 +399,40 @@ function testRunner(){
         eval(`TEST_${t}()`)
         console.log(`====== End ${t} =======`)
     })
+}
+
+function testBenchmark(){
+    const child_process = require('child_process');
+
+    let gor = init();
+    gor.on("message", function(){
+    });
+
+    gor.on("request", function(){
+    });
+
+    for (var i = 0; i<256; i++) {
+        let req = parseMessage(Buffer.from("1 2 3\nGET / HTTP/1.1\r\n\r\n").toString('hex'));
+        req.ID = +Date.now()
+        gor.emit(req);
+
+        gor.on("request", req.ID+"", function(){
+            gor.on("response", req.ID+"", function(){
+            })
+        })
+
+        if ( i % 3 == 0 ) {
+            let resp = parseMessage(Buffer.from("2 2 3\nHTTP/1.1 200 OK\r\n\r\n").toString('hex'));
+            resp.ID = req.ID
+            gor.emit(resp);
+        }
+    }
+    
+    child_process.execSync("sleep 0.01");
+
+    gor.gc(1) 
+    
+    fail(JSON.stringify(gor.ch))
 }
 
 // Just print in red color
