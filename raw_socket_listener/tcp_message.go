@@ -49,7 +49,8 @@ type TCPMessage struct {
 	complete      bool
 }
 
-// NewTCPMessage pointer created from a Acknowledgment number and a channel of messages readuy to be deleted
+// NewTCPMessage pointer created from a sequence and acknowledgment numbers, whether the message is incoming and a timestamp
+// that indicates when the packet was captrued.
 func NewTCPMessage(Seq, Ack uint32, IsIncoming bool, timestamp time.Time) (msg *TCPMessage) {
 	msg = &TCPMessage{Seq: Seq, Ack: Ack, IsIncoming: IsIncoming, Start: timestamp}
 
@@ -74,7 +75,7 @@ func (t *TCPMessage) Bytes() (output []byte) {
 	return output
 }
 
-// Size returns total body size
+// BodySize returns total body size
 func (t *TCPMessage) BodySize() (size int) {
 	if len(t.packets) == 0 || t.headerPacket == -1 {
 		return 0
@@ -225,7 +226,7 @@ func (t *TCPMessage) updateHeadersPacket() {
 	return
 }
 
-// isMultipart returns true if message contains from multiple tcp packets
+// checkIfComplete returns true if all of the packets that compse the message arrived. 
 func (t *TCPMessage) checkIfComplete() {
 	if t.seqMissing || t.headerPacket == -1 {
 		return
