@@ -62,7 +62,7 @@ func (m *Middleware) ReadFrom(plugin io.Reader) {
 
 func (m *Middleware) copy(to io.Writer, from io.Reader) {
 	buf := make([]byte, 5*1024*1024)
-	dst := make([]byte, len(buf)*2)
+	dst := make([]byte, len(buf)*3)
 
 	for {
 		nr, _ := from.Read(buf)
