@@ -61,8 +61,7 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 		if nr > 0 && len(buf) > nr {
 			payload := buf[:nr]
 			meta := payloadMeta(payload)
-	//		requestID := string(meta[1])
-			requestID := string(meta[0])
+			requestID := string(meta[1])
 
 			_maxN := nr
 			if nr > 500 {
