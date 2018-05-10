@@ -445,12 +445,12 @@ func (t *Listener) readPcap() {
 					of = 4
 				case layers.LinkTypeLoop:
 					of = 4
-				case layers.LinkTypeRaw:
+				case layers.LinkTypeRaw, layers.LayerTypeIPv4:
 					of = 0
 				case layers.LinkTypeLinuxSLL:
 					of = 16
 				default:
-					log.Println("Unknown packet layer", packet)
+					log.Println("Unknown packet layer", decoder, packet)
 					break
 				}
 
@@ -713,8 +713,6 @@ func (t *Listener) processTCPPacket(packet *TCPPacket) {
 			log.Println("PANIC: pkg:", r, packet, string(debug.Stack()))
 		}
 	}()
-
-	// log.Println("PACKET:", packet, t.seqWithData)
 
 	var responseRequest *TCPMessage
 	var message *TCPMessage

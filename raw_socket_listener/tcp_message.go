@@ -199,6 +199,7 @@ func (t *TCPMessage) checkSeqIntegrity() {
 }
 
 var bEmptyLine = []byte("\r\n\r\n")
+var bBR = []byte("\r\n")
 var bChunkEnd = []byte("0\r\n\r\n")
 
 func (t *TCPMessage) updateHeadersPacket() {
@@ -215,9 +216,16 @@ func (t *TCPMessage) updateHeadersPacket() {
 	}
 
 	for i, p := range t.packets {
-		if bytes.LastIndex(p.Data, bEmptyLine) != -1 {
-			t.headerPacket = i
-			return
+		if len(p.Data) >= len(bEmptyLine) {
+			if bytes.LastIndex(p.Data, bEmptyLine) != -1 {
+				t.headerPacket = i
+				return
+			}
+		} else if bytes.Equal(p.Data, bBR) {
+			if bytes.LastIndex(t.packets[i-1].Data, bBR) != -1 {
+				t.headerPacket = i
+				return
+			}
 		}
 	}
 
@@ -227,17 +235,22 @@ func (t *TCPMessage) updateHeadersPacket() {
 // checkIfComplete returns true if all of the packets that compse the message arrived.
 func (t *TCPMessage) checkIfComplete() {
 	if t.seqMissing || t.headerPacket == -1 {
+		// log.Println("Seq missing", t.seqMissing, t.packets)
 		return
 	}
 
 	if t.methodType == httpMethodNotFound {
+		// log.Println("Method missing", t.methodType, t.packets)
 		return
 	}
 
 	// Responses can be emitted only if we found request
 	if !t.IsIncoming && t.AssocMessage == nil {
+		// log.Println("Assoc not found", t)
 		return
 	}
+
+	// log.Println("Found?", t)
 
 	switch t.bodyType {
 	case httpBodyEmpty:
