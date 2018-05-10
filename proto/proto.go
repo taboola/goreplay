@@ -338,6 +338,10 @@ func DeleteHeader(payload, name []byte) []byte {
 // Body returns request/response body
 func Body(payload []byte) []byte {
 	// 4 -> len(EMPTY_LINE)
+	if len(payload) < 4 {
+		return []byte{}
+	}
+
 	return payload[MIMEHeadersEndPos(payload):]
 }
 
