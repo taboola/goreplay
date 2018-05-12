@@ -546,3 +546,44 @@ func TestRawListenerBench(t *testing.T) {
 		}
 	}
 }
+
+func TestResponseZeroContentLength(t *testing.T) {
+	var req, resp *TCPMessage
+	listener := NewListener("", "0", EnginePcap, true, 10*time.Millisecond, "", "")
+	defer listener.Close()
+
+	reqPacket := firstPacket([]byte("POST /api/setup/install HTTP/1.1\r\nHost: localhost:22936\r\nUser-Agent: curl/7.57.0\r\nAccept: */*\r\nContent-Length: 0\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\n"))
+	respPacket := responsePacket(reqPacket, []byte("HTTP/1.1 200\r\nDate: Fri, 11 May 2018 15:09:10 GMT\r\nServer: Kestrel\r\nCache-Control: no-cache\r\nTransfer-Encoding: chunked\r\n\r\n"))
+	respPacket2 := nextPacket(respPacket, []byte("0\r\n\r\n"))
+
+	// If response packet comes before request
+	listener.packetsChan <- reqPacket.dump()
+	listener.packetsChan <- respPacket.dump()
+	listener.packetsChan <- respPacket2.dump()
+
+	select {
+	case req = <-listener.messagesChan:
+	case <-time.After(time.Millisecond):
+		t.Error("Should return respose immediately")
+		return
+	}
+
+	if !req.IsIncoming {
+		t.Error("Should be request")
+	}
+
+	select {
+	case resp = <-listener.messagesChan:
+	case <-time.After(time.Millisecond):
+		t.Error("Should return response immediately")
+		return
+	}
+
+	if resp.IsIncoming {
+		t.Error("Should be response")
+	}
+
+	if !bytes.Equal(resp.UUID(), req.UUID()) {
+		t.Error("Resp and Req UUID should be equal")
+	}
+}
