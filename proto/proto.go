@@ -93,6 +93,11 @@ func headerIndex(payload []byte, name []byte) int {
 						return i - len(name)
 					}
 
+					// We are at the end
+					if i == len(payload) {
+						return -1
+					}
+
 					if payload[i] != name[j] {
 						break
 					}
