@@ -103,6 +103,7 @@ Package expose following functions to process raw HTTP payloads:
 * `httpPathParam` - get param from URL path: `gor.httpPathParam(req.http, queryParam)`
 * `setHttpPathParam` - set URL param: `req.http = gor.setHttpPathParam(req.http, queryParam, value)` 
 * `httpStatus` - response status code
+* `httpHeaders` - get all headers: `gor.httpHeaders(req.http)`
 * `httpHeader` - get HTTP header: `gor.httpHeader(req.http, "Content-Length")`
 * `setHttpHeader` - Set HTTP header, returns modified payload: `req.http = gor.setHttpHeader(req.http, "X-Replayed", "1")`
 * `httpBody` - get HTTP Body: `gor.httpBody(req.http)`
