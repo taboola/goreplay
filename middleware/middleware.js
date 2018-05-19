@@ -253,6 +253,21 @@ function setHttpStatus(payload, newStatus) {
     return setHttpPath(payload, newStatus);
 }
 
+function httpHeaders(payload) {
+    var httpHeaderString = payload.slice(0,payload.indexOf("\r\n\r\n") + 4).toString().split("\n").slice(1);
+    var headers = {};
+
+    for (var item in httpHeaderString) {
+        var parts = httpHeaderString[item].split(":");
+
+        if (parts.length > 1) {
+            headers[parts[0]] = parts.slice(1).join(":").trim();    
+        }
+    }
+
+    return headers;
+}
+
 function httpHeader(payload, name) {
     var currentLine = 0;
     var i = 0;
@@ -394,7 +409,7 @@ module.exports = {
 // =========== Tests ==============
 
 function testRunner(){
-    ["init", "parseMessage", "httpMethod", "httpPath", "setHttpHeader", "httpPathParam", "httpHeader", "httpBody", "setHttpBody", "httpBodyParam", "httpCookie", "setHttpCookie"].forEach(function(t){
+    ["init", "parseMessage", "httpMethod", "httpPath", "setHttpHeader", "httpPathParam", "httpHeader", "httpBody", "setHttpBody", "httpBodyParam", "httpCookie", "setHttpCookie", "httpHeaders"].forEach(function(t){
         console.log(`====== Start ${t} =======`)
         eval(`TEST_${t}()`)
         console.log(`====== End ${t} =======`)
@@ -667,4 +682,26 @@ function TEST_setHttpCookie() {
     if (p != "GET / HTTP/1.1\r\nCookie: a=b; test=zxc; new=one\r\n\r\n") {
         return fail(`Should add new cookie: ${p}`)
     }
+}
+
+function TEST_httpHeaders() {
+    const examplePayload = "GET / HTTP/1.1\r\nHost: localhost:3000\r\nUser-Agent: Node\r\nContent-Length:5\r\n\r\nhello";
+
+    let expectedHeaders = {"Host": "localhost:3000", "User-Agent": "Node", "Content-Length": "5"}
+    let payload = Buffer.from(examplePayload);
+    let headers = httpHeaders(payload);
+
+    ["Host", "User-Agent", "Content-Length"].forEach(function(header){
+        let actual = headers[header];
+        let expected = expectedHeaders[header];
+
+        if (!actual) {
+            fail(`${header} Header was not found`);
+        }
+
+        if (actual != expected) {
+            fail(`${header} Header not Equal to Expected: ${expected} was ${actual}`);
+        }
+
+    })
 }
