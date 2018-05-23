@@ -113,16 +113,10 @@ func (c *HTTPClient) Disconnect() {
 	}
 }
 
-func (c *HTTPClient) isAlive() bool {
-	one := make([]byte, 1)
-
+func (c *HTTPClient) isAlive(readBytes *int) (bool) {
 	// Ready 1 byte from socket without timeout to check if it not closed
 	c.conn.SetReadDeadline(time.Now().Add(time.Millisecond))
-	_, err := c.conn.Read(one)
-
-	if err == nil {
-		return true
-	}
+	n, err := c.conn.Read(c.respBuf[:1])
 
 	if err == io.EOF {
 		Debug("[HTTPClient] connection closed, reconnecting")
@@ -133,7 +127,10 @@ func (c *HTTPClient) isAlive() bool {
 		Debug("Detected broken pipe.", err)
 		return false
 	}
-
+	if n != 0 {
+		*readBytes += n
+		Debug("[HTTPClient] isAlive readBytes ", *readBytes)
+	}
 	return true
 }
 
@@ -153,7 +150,8 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 		}
 	}()
 
-	if c.conn == nil || !c.isAlive() {
+	var readBytes, n int
+	if c.conn == nil || !c.isAlive(&readBytes) {
 		Debug("[HTTPClient] Connecting:", c.baseURL)
 		if err = c.Connect(); err != nil {
 			log.Println("[HTTPClient] Connection error:", err)
@@ -181,10 +179,10 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 	if _, err = c.conn.Write(data); err != nil {
 		Debug("[HTTPClient] Write error:", err, c.baseURL)
 		response = errorPayload(HTTP_TIMEOUT)
+		c.Disconnect()
 		return
 	}
 
-	var readBytes, n int
 	var currentChunk []byte
 	timeout = time.Now().Add(c.config.Timeout)
 	chunked := false
@@ -205,13 +203,21 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 				currentContentLength += n
 			} else {
 				// If headers are finished
-
-				if bytes.Contains(c.respBuf[:readBytes], proto.EmptyLine) {
+				var firstEmptyLine = bytes.Index(c.respBuf[:readBytes], proto.EmptyLine);
+				if firstEmptyLine != -1 {
 					if bytes.Equal(proto.Header(c.respBuf[:readBytes], []byte("Transfer-Encoding")), []byte("chunked")) {
 						chunked = true
 					} else {
 						status, _ := strconv.Atoi(string(proto.Status(c.respBuf[:readBytes])))
-						if (status >= 100 && status < 200) || status == 204 || status == 304 {
+						// We want to soak up all 100 Continues received to get the real result code
+						if status >= 100 && status < 200 {
+							timeout = time.Now().Add(c.config.Timeout)
+							var deleteLen = firstEmptyLine + len(proto.EmptyLine)
+							copy(c.respBuf, c.respBuf[deleteLen:readBytes])
+							readBytes -= deleteLen
+							chunks--
+							continue
+						} else if status == 204 || status == 304 {
 							contentLength = 0
 							break
 						} else {
