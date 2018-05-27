@@ -75,6 +75,8 @@ type Listener struct {
 	bpfFilter     string
 	timestampType string
 
+	bufferSize int
+
 	conn        net.PacketConn
 	pcapHandles []*pcap.Handle
 
@@ -96,7 +98,7 @@ const (
 )
 
 // NewListener creates and initializes new Listener object
-func NewListener(addr string, port string, engine int, trackResponse bool, expire time.Duration, bpfFilter string, timestampType string) (l *Listener) {
+func NewListener(addr string, port string, engine int, trackResponse bool, expire time.Duration, bpfFilter string, timestampType string, bufferSize int) (l *Listener) {
 	l = &Listener{}
 
 	l.packetsChan = make(chan *packet, 10000)
@@ -112,6 +114,7 @@ func NewListener(addr string, port string, engine int, trackResponse bool, expir
 	l.trackResponse = trackResponse
 	l.bpfFilter = bpfFilter
 	l.timestampType = timestampType
+	l.bufferSize = bufferSize
 
 	l.addr = addr
 	_port, _ := strconv.Atoi(port)
@@ -345,9 +348,20 @@ func (t *Listener) readPcap() {
 					log.Println("Supported timestamp types: ", inactive.SupportedTimestamps(), device.Name)
 				}
 			}
-			inactive.SetSnapLen(65536)
+
+			if it, err := net.InterfaceByName(device.Name); err == nil {
+				// Auto-guess max length of packet to capture
+				inactive.SetSnapLen(it.MTU + 68*2)
+			} else {
+				inactive.SetSnapLen(65536)
+			}
+
 			inactive.SetTimeout(t.messageExpire)
 			inactive.SetPromisc(true)
+
+			if t.bufferSize > 0 {
+				inactive.SetBufferSize(t.bufferSize)
+			}
 
 			handle, herr := inactive.Activate()
 			if herr != nil {

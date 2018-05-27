@@ -370,10 +370,10 @@ func (t *TCPMessage) updateBodyType() {
 		return
 	case httpMethodKnown:
 
-		if ! t.IsIncoming &&
+		if !t.IsIncoming &&
 			t.AssocMessage != nil &&
-			bytes.IndexByte( t.AssocMessage.Bytes(), ' ') > -1 &&
-			bytes.Equal( []byte("HEAD"), proto.Method(t.AssocMessage.Bytes()) ) {
+			bytes.IndexByte(t.AssocMessage.Bytes(), ' ') > -1 &&
+			bytes.Equal([]byte("HEAD"), proto.Method(t.AssocMessage.Bytes())) {
 			// Need to check if this is a response to a head request,
 			// in which case the body has to be empty regardless.
 			t.bodyType = httpBodyEmpty

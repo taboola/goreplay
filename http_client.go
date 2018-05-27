@@ -113,7 +113,7 @@ func (c *HTTPClient) Disconnect() {
 	}
 }
 
-func (c *HTTPClient) isAlive(readBytes *int) (bool) {
+func (c *HTTPClient) isAlive(readBytes *int) bool {
 	// Ready 1 byte from socket without timeout to check if it not closed
 	c.conn.SetReadDeadline(time.Now().Add(time.Millisecond))
 	n, err := c.conn.Read(c.respBuf[:1])
@@ -203,7 +203,7 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 				currentContentLength += n
 			} else {
 				// If headers are finished
-				var firstEmptyLine = bytes.Index(c.respBuf[:readBytes], proto.EmptyLine);
+				var firstEmptyLine = bytes.Index(c.respBuf[:readBytes], proto.EmptyLine)
 				if firstEmptyLine != -1 {
 					if bytes.Equal(proto.Header(c.respBuf[:readBytes], []byte("Transfer-Encoding")), []byte("chunked")) {
 						chunked = true

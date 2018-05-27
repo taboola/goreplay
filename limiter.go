@@ -96,5 +96,5 @@ func (l *Limiter) Read(data []byte) (n int, err error) {
 }
 
 func (l *Limiter) String() string {
-	return fmt.Sprintf("Limiting %s to: %d (isPercent: %b)", l.plugin, l.limit, l.isPercent)
+	return fmt.Sprintf("Limiting %s to: %d (isPercent: %v)", l.plugin, l.limit, l.isPercent)
 }

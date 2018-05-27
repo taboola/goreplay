@@ -28,7 +28,7 @@ func assertExpectedError(returnedError error, t *testing.T) {
 
 func assertNoError(returnedError error, t *testing.T) {
 	if nil != returnedError {
-		t.Errorf("Expected err %s but got %s", nil, returnedError)
+		t.Errorf("Expected no err but got %s", returnedError)
 	}
 }
 
