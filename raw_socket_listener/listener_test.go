@@ -62,7 +62,7 @@ func nextPacket(prev *TCPPacket, payload []byte) *TCPPacket {
 		prev.Ack,
 		prev.Seq+uint32(len(prev.Data)),
 		payload,
-		time.Now(),
+		prev.timestamp.Add(time.Millisecond),
 	)
 }
 
@@ -72,7 +72,7 @@ func responsePacket(prev *TCPPacket, payload []byte) *TCPPacket {
 		prev.Seq+uint32(len(prev.Data)),
 		prev.Ack,
 		payload,
-		time.Now(),
+		prev.timestamp.Add(time.Millisecond),
 	)
 }
 

@@ -130,16 +130,15 @@ func (t *TCPMessage) AddPacket(packet *TCPPacket) {
 				}
 			}
 		}
-
 		if packet.OrigAck != 0 {
 			t.DataAck = packet.OrigAck
 		}
 
-		if packet.timestamp.Before(t.Start) {
+		if packet.timestamp.Before(t.Start) || t.Start.IsZero() {
 			t.Start = packet.timestamp
 		}
 
-		if t.End.IsZero() || t.End.Before(packet.timestamp) {
+		if packet.timestamp.After(t.End) || t.End.IsZero() {
 			t.End = packet.timestamp
 		}
 	}
