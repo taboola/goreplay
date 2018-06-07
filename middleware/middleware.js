@@ -402,7 +402,8 @@ module.exports = {
     httpCookie: httpCookie,
     setHttpCookie: setHttpCookie,
     test: testRunner,
-    benchmark: testBenchmark
+    benchmark: testBenchmark,
+    httpHeaders: httpHeaders
 }
 
 
