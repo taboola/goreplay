@@ -322,6 +322,16 @@ function setHttpHeader(payload, name, value) {
     }
 }
 
+function deleteHttpHeader(payload, name) {
+	let header = httpHeader(payload, name);
+
+    if (header) {
+        return Buffer.concat([payload.slice(0, header.start), payload.slice(header.end+1, payload.length)])
+    }
+
+	return payload
+}
+
 function httpBody(payload) {
     return payload.slice(payload.indexOf("\r\n\r\n") + 4, payload.length);
 }
@@ -395,6 +405,7 @@ module.exports = {
     setHttpStatus: setHttpStatus,
     httpHeader: httpHeader,
     setHttpHeader: setHttpHeader,
+    deleteHttpHeader: deleteHttpHeader,
     httpBody: httpBody,
     setHttpBody: setHttpBody,
     httpBodyParam: httpBodyParam,
@@ -410,7 +421,7 @@ module.exports = {
 // =========== Tests ==============
 
 function testRunner(){
-    ["init", "parseMessage", "httpMethod", "httpPath", "setHttpHeader", "httpPathParam", "httpHeader", "httpBody", "setHttpBody", "httpBodyParam", "httpCookie", "setHttpCookie", "httpHeaders"].forEach(function(t){
+    ["init", "parseMessage", "httpMethod", "httpPath", "setHttpHeader", "deleteHttpHeader", "httpPathParam", "httpHeader", "httpBody", "setHttpBody", "httpBodyParam", "httpCookie", "setHttpCookie", "httpHeaders"].forEach(function(t){
         console.log(`====== Start ${t} =======`)
         eval(`TEST_${t}()`)
         console.log(`====== End ${t} =======`)
@@ -639,6 +650,18 @@ function TEST_setHttpHeader() {
     p = setHttpHeader(p, "X-Test", "test");
     if (p != expected) {
         console.error(`setHeader failed, expected new header 'X-Test' header: ${p}`)
+    }
+}
+
+function TEST_deleteHttpHeader() {
+    const examplePayload = "GET / HTTP/1.1\r\nUser-Agent: Node\r\nContent-Length: 5\r\n\r\nhello";
+
+    // Adding new header
+    let expected = `GET / HTTP/1.1\r\nContent-Length: 5\r\n\r\nhello`;
+    let p = Buffer.from(examplePayload);
+    p = deleteHttpHeader(p, "User-Agent", "test");
+    if (p != expected) {
+        console.error(`setHeader failed, expected delete header 'User-Agent' header: ${p}`)
     }
 }
 
