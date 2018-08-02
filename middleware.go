@@ -62,28 +62,40 @@ func (m *Middleware) ReadFrom(plugin io.Reader) {
 
 func (m *Middleware) copy(to io.Writer, from io.Reader) {
 	buf := make([]byte, 5*1024*1024)
-	dst := make([]byte, len(buf)*3)
+	dst := make([]byte, len(buf)*4)
 
 	for {
 		nr, _ := from.Read(buf)
-		if nr > 0 && len(buf) > nr {
-			payload := buf[0:nr]
-
-			if Settings.prettifyHTTP {
-				payload = prettifyHTTP(payload)
-				nr = len(payload)
+		if nr = 0 || nr > len(buf) {
+			continue
+		}
+		
+		payload := buf[0:nr]
+		
+		if Settings.prettifyHTTP {
+			payload = prettifyHTTP(payload)
+			nr = len(payload)
+			
+			if nr*2 > len(dst) {
+				continue
 			}
+		}
+		
 
-			hex.Encode(dst, payload)
-			dst[nr*2] = '\n'
+		if Settings.prettifyHTTP {
+			payload = prettifyHTTP(payload)
+			nr = len(payload)
+		}
 
-			m.mu.Lock()
-			to.Write(dst[0 : nr*2+1])
-			m.mu.Unlock()
+		hex.Encode(dst, payload)
+		dst[nr*2] = '\n'
 
-			if Settings.debug {
-				Debug("[MIDDLEWARE-MASTER] Sending:", string(buf[0:nr]), "From:", from)
-			}
+		m.mu.Lock()
+		to.Write(dst[0 : nr*2+1])
+		m.mu.Unlock()
+
+		if Settings.debug {
+			Debug("[MIDDLEWARE-MASTER] Sending:", string(buf[0:nr]), "From:", from)
 		}
 	}
 }
