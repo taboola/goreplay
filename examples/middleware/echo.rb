@@ -1,12 +1,12 @@
 #!/usr/bin/env ruby
 # encoding: utf-8
-while data = STDIN.gets # continiously read line from STDIN
+while data = STDIN.gets # continuously read line from STDIN
   next unless data
   data = data.chomp # remove end of line symbol
   
   decoded = [data].pack("H*") # decode base64 encoded request
   
-  # dedoded value is raw HTTP payload, example:
+  # decoded value is raw HTTP payload, example:
   #   
   #   POST /post HTTP/1.1
   #   Content-Length: 7
