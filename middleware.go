@@ -66,21 +66,20 @@ func (m *Middleware) copy(to io.Writer, from io.Reader) {
 
 	for {
 		nr, _ := from.Read(buf)
-		if nr = 0 || nr > len(buf) {
+		if nr == 0 || nr > len(buf) {
 			continue
 		}
-		
+
 		payload := buf[0:nr]
-		
+
 		if Settings.prettifyHTTP {
 			payload = prettifyHTTP(payload)
 			nr = len(payload)
-			
+
 			if nr*2 > len(dst) {
 				continue
 			}
 		}
-		
 
 		if Settings.prettifyHTTP {
 			payload = prettifyHTTP(payload)
