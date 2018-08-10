@@ -16,6 +16,11 @@ func prettifyHTTP(p []byte) []byte {
 	body := p[headSize:]
 
 	headersPos := proto.MIMEHeadersEndPos(body)
+
+	if headersPos < 5 || headersPos > len(body) {
+		return p
+	}
+
 	headers := body[:headersPos]
 	content := body[headersPos:]
 
