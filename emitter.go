@@ -57,16 +57,21 @@ func CopyMulty(src io.Reader, writers ...io.Writer) (err error) {
 
 	for {
 		nr, er := src.Read(buf)
+		_maxN := nr
+		if nr > 500 {
+			_maxN = 500
+		}
 
 		if nr > 0 && len(buf) > nr {
 			payload := buf[:nr]
 			meta := payloadMeta(payload)
-			requestID := string(meta[1])
-
-			_maxN := nr
-			if nr > 500 {
-				_maxN = 500
+			if len(meta) < 3 {
+				if Settings.debug {
+					Debug("[EMITTER] Found malformed record", string(payload[0:_maxN]), nr, "from:", src)
+				}
+				continue
 			}
+			requestID := string(meta[1])
 
 			if Settings.debug {
 				Debug("[EMITTER] input:", string(payload[0:_maxN]), nr, "from:", src)
