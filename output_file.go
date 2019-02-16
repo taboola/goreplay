@@ -246,7 +246,9 @@ func (o *FileOutput) flush() {
 
 		if stat, err := o.file.Stat(); err == nil {
 			o.chunkSize = int(stat.Size())
-		}
+		} else {
+            log.Println("Error accessing file sats", err)
+        }
 	}
 }
 
