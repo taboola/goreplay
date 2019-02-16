@@ -58,6 +58,7 @@ type AppSettings struct {
 	inputRAWBpfFilter     string
 	inputRAWTimestampType string
 	copyBufferSize        int
+	inputRAWImmediateMode bool
 	inputRawBufferSize    int
 	inputRAWOverrideSnapLen bool
 
@@ -142,6 +143,7 @@ func init() {
 	flag.StringVar(&Settings.inputRAWTimestampType, "input-raw-timestamp-type", "", "Possible values: PCAP_TSTAMP_HOST, PCAP_TSTAMP_HOST_LOWPREC, PCAP_TSTAMP_HOST_HIPREC, PCAP_TSTAMP_ADAPTER, PCAP_TSTAMP_ADAPTER_UNSYNCED. This values not supported on all systems, GoReplay will tell you available values of you put wrong one.")
 	flag.IntVar(&Settings.copyBufferSize, "copy-buffer-size", 5*1024*1024, "Set the buffer size for an individual request (default 5M)")
 	flag.BoolVar(&Settings.inputRAWOverrideSnapLen, "input-raw-override-snaplen", false, "Override the capture snaplen to be 64k. Required for some Virtualized environments")
+	flag.BoolVar(&Settings.inputRAWImmediateMode, "input-raw-immediate-mode", false, "Set pcap interface to immediate mode.")
 
 	flag.IntVar(&Settings.inputRawBufferSize, "input-raw-buffer-size", 0, "Controls size of the OS buffer (in bytes) which holds packets until they dispatched. Default value depends by system: in Linux around 2MB. If you see big package drop, increase this value.")
 
