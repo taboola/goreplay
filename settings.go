@@ -117,6 +117,8 @@ func init() {
 	Settings.outputFileConfig.sizeLimit.Set("32mb")
 	flag.Var(&Settings.outputFileConfig.sizeLimit, "output-file-size-limit", "Size of each chunk. Default: 32mb")
 	flag.IntVar(&Settings.outputFileConfig.queueLimit, "output-file-queue-limit", 256, "The length of the chunk queue. Default: 256")
+	Settings.outputFileConfig.outputFileMaxSize.Set("-1")
+	flag.Var(&Settings.outputFileConfig.outputFileMaxSize, "output-file-max-size-limit", "Max size of output file, Default: 1TB")
 
 	flag.BoolVar(&Settings.prettifyHTTP, "prettify-http", false, "If enabled, will automatically decode requests and responses with: Content-Encodning: gzip and Transfer-Encoding: chunked. Useful for debugging, in conjuction with --output-stdout")
 

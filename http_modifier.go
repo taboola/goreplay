@@ -99,10 +99,10 @@ func (m *HTTPModifier) Rewrite(payload []byte) (response []byte) {
 			value := proto.Header(payload, f.name)
 
 			if len(value) == 0 {
-                return
-            }
+				return
+			}
 
-            if !f.regexp.Match(value) {
+			if !f.regexp.Match(value) {
 				return
 			}
 		}
