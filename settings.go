@@ -30,6 +30,8 @@ type AppSettings struct {
 	stats     bool
 	exitAfter time.Duration
 
+	pprof string
+
 	splitOutput bool
 
 	inputDummy   MultiOption
@@ -83,6 +85,7 @@ func usage() {
 func init() {
 	flag.Usage = usage
 
+	flag.StringVar(&Settings.pprof, "http-pprof", "", "Enable profiling. Starts  http server on specified port, exposing special /debug/pprof endpoint. Example: `:8181`")
 	flag.BoolVar(&Settings.verbose, "verbose", false, "Turn on more verbose output")
 	flag.BoolVar(&Settings.debug, "debug", false, "Turn on debug output, shows all intercepted traffic. Works only when with `verbose` flag")
 	flag.BoolVar(&Settings.stats, "stats", false, "Turn on queue stats output")
