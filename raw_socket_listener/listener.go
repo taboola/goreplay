@@ -75,6 +75,7 @@ type Listener struct {
 	bpfFilter     string
 	timestampType string
 	overrideSnapLen bool
+	immediateMode bool
 
 	bufferSize int
 
@@ -99,7 +100,7 @@ const (
 )
 
 // NewListener creates and initializes new Listener object
-func NewListener(addr string, port string, engine int, trackResponse bool, expire time.Duration, bpfFilter string, timestampType string, bufferSize int, overrideSnapLen bool) (l *Listener) {
+func NewListener(addr string, port string, engine int, trackResponse bool, expire time.Duration, bpfFilter string, timestampType string, bufferSize int, overrideSnapLen bool, immediateMode bool) (l *Listener) {
 	l = &Listener{}
 
 	l.packetsChan = make(chan *packet, 10000)
@@ -115,6 +116,7 @@ func NewListener(addr string, port string, engine int, trackResponse bool, expir
 	l.trackResponse = trackResponse
 	l.bpfFilter = bpfFilter
 	l.timestampType = timestampType
+	l.immediateMode = immediateMode
 	l.bufferSize = bufferSize
 	l.overrideSnapLen = overrideSnapLen
 
@@ -360,7 +362,10 @@ func (t *Listener) readPcap() {
 
 			inactive.SetTimeout(t.messageExpire)
 			inactive.SetPromisc(true)
-
+			inactive.SetImmediateMode(t.immediateMode)
+			if t.immediateMode {
+				log.Println("Setting immediate mode")
+			}
 			if t.bufferSize > 0 {
 				inactive.SetBufferSize(t.bufferSize)
 			}
