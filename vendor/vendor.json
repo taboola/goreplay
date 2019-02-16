@@ -45,10 +45,10 @@
 			"revisionTime": "2016-05-29T05:00:41Z"
 		},
 		{
-			"checksumSHA1": "WT6lYgJhoWbXLpnFOxPISxrL2/o=",
+			"checksumSHA1": "2TqkKFm8mR2RAtE6JRPcVixW20w=",
 			"path": "github.com/google/gopacket",
-			"revision": "60ab61cd59496fcfa4d208b265ba79b1e37c1476",
-			"revisionTime": "2018-05-13T17:29:36Z"
+			"revision": "f86faeb88894864d4fa0652c24f3413b1e42f4a1",
+			"revisionTime": "2019-02-11T01:39:29Z"
 		},
 		{
 			"checksumSHA1": "BM6ZlNJmtKy3GBoWwg2X55gnZ4A=",
