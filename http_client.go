@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/tls"
 	"encoding/base64"
 	"io"
 	"log"
 	"net"
+	"net/http"
 	"net/url"
 	"runtime/debug"
 	"strconv"
@@ -47,6 +49,8 @@ type HTTPClient struct {
 	host           string
 	auth           string
 	conn           net.Conn
+	proxy          *url.URL
+	proxyAuth      string
 	respBuf        []byte
 	config         *HTTPClientConfig
 	redirectsCount int
@@ -80,19 +84,74 @@ func NewHTTPClient(baseURL string, config *HTTPClientConfig) *HTTPClient {
 		client.auth = "Basic " + base64.StdEncoding.EncodeToString([]byte(u.User.String()))
 	}
 
+	client.proxy, _ = http.ProxyFromEnvironment(&http.Request{URL: u})
+
+	if client.isProxy() && client.proxy.User != nil {
+		client.proxyAuth = "Basic " + base64.StdEncoding.EncodeToString([]byte(client.proxy.User.String()))
+	}
+
 	return client
 }
 
 func (c *HTTPClient) Connect() (err error) {
 	c.Disconnect()
 
+	var toDial string
 	if !strings.Contains(c.host, ":") {
-		c.conn, err = net.DialTimeout("tcp", c.host+":"+defaultPorts[c.scheme], c.config.ConnectionTimeout)
+		toDial = c.host + ":" + defaultPorts[c.scheme]
 	} else {
-		c.conn, err = net.DialTimeout("tcp", c.host, c.config.ConnectionTimeout)
+		toDial = c.host
+	}
+
+	if c.isProxy() {
+		if c.proxy.Scheme != "http" {
+			panic("Unsupported HTTP Proxy method")
+		}
+		Debug("[HTTPClient] Connecting to proxy", c.proxy.String(), "<>", toDial)
+		c.conn, err = net.DialTimeout("tcp", c.proxy.Host, c.config.ConnectionTimeout)
+		if err != nil {
+			return
+		}
+		if c.scheme == "https" {
+			c.conn.Write([]byte("CONNECT " + toDial + " HTTP/1.1\r\n"))
+			if c.proxyAuth != "" {
+				c.conn.Write([]byte("Proxy-Authorization: " + c.proxyAuth + "\r\n"))
+			}
+			c.conn.Write([]byte("\r\n"))
+			br := bufio.NewReader(c.conn)
+			l, _, err := br.ReadLine()
+			if err != nil {
+				return err
+			}
+			if len(l) < 12 {
+				panic("HTTP proxy did not respond correctly")
+			}
+			status := l[9:12]
+			if !bytes.Equal(status, []byte("200")) {
+				panic("HTTP proxy did not respond correctly")
+			}
+			for {
+				// Read until we find the empty line
+				l, _, err := br.ReadLine()
+				if err != nil {
+					return err
+				}
+				if len(l) == 0 {
+					break
+				}
+			}
+		}
+		Debug("[HTTPClient] Proxy successfully connected")
+	} else {
+		c.conn, err = net.DialTimeout("tcp", toDial, c.config.ConnectionTimeout)
+		if err != nil {
+			return
+		}
 	}
 
 	if c.scheme == "https" {
+		// Wrap our socket in TLS
+		Debug("[HTTPClient] Wrapping socket in TLS", c.host)
 		tlsConn := tls.Client(c.conn, &tls.Config{InsecureSkipVerify: true, ServerName: c.host})
 
 		if err = tlsConn.Handshake(); err != nil {
@@ -100,6 +159,7 @@ func (c *HTTPClient) Connect() (err error) {
 		}
 
 		c.conn = tlsConn
+		Debug("[HTTPClient] Successfully wrapped in TLS")
 	}
 
 	return
@@ -135,8 +195,6 @@ func (c *HTTPClient) isAlive(readBytes *int) bool {
 }
 
 func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
-	var payload []byte
-
 	// Don't exit on panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -150,7 +208,7 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 		}
 	}()
 
-	var readBytes, n int
+	var readBytes int
 	if c.conn == nil || !c.isAlive(&readBytes) {
 		Debug("[HTTPClient] Connecting:", c.baseURL)
 		if err = c.Connect(); err != nil {
@@ -168,6 +226,16 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 		data = proto.SetHost(data, []byte(c.baseURL), []byte(c.host))
 	}
 
+	if c.isProxy() && c.scheme == "http" {
+		path := proto.Path(data)
+		if len(path) > 0 && path[0] == '/' {
+			data = proto.SetPath(data, c.proxyPath(path))
+			if c.proxyAuth != "" {
+				data = proto.SetHeader(data, []byte("Proxy-Authorization"), []byte(c.proxyAuth))
+			}
+		}
+	}
+
 	if c.auth != "" {
 		data = proto.SetHeader(data, []byte("Authorization"), []byte(c.auth))
 	}
@@ -176,6 +244,12 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 		Debug("[HTTPClient] Sending:", string(data))
 	}
 
+	return c.send(data, readBytes, timeout)
+}
+
+func (c *HTTPClient) send(data []byte, readBytes int, timeout time.Time) (response []byte, err error) {
+	var payload []byte
+	var n int
 	if _, err = c.conn.Write(data); err != nil {
 		Debug("[HTTPClient] Write error:", err, c.baseURL)
 		response = errorPayload(HTTP_TIMEOUT)
@@ -374,6 +448,14 @@ func (c *HTTPClient) Post(path string, body []byte) (response []byte, err error)
 	payload += string(body)
 
 	return c.Send([]byte(payload))
+}
+
+func (c *HTTPClient) proxyPath(path []byte) []byte {
+	return append([]byte(c.scheme+"://"+c.host), path...)
+}
+
+func (c *HTTPClient) isProxy() bool {
+	return c.proxy != nil
 }
 
 const (
