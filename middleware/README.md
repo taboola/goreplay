@@ -112,6 +112,7 @@ Package expose following functions to process raw HTTP payloads:
 * `setHttpBodyParam` - set POST body param: `req.http = gor.setHttpBodyParam(req.http, param, value)`
 * `httpCookie` - get HTTP cookie: `gor.httpCookie(req.http, "SESSSION_ID")`
 * `setHttpCookie` - set HTTP cookie, returns modified payload: `req.http = gor.setHttpCookie(req.http, "iam", "cuckoo")`
+* `deleteHttpCookie` - delete HTTP cookie, returns modified payload: `req.http = gor.deleteHttpCookie(req.http, "iam")`
 
 Also it is totally legit to use standard `Buffer` functions like `indexOf` for processing the HTTP payload. Just do not forget that if you modify the body, update the `Content-Length` header with a new value. And if you modify any of the headers, line endings should be `\r\n`. Rest is up to your imagination.
 

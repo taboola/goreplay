@@ -1,6 +1,6 @@
 {
   "name": "goreplay_middleware",
-  "version": "0.1.19",
+  "version": "1.0.0",
   "description": "Package for writing middleware for GoReplay https://goreplay.org",
   "main": "middleware.js",
   "scripts": {
