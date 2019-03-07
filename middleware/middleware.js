@@ -381,6 +381,13 @@ function setHttpCookie(payload, name, value) {
     return setHttpHeader(payload, "Cookie", cookies.join("; "))
 }
 
+function deleteHttpCookie(payload, name) {
+    let h = httpHeader(payload, "Cookie");
+    let cookie = h ? h.value : "";
+    let cookies = cookie.split("; ").filter(function(v){ return v.indexOf(name + "=") != 0 })
+    return setHttpHeader(payload, "Cookie", cookies.join("; "))
+}
+
 function httpCookie(payload, name) {
     let h = httpHeader(payload, "Cookie");
     let cookie = h ? h.value : "";
@@ -414,6 +421,7 @@ module.exports = {
     setHttpBodyParam: setHttpBodyParam,
     httpCookie: httpCookie,
     setHttpCookie: setHttpCookie,
+    deleteHttpCookie: deleteHttpCookie,
     test: testRunner,
     benchmark: testBenchmark,
     httpHeaders: httpHeaders
@@ -423,7 +431,7 @@ module.exports = {
 // =========== Tests ==============
 
 function testRunner(){
-    ["init", "filter", "parseMessage", "httpMethod", "httpPath", "setHttpHeader", "deleteHttpHeader", "httpPathParam", "httpHeader", "httpBody", "setHttpBody", "httpBodyParam", "httpCookie", "setHttpCookie", "httpHeaders"].forEach(function(t){
+    ["init", "filter", "parseMessage", "httpMethod", "httpPath", "setHttpHeader", "deleteHttpHeader", "httpPathParam", "httpHeader", "httpBody", "setHttpBody", "httpBodyParam", "httpCookie", "setHttpCookie", "deleteHttpCookie", "httpHeaders"].forEach(function(t){
         console.log(`====== Start ${t} =======`)
         eval(`TEST_${t}()`)
         console.log(`====== End ${t} =======`)
@@ -738,6 +746,15 @@ function TEST_setHttpCookie() {
         return fail(`Should add new cookie: ${p}`)
     }
 }
+
+function TEST_deleteHttpCookie() {
+    const examplePayload = "GET / HTTP/1.1\r\nCookie: a=b; test=zxc\r\n\r\n";
+    let p = deleteHttpCookie(Buffer.from(examplePayload), "a");
+    if (p != "GET / HTTP/1.1\r\nCookie: test=zxc\r\n\r\n") {
+        return fail(`Should delete cookie: ${p}`)
+    }
+}
+
 
 function TEST_httpHeaders() {
     const examplePayload = "GET / HTTP/1.1\r\nHost: localhost:3000\r\nUser-Agent: Node\r\nContent-Length:5\r\n\r\nhello";
