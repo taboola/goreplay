@@ -50,16 +50,16 @@ type AppSettings struct {
 	outputFile       MultiOption
 	outputFileConfig FileOutputConfig
 
-	inputRAW              MultiOption
-	inputRAWEngine        string
-	inputRAWTrackResponse bool
-	inputRAWRealIPHeader  string
-	inputRAWExpire        time.Duration
-	inputRAWBpfFilter     string
-	inputRAWTimestampType string
-	copyBufferSize        int
-	inputRAWImmediateMode bool
-	inputRawBufferSize    int
+	inputRAW                MultiOption
+	inputRAWEngine          string
+	inputRAWTrackResponse   bool
+	inputRAWRealIPHeader    string
+	inputRAWExpire          time.Duration
+	inputRAWBpfFilter       string
+	inputRAWTimestampType   string
+	copyBufferSize          int
+	inputRAWImmediateMode   bool
+	inputRawBufferSize      int
 	inputRAWOverrideSnapLen bool
 
 	middleware string
@@ -153,8 +153,9 @@ func init() {
 
 	flag.Var(&Settings.outputHTTP, "output-http", "Forwards incoming requests to given http address.\n\t# Redirect all incoming requests to staging.com address \n\tgor --input-raw :80 --output-http http://staging.com")
 	flag.IntVar(&Settings.outputHTTPConfig.BufferSize, "output-http-response-buffer", 0, "HTTP response buffer size, all data after this size will be discarded.")
+	flag.BoolVar(&Settings.outputHTTPConfig.CompatibilityMode, "output-http-compatibility-mode", false, "Use standard Go client, instead of built-in implementation. Can be slower, but more compatible.")
 
-  flag.IntVar(&Settings.outputHTTPConfig.workersMin, "output-http-workers-min", 0, "Gor uses dynamic worker scaling. Enter a number to set a minimum number of workers. default = 1.")
+	flag.IntVar(&Settings.outputHTTPConfig.workersMin, "output-http-workers-min", 0, "Gor uses dynamic worker scaling. Enter a number to set a minimum number of workers. default = 1.")
 	flag.IntVar(&Settings.outputHTTPConfig.workersMax, "output-http-workers", 0, "Gor uses dynamic worker scaling. Enter a number to set a maximum number of workers. default = 0 = unlimited.")
 	flag.IntVar(&Settings.outputHTTPConfig.queueLen, "output-http-queue-len", 1000, "Number of requests that can be queued for output, if all workers are busy. default = 1000")
 

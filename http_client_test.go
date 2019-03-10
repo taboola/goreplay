@@ -87,6 +87,25 @@ func TestHTTPClientSend(t *testing.T) {
 	client.Send(payload("POST"))
 
 	wg.Wait()
+
+	client = NewHTTPClient(server.URL, &HTTPClientConfig{Debug: true, CompatibilityMode: true})
+
+	wg.Add(4)
+
+	if _, err := client.Send(payload("POST")); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := client.Send(payload("GET")); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := client.Send(payload("POST_CHUNKED")); err != nil {
+		t.Fatal(err.Error())
+	}
+	if _, err := client.Send(payload("POST")); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	wg.Wait()
 }
 
 func TestHTTPClientResonseByClose(t *testing.T) {

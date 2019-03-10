@@ -25,15 +25,17 @@ type HTTPOutputConfig struct {
 	stats      bool
 	workersMin int
 	workersMax int
-	statsMs int
-	workers int
-	queueLen int
+	statsMs    int
+	workers    int
+	queueLen   int
 
 	elasticSearch string
 
 	Timeout      time.Duration
 	OriginalHost bool
 	BufferSize   int
+
+	CompatibilityMode bool
 
 	Debug bool
 
@@ -113,6 +115,7 @@ func (o *HTTPOutput) startWorker() {
 		OriginalHost:       o.config.OriginalHost,
 		Timeout:            o.config.Timeout,
 		ResponseBufferSize: o.config.BufferSize,
+		CompatibilityMode:  o.config.CompatibilityMode,
 	})
 
 	deathCount := 0

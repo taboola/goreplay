@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"runtime/debug"
 	"strconv"
@@ -41,6 +42,7 @@ type HTTPClientConfig struct {
 	ConnectionTimeout  time.Duration
 	Timeout            time.Duration
 	ResponseBufferSize int
+	CompatibilityMode  bool
 }
 
 type HTTPClient struct {
@@ -53,6 +55,7 @@ type HTTPClient struct {
 	proxyAuth      string
 	respBuf        []byte
 	config         *HTTPClientConfig
+	goClient       *http.Client
 	redirectsCount int
 }
 
@@ -79,6 +82,13 @@ func NewHTTPClient(baseURL string, config *HTTPClientConfig) *HTTPClient {
 	client.scheme = u.Scheme
 	client.respBuf = make([]byte, config.ResponseBufferSize)
 	client.config = config
+
+	if config.CompatibilityMode {
+		client.goClient = &http.Client{
+			// #TODO
+			// CheckRedirect: redirectPolicyFunc,
+		}
+	}
 
 	if u.User != nil {
 		client.auth = "Basic " + base64.StdEncoding.EncodeToString([]byte(u.User.String()))
@@ -194,6 +204,35 @@ func (c *HTTPClient) isAlive(readBytes *int) bool {
 	return true
 }
 
+func (c *HTTPClient) SendGoClient(data []byte) ([]byte, error) {
+	var req *http.Request
+	var resp *http.Response
+	var err error
+
+	req, err = http.ReadRequest(bufio.NewReader(bytes.NewBuffer(data)))
+	if err != nil {
+		return nil, err
+	}
+
+	if !c.config.OriginalHost {
+		req.Host = c.host
+	}
+
+	if c.auth != "" {
+		req.Header.Add("Authorization", c.auth)
+	}
+
+	req.URL, _ = url.ParseRequestURI(c.scheme + "://" + c.host + req.RequestURI)
+	req.RequestURI = ""
+
+	resp, err = c.goClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return httputil.DumpResponse(resp, true)
+}
+
 func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 	// Don't exit on panic
 	defer func() {
@@ -207,6 +246,10 @@ func (c *HTTPClient) Send(data []byte) (response []byte, err error) {
 			}
 		}
 	}()
+
+	if c.config.CompatibilityMode {
+		return c.SendGoClient(data)
+	}
 
 	var readBytes int
 	if c.conn == nil || !c.isAlive(&readBytes) {
