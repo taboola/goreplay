@@ -4,21 +4,18 @@
 
 ## https://goreplay.org/
 
-## We just released a new version, see announcement https://leonsbox.com/goreplay-v0-16-and-4th-anniversary-5408b1fd72e0
+GoReplay is an open-source network monitoring tool which can record your live traffic, and use it for shadowing, load testing, monitoring and detailed analysis.
 
 ## About
 
-GoReplay is the simplest and safest way to test your app using real traffic before you put it into production.
-
 As your application grows, the effort required to test it also grows exponentially. GoReplay offers you the simple idea of reusing your existing traffic for testing, which makes it incredibly powerful. Our state of art technique allows you to analyze and record your application traffic without affecting it. This eliminates the risks that come with putting a third party component in the critical path. 
 
-GoReplay increases your confidence in code deployments, configuration changes and infrastructure changes. Did we mention that no coding is required?
+GoReplay increases your confidence in code deployments, configuration and infrastructure changes.
 
 
+GoReplay offers unique approach for shadowing. Instead of being a proxy, GoReplay in background listen for traffic on your network interface, requiring no changes in your production infrastructure, rather then running GoReplay daemon on the same machine as your service.
 
-Here is basic workflow: The listener server catches http traffic and sends it to the replay server or saves to file. The replay server forwards traffic to a given address.
-
-![Diagram](http://i.imgur.com/9mqj2SK.png)
+![Diagram](https://i.imgur.com/IN2xfDm.png)
 
 Check [latest documentation](http://github.com/buger/goreplay/wiki).
 
@@ -31,6 +28,7 @@ The most basic setup will be `sudo ./gor --input-raw :8000 --output-stdout` whic
 If you already have test environment you can start replaying: `sudo ./gor --input-raw :8000 --output-http http://staging.env`.
 
 See the our [documentation](https://github.com/buger/goreplay/wiki/) and [Getting started](https://github.com/buger/goreplay/wiki/Getting-Started) page for more info. 
+
 ## Newsletter
 Subscribe to our [newsletter](https://www.getdrip.com/forms/89690474/submissions/new) to stay informed about the latest features and changes to Gor project.
 
