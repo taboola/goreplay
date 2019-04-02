@@ -93,3 +93,20 @@ replay:
 
 bash:
 	$(RUN) /bin/bash
+
+
+FPMCOMMON= \
+    --name goreplay \
+    --description "GoReplay is an open-source network monitoring tool which can record your live traffic, and use it for shadowing, load testing, monitoring and detailed analysis." \
+    -v $(VERSION) \
+    --vendor "Leonid Bugaev" \
+    -m "<support@goreplay.org>" \
+    --url "https://goreplay.org" \
+    -s dir \
+    -C /tmp/gor-build \
+
+build_packages:
+	mkdir -p /tmp/gor-build
+	go build -i -o /tmp/gor-build/gor
+	fpm $(FPMCOMMON) -a amd64 -t deb ./=/usr/local/bin
+	fpm $(FPMCOMMON) -a amd64 -t rpm ./=/usr/local/bin
