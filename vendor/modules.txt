@@ -1,0 +1,31 @@
+# github.com/Shopify/sarama v1.11.0
+github.com/Shopify/sarama
+github.com/Shopify/sarama/mocks
+# github.com/araddon/gou v0.0.0-20190110011759-c797efecbb61
+github.com/araddon/gou
+# github.com/bitly/go-hostpool v0.0.0-20171023180738-a3a6125de932
+github.com/bitly/go-hostpool
+# github.com/davecgh/go-spew v1.1.0
+github.com/davecgh/go-spew/spew
+# github.com/eapache/go-resiliency v0.0.0-20160104191539-b86b1ec0dd42
+github.com/eapache/go-resiliency/breaker
+# github.com/eapache/go-xerial-snappy v0.0.0-20160609142408-bb955e01b934
+github.com/eapache/go-xerial-snappy
+# github.com/eapache/queue v1.1.0
+github.com/eapache/queue
+# github.com/golang/snappy v0.0.0-20160529050041-d9eb7a3d35ec
+github.com/golang/snappy
+# github.com/google/gopacket v0.0.0-20190211013929-f86faeb88894
+github.com/google/gopacket
+github.com/google/gopacket/layers
+github.com/google/gopacket/pcap
+# github.com/klauspost/crc32 v0.0.0-20161016154125-cb6bfca970f6
+github.com/klauspost/crc32
+# github.com/mattbaird/elastigo v0.0.0-20170123220020-2fe47fd29e4b
+github.com/mattbaird/elastigo/lib
+# github.com/pierrec/lz4 v0.0.0-20161206202305-5c9560bfa9ac
+github.com/pierrec/lz4
+# github.com/pierrec/xxHash v0.0.0-20160112165351-5a004441f897
+github.com/pierrec/xxHash/xxHash32
+# github.com/rcrowley/go-metrics v0.0.0-20161128210544-1f30fe9094a5
+github.com/rcrowley/go-metrics
